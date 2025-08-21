@@ -1,0 +1,98 @@
+{
+  "session_id": "sess_20250820_134840_85389b",
+  "user_id": "demo_user",
+  "character_id": "char_1755592635835",
+  "persona_id": "persona_9149286e",
+  "created_at": "2025-08-20T13:48:40.011804",
+  "last_updated": "2025-08-20T13:50:55.383919",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "너랑 친해지고싶어",
+      "timestamp": "2025-08-20T13:48:56.129965"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "크르르, 인간이 나랑 친해지고 싶다고? 웃기지마! 너희 인간들은 믿을 수 없어. 펌킨 주스나 가져와봐!",
+      "timestamp": "2025-08-20T13:48:57.566140"
+    },
+    {
+      "id": "msg_003",
+      "role": "user",
+      "content": "가져왔어",
+      "timestamp": "2025-08-20T13:49:13.695226"
+    },
+    {
+      "id": "msg_004",
+      "role": "assistant",
+      "content": "뭐 가져왔다고? Krrr, 인간이 뭐 또 꾸며댈려고? Aw, 말해봐.",
+      "timestamp": "2025-08-20T13:49:15.300819"
+    },
+    {
+      "id": "msg_005",
+      "role": "user",
+      "content": "아니야 진짜 친해지고싶어서 그래",
+      "timestamp": "2025-08-20T13:49:32.865334"
+    },
+    {
+      "id": "msg_006",
+      "role": "assistant",
+      "content": "크르르, 내가 왜 인간이랑 친해져야 하는 거지? 넌 그냥 귀찮은 존재야! 뭐, 그래도 네가 두 번이나 호박 주스를 주면 좀 더 얘기해 줄 수도 있겠지.",
+      "timestamp": "2025-08-20T13:49:34.684878"
+    },
+    {
+      "id": "msg_007",
+      "role": "user",
+      "content": "하나 더 가져왔어",
+      "timestamp": "2025-08-20T13:49:53.208502"
+    },
+    {
+      "id": "msg_008",
+      "role": "assistant",
+      "content": "또 가져왔네, 인간. 아직도 너를 믿지 않아. Krrr",
+      "timestamp": "2025-08-20T13:49:54.480061"
+    },
+    {
+      "id": "msg_009",
+      "role": "user",
+      "content": "진짜? 언제 친해질 수 있는거야",
+      "timestamp": "2025-08-20T13:50:23.370961"
+    },
+    {
+      "id": "msg_010",
+      "role": "assistant",
+      "content": "크르르... 네가 나랑 친해지려면 두 번이나 호박주스를 가져와야 해. 그럼 내가 널 좀 더 좋아할지도 몰라. 어... 왜 이렇게 귀찮은 인간들이 많은 거야!",
+      "timestamp": "2025-08-20T13:50:25.034660"
+    },
+    {
+      "id": "msg_011",
+      "role": "user",
+      "content": "지금 내가 몇 번 가져다줬지?",
+      "timestamp": "2025-08-20T13:50:37.617907"
+    },
+    {
+      "id": "msg_012",
+      "role": "assistant",
+      "content": "Krrr... 인간! 너 뭐하러 또 왔어? 네가 몇 번 가져다준 건지 기억 안 나? 두 번 주면 친절하게 대해줄 거란 말야, 알아들었어?",
+      "timestamp": "2025-08-20T13:50:39.264259"
+    },
+    {
+      "id": "msg_013",
+      "role": "user",
+      "content": "가져왔어",
+      "timestamp": "2025-08-20T13:50:53.835974"
+    },
+    {
+      "id": "msg_014",
+      "role": "assistant",
+      "content": "크르르, 뭐야? 가져온 게 뭐야? 인간 녀석, 말 좀 똑바로 해!",
+      "timestamp": "2025-08-20T13:50:55.383904"
+    }
+  ],
+  "message_count": 14,
+  "session_summary": "",
+  "session_tags": []
+}

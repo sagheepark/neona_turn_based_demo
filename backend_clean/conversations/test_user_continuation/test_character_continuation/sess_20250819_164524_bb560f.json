@@ -1,0 +1,32 @@
+{
+  "session_id": "sess_20250819_164524_bb560f",
+  "user_id": "test_user_continuation",
+  "character_id": "test_character_continuation",
+  "persona_id": "test_persona_id",
+  "created_at": "2025-08-19T16:45:24.779861",
+  "last_updated": "2025-08-19T16:45:24.781105",
+  "status": "continued",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "Hello, this is my first message",
+      "timestamp": "2025-08-19T16:45:24.780265"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "Hello! Nice to meet you.",
+      "timestamp": "2025-08-19T16:45:24.780536"
+    },
+    {
+      "id": "msg_003",
+      "role": "user",
+      "content": "This is my second message after continuing",
+      "timestamp": "2025-08-19T16:45:24.781104"
+    }
+  ],
+  "message_count": 3,
+  "session_summary": "",
+  "session_tags": []
+}

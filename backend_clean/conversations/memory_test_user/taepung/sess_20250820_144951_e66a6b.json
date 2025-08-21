@@ -1,0 +1,38 @@
+{
+  "session_id": "sess_20250820_144951_e66a6b",
+  "user_id": "memory_test_user",
+  "character_id": "taepung",
+  "persona_id": null,
+  "created_at": "2025-08-20T14:49:51.089921",
+  "last_updated": "2025-08-20T14:49:55.832744",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "안녕하세요! 제 이름은 테스트유저이고 개발자입니다.",
+      "timestamp": "2025-08-20T14:49:51.091050"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "안녕하세요, 테스트유저님. 개발자라고 하셨군요. 어떤 분야의 개발을 하시나요?",
+      "timestamp": "2025-08-20T14:49:52.829024"
+    },
+    {
+      "id": "msg_003",
+      "role": "user",
+      "content": "제 이름과 직업을 기억하시나요?",
+      "timestamp": "2025-08-20T14:49:54.356195"
+    },
+    {
+      "id": "msg_004",
+      "role": "assistant",
+      "content": "네, 테스트유저님. 개발자라고 하셨죠. 혹시 기억력에 대해 의심을 가지셨나요?",
+      "timestamp": "2025-08-20T14:49:55.832730"
+    }
+  ],
+  "message_count": 4,
+  "session_summary": "",
+  "session_tags": []
+}

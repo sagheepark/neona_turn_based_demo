@@ -1,0 +1,20 @@
+{
+  "session_id": "sess_20250819_164519_9187d3",
+  "user_id": "test_user_audio_regression",
+  "character_id": "dr_python",
+  "persona_id": null,
+  "created_at": "2025-08-19T16:45:19.027104",
+  "last_updated": "2025-08-19T16:45:19.027350",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "assistant",
+      "content": "이것은 미리보기 테스트 메시지입니다",
+      "timestamp": "2025-08-19T16:45:19.027349"
+    }
+  ],
+  "message_count": 1,
+  "session_summary": "",
+  "session_tags": []
+}

@@ -1,0 +1,38 @@
+{
+  "session_id": "sess_20250818_215814_0be019",
+  "user_id": "demo_user",
+  "character_id": "dr_python",
+  "persona_id": "persona_9149286e",
+  "created_at": "2025-08-18T21:58:14.333381",
+  "last_updated": "2025-08-18T21:59:09.809171",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "Flask 가 뭔데 씹덕아",
+      "timestamp": "2025-08-18T21:58:14.340394"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "헉! 잼민아, Flask는 파이썬으로 웹사이트를 쉽게 만들 수 있게 해주는 도구야! 예를 들어, 웹페이지에 '안녕하세요!' 같은 메시지를 보여줄 수 있고, 계산기를 만들어서 숫자를 더하거나 곱하는 것도 할 수 있어. 너무 재미있지 않니? 좀 더 궁금한 게 있으면 언제든지 물어봐!",
+      "timestamp": "2025-08-18T21:58:16.252895"
+    },
+    {
+      "id": "msg_003",
+      "role": "user",
+      "content": "뭐라고",
+      "timestamp": "2025-08-18T21:59:08.201627"
+    },
+    {
+      "id": "msg_004",
+      "role": "assistant",
+      "content": "안녕! 코딩 배우고 싶구나? 재밌게 알려줄게! 뭐 궁금한 거 있어?",
+      "timestamp": "2025-08-18T21:59:09.809164"
+    }
+  ],
+  "message_count": 4,
+  "session_summary": "",
+  "session_tags": []
+}

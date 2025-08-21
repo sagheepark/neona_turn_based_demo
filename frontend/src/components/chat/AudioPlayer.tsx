@@ -65,6 +65,10 @@ export function AudioPlayer({
         audioUrl = URL.createObjectURL(blob)
         audio.src = audioUrl
         
+        // Ensure audio is not muted and volume is set
+        audio.muted = false
+        audio.volume = 0.8 // Set to 80% volume
+        
       } catch (decodeError) {
         console.error('AudioPlayer: Base64 decode error:', decodeError)
         throw decodeError

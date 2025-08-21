@@ -1,0 +1,38 @@
+{
+  "session_id": "sess_20250820_144959_69d3b8",
+  "user_id": "memory_test_user",
+  "character_id": "park_hyun",
+  "persona_id": null,
+  "created_at": "2025-08-20T14:49:59.677255",
+  "last_updated": "2025-08-20T14:50:05.042688",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "안녕하세요! 제 이름은 테스트유저이고 개발자입니다.",
+      "timestamp": "2025-08-20T14:49:59.678339"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "안녕하세요, 테스트유저님! 개발자라고 하셨군요. 혹시 최근에 불공정한 상황이나 억울했던 경험이 있으셨나요? 제가 대신 분노해드릴게요.",
+      "timestamp": "2025-08-20T14:50:01.060616"
+    },
+    {
+      "id": "msg_003",
+      "role": "user",
+      "content": "제 이름과 직업을 기억하시나요?",
+      "timestamp": "2025-08-20T14:50:03.147371"
+    },
+    {
+      "id": "msg_004",
+      "role": "assistant",
+      "content": "물론이죠, 테스트유저님! 개발자라고 하셨잖아요. 혹시 최근에 직장에서 억울하거나 불공정한 일을 겪으셨나요?",
+      "timestamp": "2025-08-20T14:50:05.042679"
+    }
+  ],
+  "message_count": 4,
+  "session_summary": "",
+  "session_tags": []
+}

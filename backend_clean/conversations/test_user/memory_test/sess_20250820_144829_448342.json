@@ -1,0 +1,38 @@
+{
+  "session_id": "sess_20250820_144829_448342",
+  "user_id": "test_user",
+  "character_id": "memory_test",
+  "persona_id": null,
+  "created_at": "2025-08-20T14:48:29.724850",
+  "last_updated": "2025-08-20T14:48:32.393381",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "제 이름은 김민수이고 개발자입니다",
+      "timestamp": "2025-08-20T14:48:29.725955"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "안녕하세요, 민수씨! 개발자로서 어떤 프로젝트를 진행 중이신가요?",
+      "timestamp": "2025-08-20T14:48:30.850592"
+    },
+    {
+      "id": "msg_003",
+      "role": "user",
+      "content": "제 이름과 직업을 기억하시나요?",
+      "timestamp": "2025-08-20T14:48:31.087316"
+    },
+    {
+      "id": "msg_004",
+      "role": "assistant",
+      "content": "네, 민수씨! 김민수 개발자님이시죠? 기억하고 있습니다.",
+      "timestamp": "2025-08-20T14:48:32.393367"
+    }
+  ],
+  "message_count": 4,
+  "session_summary": "",
+  "session_tags": []
+}

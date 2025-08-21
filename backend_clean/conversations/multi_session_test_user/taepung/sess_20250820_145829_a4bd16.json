@@ -1,0 +1,26 @@
+{
+  "session_id": "sess_20250820_145829_a4bd16",
+  "user_id": "multi_session_test_user",
+  "character_id": "taepung",
+  "persona_id": null,
+  "created_at": "2025-08-20T14:58:29.736720",
+  "last_updated": "2025-08-20T14:58:30.686117",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "안녕하세요! 저는 고양이를 좋아합니다.",
+      "timestamp": "2025-08-20T14:58:29.737617"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "안녕하세요! 고양이를 좋아하는 이유가 무엇인가요?",
+      "timestamp": "2025-08-20T14:58:30.686101"
+    }
+  ],
+  "message_count": 2,
+  "session_summary": "",
+  "session_tags": []
+}

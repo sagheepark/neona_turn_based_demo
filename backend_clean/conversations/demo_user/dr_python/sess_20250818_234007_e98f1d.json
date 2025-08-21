@@ -1,0 +1,38 @@
+{
+  "session_id": "sess_20250818_234007_e98f1d",
+  "user_id": "demo_user",
+  "character_id": "dr_python",
+  "persona_id": null,
+  "created_at": "2025-08-18T23:40:07.233320",
+  "last_updated": "2025-08-18T23:40:07.235318",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "첫 번째 질문",
+      "timestamp": "2025-08-18T23:40:07.233920"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "첫 번째 답변",
+      "timestamp": "2025-08-18T23:40:07.234443"
+    },
+    {
+      "id": "msg_003",
+      "role": "user",
+      "content": "두 번째 질문",
+      "timestamp": "2025-08-18T23:40:07.234902"
+    },
+    {
+      "id": "msg_004",
+      "role": "assistant",
+      "content": "두 번째 답변",
+      "timestamp": "2025-08-18T23:40:07.235316"
+    }
+  ],
+  "message_count": 4,
+  "session_summary": "",
+  "session_tags": []
+}

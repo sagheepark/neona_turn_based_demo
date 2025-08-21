@@ -1,0 +1,26 @@
+{
+  "session_id": "sess_20250820_145112_633232",
+  "user_id": "independence_test_user",
+  "character_id": "yoon_ahri",
+  "persona_id": null,
+  "created_at": "2025-08-20T14:51:12.312920",
+  "last_updated": "2025-08-20T14:51:13.677636",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "안녕하세요, 스트레스가 많아요.",
+      "timestamp": "2025-08-20T14:51:12.313539"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "안녕하세요. 많이 힘드셨겠어요. 어떤 일 때문에 스트레스를 받으셨는지 말씀해 주실 수 있으신가요?",
+      "timestamp": "2025-08-20T14:51:13.677624"
+    }
+  ],
+  "message_count": 2,
+  "session_summary": "",
+  "session_tags": []
+}

@@ -1,0 +1,26 @@
+{
+  "session_id": "sess_20250820_144832_6ec5a7",
+  "user_id": "test_user",
+  "character_id": "test_bot",
+  "persona_id": null,
+  "created_at": "2025-08-20T14:48:32.736873",
+  "last_updated": "2025-08-20T14:48:33.834565",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "간단한 인사를 해주세요",
+      "timestamp": "2025-08-20T14:48:32.737932"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "안녕하세요! 만나서 반갑습니다.",
+      "timestamp": "2025-08-20T14:48:33.834550"
+    }
+  ],
+  "message_count": 2,
+  "session_summary": "",
+  "session_tags": []
+}

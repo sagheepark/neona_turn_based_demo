@@ -1,0 +1,113 @@
+{
+  "character_id": "test_character_integration",
+  "knowledge_items": [
+    {
+      "title": "Character Personality",
+      "content": "This character is friendly and helpful",
+      "keywords": [
+        "personality",
+        "friendly",
+        "helpful"
+      ],
+      "category": "personality",
+      "id": "kb_32cead30",
+      "created_at": "2025-08-19T12:20:57.323267"
+    },
+    {
+      "title": "Character Background",
+      "content": "Experienced in customer service and support",
+      "keywords": [
+        "background",
+        "experience",
+        "support"
+      ],
+      "category": "background",
+      "id": "kb_f861d004",
+      "created_at": "2025-08-19T12:20:57.325027"
+    },
+    {
+      "title": "Character Skills",
+      "content": "Expert in problem-solving and communication",
+      "keywords": [
+        "skills",
+        "problem-solving",
+        "communication"
+      ],
+      "category": "skills",
+      "id": "kb_e397dc99",
+      "created_at": "2025-08-19T12:20:57.326798"
+    },
+    {
+      "title": "Character Personality",
+      "content": "This character is friendly and helpful",
+      "keywords": [
+        "personality",
+        "friendly",
+        "helpful"
+      ],
+      "category": "personality",
+      "id": "kb_2ae2abd9",
+      "created_at": "2025-08-19T12:32:47.907566"
+    },
+    {
+      "title": "Character Background",
+      "content": "Experienced in customer service and support",
+      "keywords": [
+        "background",
+        "experience",
+        "support"
+      ],
+      "category": "background",
+      "id": "kb_6f623025",
+      "created_at": "2025-08-19T12:32:47.909304"
+    },
+    {
+      "title": "Character Skills",
+      "content": "Expert in problem-solving and communication",
+      "keywords": [
+        "skills",
+        "problem-solving",
+        "communication"
+      ],
+      "category": "skills",
+      "id": "kb_d77e4cb7",
+      "created_at": "2025-08-19T12:32:47.910984"
+    },
+    {
+      "title": "Character Personality",
+      "content": "This character is friendly and helpful",
+      "keywords": [
+        "personality",
+        "friendly",
+        "helpful"
+      ],
+      "category": "personality",
+      "id": "kb_ebc4c41e",
+      "created_at": "2025-08-19T16:45:19.209027"
+    },
+    {
+      "title": "Character Background",
+      "content": "Experienced in customer service and support",
+      "keywords": [
+        "background",
+        "experience",
+        "support"
+      ],
+      "category": "background",
+      "id": "kb_7ab635dd",
+      "created_at": "2025-08-19T16:45:19.211407"
+    },
+    {
+      "title": "Character Skills",
+      "content": "Expert in problem-solving and communication",
+      "keywords": [
+        "skills",
+        "problem-solving",
+        "communication"
+      ],
+      "category": "skills",
+      "id": "kb_2eadeb07",
+      "created_at": "2025-08-19T16:45:19.214605"
+    }
+  ]
+}

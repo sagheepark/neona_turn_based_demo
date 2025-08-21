@@ -1,0 +1,20 @@
+{
+  "session_id": "sess_20250819_001927_7e8862",
+  "user_id": "demo_user",
+  "character_id": "dr_python",
+  "persona_id": "persona_9149286e",
+  "created_at": "2025-08-19T00:19:27.905908",
+  "last_updated": "2025-08-19T00:19:27.906471",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "파이썬 기초를 알려주세요",
+      "timestamp": "2025-08-19T00:19:27.906468"
+    }
+  ],
+  "message_count": 1,
+  "session_summary": "",
+  "session_tags": []
+}

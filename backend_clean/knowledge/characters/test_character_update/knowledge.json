@@ -1,0 +1,43 @@
+{
+  "character_id": "test_character_update",
+  "knowledge_items": [
+    {
+      "title": "Original API Test Knowledge",
+      "content": "Original testing content",
+      "keywords": [
+        "api",
+        "test",
+        "original"
+      ],
+      "category": "testing",
+      "id": "kb_b1a49f5c",
+      "created_at": "2025-08-19T12:16:59.616163"
+    },
+    {
+      "title": "Updated API Test Knowledge",
+      "content": "Updated content via API",
+      "keywords": [
+        "api",
+        "test",
+        "updated"
+      ],
+      "category": "testing",
+      "id": "kb_ae4d0b1c",
+      "created_at": "2025-08-19T12:18:29.470587",
+      "updated_at": "2025-08-19T12:18:29.472326"
+    },
+    {
+      "title": "Updated API Test Knowledge",
+      "content": "Updated content via API",
+      "keywords": [
+        "api",
+        "test",
+        "updated"
+      ],
+      "category": "testing",
+      "id": "kb_02f86643",
+      "created_at": "2025-08-19T16:45:19.243555",
+      "updated_at": "2025-08-19T16:45:19.245480"
+    }
+  ]
+}

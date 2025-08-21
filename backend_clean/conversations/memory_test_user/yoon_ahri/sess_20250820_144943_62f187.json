@@ -1,0 +1,38 @@
+{
+  "session_id": "sess_20250820_144943_62f187",
+  "user_id": "memory_test_user",
+  "character_id": "yoon_ahri",
+  "persona_id": null,
+  "created_at": "2025-08-20T14:49:43.844677",
+  "last_updated": "2025-08-20T14:49:47.553522",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "안녕하세요! 제 이름은 테스트유저이고 개발자입니다.",
+      "timestamp": "2025-08-20T14:49:43.845876"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "안녕하세요, 테스트유저님. 반갑습니다. 개발자로서 어떤 프로젝트를 진행 중이신가요?",
+      "timestamp": "2025-08-20T14:49:44.780914"
+    },
+    {
+      "id": "msg_003",
+      "role": "user",
+      "content": "제 이름과 직업을 기억하시나요?",
+      "timestamp": "2025-08-20T14:49:46.382659"
+    },
+    {
+      "id": "msg_004",
+      "role": "assistant",
+      "content": "네, 테스트유저님. 개발자이시죠? 어떤 프로젝트를 진행 중이신지 궁금하네요.",
+      "timestamp": "2025-08-20T14:49:47.553515"
+    }
+  ],
+  "message_count": 4,
+  "session_summary": "",
+  "session_tags": []
+}

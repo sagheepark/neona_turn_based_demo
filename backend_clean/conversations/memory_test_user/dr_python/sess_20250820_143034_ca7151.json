@@ -1,0 +1,50 @@
+{
+  "session_id": "sess_20250820_143034_ca7151",
+  "user_id": "memory_test_user",
+  "character_id": "dr_python",
+  "persona_id": null,
+  "created_at": "2025-08-20T14:30:34.014981",
+  "last_updated": "2025-08-20T14:30:39.803299",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "안녕하세요! 제 이름은 김철수입니다. 파이썬을 배우고 싶어요.",
+      "timestamp": "2025-08-20T14:30:34.016241"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "안녕하세요, 철수님! 파이썬 배우고 싶으시군요! 제가 도와드릴게요. 먼저 파이썬을 설치하셨나요?",
+      "timestamp": "2025-08-20T14:30:35.933840"
+    },
+    {
+      "id": "msg_003",
+      "role": "user",
+      "content": "저는 서울에 살고 있고, 대학생입니다. 데이터 분석에 관심이 많아요.",
+      "timestamp": "2025-08-20T14:30:36.896382"
+    },
+    {
+      "id": "msg_004",
+      "role": "assistant",
+      "content": "서울에 사시고 대학생이시군요! 데이터 분석에 관심이 많으시다니 정말 멋져요! 파이썬은 데이터 분석에 아주 유용한 도구예요. 어떤 부분부터 시작하고 싶으신가요?",
+      "timestamp": "2025-08-20T14:30:38.392839"
+    },
+    {
+      "id": "msg_005",
+      "role": "user",
+      "content": "제 이름과 관심분야를 기억하고 계시나요?",
+      "timestamp": "2025-08-20T14:30:38.693634"
+    },
+    {
+      "id": "msg_006",
+      "role": "assistant",
+      "content": "물론이죠, 철수님! 서울에 사시는 대학생이시고 데이터 분석에 관심이 많으시죠?",
+      "timestamp": "2025-08-20T14:30:39.803285"
+    }
+  ],
+  "message_count": 6,
+  "session_summary": "",
+  "session_tags": []
+}

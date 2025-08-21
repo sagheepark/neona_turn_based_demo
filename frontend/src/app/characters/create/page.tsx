@@ -7,27 +7,28 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Collapsible } from '@/components/ui/collapsible'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { CharacterStorage } from '@/lib/storage'
 import { Character } from '@/types/character'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Plus, X, MessageSquare, Brain, Settings } from 'lucide-react'
 import VoiceSelector from '@/components/characters/VoiceSelector'
 import VoiceRecommendation from '@/components/characters/VoiceRecommendation'
+import { KnowledgeManagementSection } from '@/components/knowledge'
 
 export default function CreateCharacterPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [knowledgeItems, setKnowledgeItems] = useState<any[]>([])
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     image: '',
-    voice_id: '',
-    personality: '',
-    speaking_style: '',
-    age: '',
-    gender: '',
-    role: '',
-    backstory: '',
-    scenario: ''
+    voice_id: 'default_voice_001',
+    prompt: '',
+    greetings: [''],
+    conversation_examples: ['']
   })
   
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -41,33 +42,14 @@ export default function CreateCharacterPage() {
     }
   }
   
-  const buildPrompt = () => {
-    let prompt = `<personality>${formData.personality}</personality>\n`
-    
-    if (formData.speaking_style) {
-      prompt += `<speaking_style>${formData.speaking_style}</speaking_style>\n`
-    }
-    if (formData.age) {
-      prompt += `<age>${formData.age}</age>\n`
-    }
-    if (formData.gender) {
-      prompt += `<gender>${formData.gender}</gender>\n`
-    }
-    if (formData.role) {
-      prompt += `<role>${formData.role}</role>\n`
-    }
-    if (formData.backstory) {
-      prompt += `<backstory>${formData.backstory}</backstory>\n`
-    }
-    if (formData.scenario) {
-      prompt += `<scenario>${formData.scenario}</scenario>\n`
-    }
-    
-    return prompt
-  }
-  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!formData.voice_id || formData.voice_id.trim() === '') {
+      alert('Please select a voice for your character.')
+      return
+    }
+    
     setLoading(true)
     
     try {
@@ -76,8 +58,10 @@ export default function CreateCharacterPage() {
         name: formData.name,
         description: formData.description,
         image: formData.image || '/characters/default.png',
-        prompt: buildPrompt(),
-        voice_id: formData.voice_id || '',
+        prompt: formData.prompt,
+        greetings: formData.greetings.filter(g => g.trim() !== ''),
+        conversation_examples: formData.conversation_examples.filter(ex => ex.trim() !== ''),
+        voice_id: formData.voice_id || 'default_voice_001',
         created_at: new Date(),
         updated_at: new Date()
       }
@@ -91,8 +75,42 @@ export default function CreateCharacterPage() {
     }
   }
   
+  const addGreeting = () => {
+    setFormData(prev => ({ ...prev, greetings: [...prev.greetings, ''] }))
+  }
+  
+  const removeGreeting = (index: number) => {
+    if (formData.greetings.length > 1) {
+      const newGreetings = formData.greetings.filter((_, i) => i !== index)
+      setFormData(prev => ({ ...prev, greetings: newGreetings }))
+    }
+  }
+  
+  const updateGreeting = (index: number, value: string) => {
+    const newGreetings = [...formData.greetings]
+    newGreetings[index] = value
+    setFormData(prev => ({ ...prev, greetings: newGreetings }))
+  }
+  
+  const addExample = () => {
+    setFormData(prev => ({ ...prev, conversation_examples: [...prev.conversation_examples, ''] }))
+  }
+  
+  const removeExample = (index: number) => {
+    if (formData.conversation_examples.length > 1) {
+      const newExamples = formData.conversation_examples.filter((_, i) => i !== index)
+      setFormData(prev => ({ ...prev, conversation_examples: newExamples }))
+    }
+  }
+  
+  const updateExample = (index: number, value: string) => {
+    const newExamples = [...formData.conversation_examples]
+    newExamples[index] = value
+    setFormData(prev => ({ ...prev, conversation_examples: newExamples }))
+  }
+  
   return (
-    <div className="container mx-auto p-4 max-w-2xl">
+    <div className="container mx-auto p-4 max-w-4xl">
       <div className="flex items-center gap-4 mb-6">
         <Button
           variant="ghost"
@@ -106,158 +124,233 @@ export default function CreateCharacterPage() {
       </div>
       
       <form onSubmit={handleSubmit} className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Basic Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="name">Character Name *</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                required
-                placeholder="e.g. Taylor"
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="description">Short Description *</Label>
-              <Input
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                required
-                placeholder="e.g. Friendly math tutor"
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="image">Character Image</Label>
-              <Input
-                id="image"
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-              />
-              {formData.image && (
-                <img 
-                  src={formData.image} 
-                  alt="Preview" 
-                  className="mt-2 w-32 h-32 object-cover rounded"
-                />
-              )}
-            </div>
-            
-            <div>
-              <Label htmlFor="voice_id">Voice Selection</Label>
-              <VoiceSelector
-                selectedVoiceId={formData.voice_id}
-                onSelect={(voiceId) => setFormData(prev => ({ ...prev, voice_id: voiceId }))}
-              />
-              <p className="text-sm text-gray-500 mt-1">
-                Select a voice for your character or leave empty for default
-              </p>
-              
-              {/* Voice Recommendation Button */}
-              <div className="mt-3">
+        <Tabs defaultValue="basic" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="basic" className="flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              Basic Info
+            </TabsTrigger>
+            <TabsTrigger value="prompt" className="flex items-center gap-2">
+              <MessageSquare className="w-4 h-4" />
+              Character
+            </TabsTrigger>
+            <TabsTrigger value="examples" className="flex items-center gap-2">
+              <MessageSquare className="w-4 h-4" />
+              Examples
+            </TabsTrigger>
+            <TabsTrigger value="knowledge" className="flex items-center gap-2">
+              <Brain className="w-4 h-4" />
+              Knowledge
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="basic" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Basic Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="name">Character Name *</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                      required
+                      placeholder="e.g. Taylor"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="voice_id">Voice Selection *</Label>
+                    <VoiceSelector
+                      selectedVoiceId={formData.voice_id}
+                      onSelect={(voiceId) => setFormData(prev => ({ ...prev, voice_id: voiceId }))}
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <Label htmlFor="description">Short Description *</Label>
+                  <Input
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    required
+                    placeholder="e.g. Friendly math tutor"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="image">Character Image</Label>
+                  <Input
+                    id="image"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                  />
+                  {formData.image && (
+                    <img 
+                      src={formData.image} 
+                      alt="Preview" 
+                      className="mt-2 w-32 h-32 object-cover rounded"
+                    />
+                  )}
+                </div>
+                
                 <VoiceRecommendation
                   characterName={formData.name}
                   characterDescription={formData.description}
-                  characterPersonality={formData.personality}
+                  characterPersonality={formData.prompt}
                   onSelectVoice={(voiceId) => setFormData(prev => ({ ...prev, voice_id: voiceId }))}
                   currentVoiceId={formData.voice_id}
                 />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Character Settings</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="personality">Personality & Traits *</Label>
-              <Textarea
-                id="personality"
-                value={formData.personality}
-                onChange={(e) => setFormData(prev => ({ ...prev, personality: e.target.value }))}
-                required
-                rows={4}
-                placeholder="Describe the character's personality, how they speak and behave..."
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="speaking_style">Speaking Style</Label>
-              <Input
-                id="speaking_style"
-                value={formData.speaking_style}
-                onChange={(e) => setFormData(prev => ({ ...prev, speaking_style: e.target.value }))}
-                placeholder="e.g. Uses casual speech, '~ya', '~ah' endings"
-              />
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="age">Age</Label>
-                <Input
-                  id="age"
-                  value={formData.age}
-                  onChange={(e) => setFormData(prev => ({ ...prev, age: e.target.value }))}
-                  placeholder="e.g. 25"
-                />
-              </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="prompt" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Character System Prompt</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div>
+                  <Label htmlFor="prompt">Complete Character Prompt *</Label>
+                  <Textarea
+                    id="prompt"
+                    value={formData.prompt}
+                    onChange={(e) => setFormData(prev => ({ ...prev, prompt: e.target.value }))}
+                    required
+                    rows={20}
+                    className="font-mono text-sm"
+                    placeholder={`Enter the complete character prompt with XML structure, e.g.:
+
+<persona>
+<basic_information>
+<character_name>Your Character Name</character_name>
+<gender>Male/Female</gender>
+<age>25</age>
+<role>Character Role</role>
+</basic_information>
+
+<narrative_psychology>
+<personality>Character personality traits and behavior...</personality>
+<speaking_style>How the character speaks and communicates...</speaking_style>
+<backstory>Character's background story...</backstory>
+<scenario>Context where conversations take place...</scenario>
+</narrative_psychology>
+</persona>
+
+You can use XML, JSON, or any structured format.`}
+                  />
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Create a comprehensive system prompt for your character. Use XML tags, JSON, or any structured format.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="examples" className="space-y-4">
+            <div className="space-y-4">
+              {/* Greetings Section */}
+              <Collapsible title="Initial Greetings" defaultOpen>
+                <ScrollArea className="h-80 pr-4">
+                  <div className="space-y-3">
+                    {formData.greetings.map((greeting, index) => (
+                      <div key={index} className="flex gap-2">
+                        <Textarea
+                          value={greeting}
+                          onChange={(e) => updateGreeting(index, e.target.value)}
+                          placeholder={`Greeting ${index + 1}`}
+                          rows={2}
+                          className="flex-1"
+                        />
+                        {formData.greetings.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() => removeGreeting(index)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addGreeting}
+                      className="w-full"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Greeting
+                    </Button>
+                  </div>
+                </ScrollArea>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Character will randomly select one greeting when starting a new chat.
+                </p>
+              </Collapsible>
               
-              <div>
-                <Label htmlFor="gender">Gender</Label>
-                <Input
-                  id="gender"
-                  value={formData.gender}
-                  onChange={(e) => setFormData(prev => ({ ...prev, gender: e.target.value }))}
-                  placeholder="e.g. Female"
-                />
-              </div>
+              {/* Conversation Examples Section */}
+              <Collapsible title="Conversation Examples" defaultOpen>
+                <ScrollArea className="h-80 pr-4">
+                  <div className="space-y-3">
+                    {formData.conversation_examples.map((example, index) => (
+                      <div key={index} className="flex gap-2">
+                        <Textarea
+                          value={example}
+                          onChange={(e) => updateExample(index, e.target.value)}
+                          placeholder={`Example ${index + 1}:\\nUser: [User message]\\n${formData.name || 'Character'}: [Character response]`}
+                          rows={4}
+                          className="flex-1 font-mono text-sm"
+                        />
+                        {formData.conversation_examples.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() => removeExample(index)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addExample}
+                      className="w-full"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Example
+                    </Button>
+                  </div>
+                </ScrollArea>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Example conversations demonstrating the character's speaking style and behavior.
+                </p>
+              </Collapsible>
             </div>
-            
-            <div>
-              <Label htmlFor="role">Role</Label>
-              <Input
-                id="role"
-                value={formData.role}
-                onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
-                placeholder="e.g. Math tutor"
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="backstory">Background Story</Label>
-              <Textarea
-                id="backstory"
-                value={formData.backstory}
-                onChange={(e) => setFormData(prev => ({ ...prev, backstory: e.target.value }))}
-                rows={3}
-                placeholder="Character's background story..."
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="scenario">Scenario/Context</Label>
-              <Textarea
-                id="scenario"
-                value={formData.scenario}
-                onChange={(e) => setFormData(prev => ({ ...prev, scenario: e.target.value }))}
-                rows={3}
-                placeholder="The situation where conversations take place..."
-              />
-            </div>
-          </CardContent>
-        </Card>
+          </TabsContent>
+          
+          <TabsContent value="knowledge" className="space-y-4">
+            <KnowledgeManagementSection
+              characterId={undefined}
+              knowledgeItems={knowledgeItems}
+              onKnowledgeChange={setKnowledgeItems}
+            />
+          </TabsContent>
+        </Tabs>
         
-        <div className="flex gap-4">
+        <div className="flex gap-4 pt-6 border-t">
           <Button type="submit" disabled={loading}>
             {loading ? 'Creating...' : 'Create Character'}
           </Button>

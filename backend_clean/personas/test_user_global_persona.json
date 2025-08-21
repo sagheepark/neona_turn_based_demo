@@ -1,0 +1,869 @@
+{
+  "personas": [
+    {
+      "id": "persona_695a0598",
+      "name": "글로벌 학생 페르소나",
+      "description": "모든 캐릭터에서 사용할 수 있는 학생 페르소나",
+      "attributes": {
+        "age": "22세",
+        "occupation": "대학생",
+        "name": "김민수",
+        "personality": "내향적, 학구적",
+        "interests": [
+          "독서",
+          "영화감상"
+        ],
+        "speaking_style": "존댓말 사용"
+      },
+      "created_at": "2025-08-18T22:52:42.724477",
+      "is_active": false
+    },
+    {
+      "id": "persona_a2212e32",
+      "name": "완전한 페르소나",
+      "description": "모든 필드를 가진 페르소나",
+      "attributes": {
+        "age": "25세",
+        "occupation": "개발자",
+        "name": "이철수",
+        "personality": "외향적, 적극적",
+        "interests": [
+          "게임",
+          "스포츠"
+        ],
+        "speaking_style": "반말 사용",
+        "background": "IT 회사 재직"
+      },
+      "created_at": "2025-08-18T22:52:42.725157",
+      "is_active": false
+    },
+    {
+      "id": "persona_eaba6eee",
+      "name": "사용자 페르소나",
+      "description": "학습자 페르소나",
+      "attributes": {
+        "age": "20세",
+        "occupation": "학생",
+        "name": "박학생",
+        "personality": "수줍고 조용한 성격",
+        "interests": [
+          "게임",
+          "음악"
+        ]
+      },
+      "created_at": "2025-08-18T22:52:42.741821",
+      "is_active": false
+    },
+    {
+      "id": "persona_45f593c6",
+      "name": "글로벌 학생 페르소나",
+      "description": "모든 캐릭터에서 사용할 수 있는 학생 페르소나",
+      "attributes": {
+        "age": "22세",
+        "occupation": "대학생",
+        "name": "김민수",
+        "personality": "내향적, 학구적",
+        "interests": [
+          "독서",
+          "영화감상"
+        ],
+        "speaking_style": "존댓말 사용"
+      },
+      "created_at": "2025-08-18T22:53:30.810973",
+      "is_active": false
+    },
+    {
+      "id": "persona_3bbfff9b",
+      "name": "완전한 페르소나",
+      "description": "모든 필드를 가진 페르소나",
+      "attributes": {
+        "age": "25세",
+        "occupation": "개발자",
+        "name": "이철수",
+        "personality": "외향적, 적극적",
+        "interests": [
+          "게임",
+          "스포츠"
+        ],
+        "speaking_style": "반말 사용",
+        "background": "IT 회사 재직"
+      },
+      "created_at": "2025-08-18T22:53:30.811751",
+      "is_active": false
+    },
+    {
+      "id": "persona_cd637976",
+      "name": "사용자 페르소나",
+      "description": "학습자 페르소나",
+      "attributes": {
+        "age": "20세",
+        "occupation": "학생",
+        "name": "박학생",
+        "personality": "수줍고 조용한 성격",
+        "interests": [
+          "게임",
+          "음악"
+        ]
+      },
+      "created_at": "2025-08-18T22:53:30.826638",
+      "is_active": false
+    },
+    {
+      "id": "persona_f8075e08",
+      "name": "글로벌 학생 페르소나",
+      "description": "모든 캐릭터에서 사용할 수 있는 학생 페르소나",
+      "attributes": {
+        "age": "22세",
+        "occupation": "대학생",
+        "name": "김민수",
+        "personality": "내향적, 학구적",
+        "interests": [
+          "독서",
+          "영화감상"
+        ],
+        "speaking_style": "존댓말 사용"
+      },
+      "created_at": "2025-08-18T22:54:00.265303",
+      "is_active": false
+    },
+    {
+      "id": "persona_67a21acd",
+      "name": "완전한 페르소나",
+      "description": "모든 필드를 가진 페르소나",
+      "attributes": {
+        "age": "25세",
+        "occupation": "개발자",
+        "name": "이철수",
+        "personality": "외향적, 적극적",
+        "interests": [
+          "게임",
+          "스포츠"
+        ],
+        "speaking_style": "반말 사용",
+        "background": "IT 회사 재직"
+      },
+      "created_at": "2025-08-18T22:54:00.266088",
+      "is_active": false
+    },
+    {
+      "id": "persona_2276fd71",
+      "name": "사용자 페르소나",
+      "description": "학습자 페르소나",
+      "attributes": {
+        "age": "20세",
+        "occupation": "학생",
+        "name": "박학생",
+        "personality": "수줍고 조용한 성격",
+        "interests": [
+          "게임",
+          "음악"
+        ]
+      },
+      "created_at": "2025-08-18T22:54:00.281720",
+      "is_active": false
+    },
+    {
+      "id": "persona_978aa842",
+      "name": "글로벌 학생 페르소나",
+      "description": "모든 캐릭터에서 사용할 수 있는 학생 페르소나",
+      "attributes": {
+        "age": "22세",
+        "occupation": "대학생",
+        "name": "김민수",
+        "personality": "내향적, 학구적",
+        "interests": [
+          "독서",
+          "영화감상"
+        ],
+        "speaking_style": "존댓말 사용"
+      },
+      "created_at": "2025-08-18T22:54:24.936535",
+      "is_active": false
+    },
+    {
+      "id": "persona_1632be0a",
+      "name": "완전한 페르소나",
+      "description": "모든 필드를 가진 페르소나",
+      "attributes": {
+        "age": "25세",
+        "occupation": "개발자",
+        "name": "이철수",
+        "personality": "외향적, 적극적",
+        "interests": [
+          "게임",
+          "스포츠"
+        ],
+        "speaking_style": "반말 사용",
+        "background": "IT 회사 재직"
+      },
+      "created_at": "2025-08-18T22:54:24.937602",
+      "is_active": false
+    },
+    {
+      "id": "persona_25c6be42",
+      "name": "사용자 페르소나",
+      "description": "학습자 페르소나",
+      "attributes": {
+        "age": "20세",
+        "occupation": "학생",
+        "name": "박학생",
+        "personality": "수줍고 조용한 성격",
+        "interests": [
+          "게임",
+          "음악"
+        ]
+      },
+      "created_at": "2025-08-18T22:54:24.938589",
+      "is_active": false
+    },
+    {
+      "id": "persona_e9ee0344",
+      "name": "글로벌 학생 페르소나",
+      "description": "모든 캐릭터에서 사용할 수 있는 학생 페르소나",
+      "attributes": {
+        "age": "22세",
+        "occupation": "대학생",
+        "name": "김민수",
+        "personality": "내향적, 학구적",
+        "interests": [
+          "독서",
+          "영화감상"
+        ],
+        "speaking_style": "존댓말 사용"
+      },
+      "created_at": "2025-08-18T22:54:29.454304",
+      "is_active": false
+    },
+    {
+      "id": "persona_67c65c3c",
+      "name": "완전한 페르소나",
+      "description": "모든 필드를 가진 페르소나",
+      "attributes": {
+        "age": "25세",
+        "occupation": "개발자",
+        "name": "이철수",
+        "personality": "외향적, 적극적",
+        "interests": [
+          "게임",
+          "스포츠"
+        ],
+        "speaking_style": "반말 사용",
+        "background": "IT 회사 재직"
+      },
+      "created_at": "2025-08-18T22:54:29.455476",
+      "is_active": false
+    },
+    {
+      "id": "persona_1b0d8cf9",
+      "name": "사용자 페르소나",
+      "description": "학습자 페르소나",
+      "attributes": {
+        "age": "20세",
+        "occupation": "학생",
+        "name": "박학생",
+        "personality": "수줍고 조용한 성격",
+        "interests": [
+          "게임",
+          "음악"
+        ]
+      },
+      "created_at": "2025-08-18T22:54:29.456560",
+      "is_active": false
+    },
+    {
+      "id": "persona_70a6ea46",
+      "name": "글로벌 학생 페르소나",
+      "description": "모든 캐릭터에서 사용할 수 있는 학생 페르소나",
+      "attributes": {
+        "age": "22세",
+        "occupation": "대학생",
+        "name": "김민수",
+        "personality": "내향적, 학구적",
+        "interests": [
+          "독서",
+          "영화감상"
+        ],
+        "speaking_style": "존댓말 사용"
+      },
+      "created_at": "2025-08-18T22:56:24.049900",
+      "is_active": false
+    },
+    {
+      "id": "persona_a582e413",
+      "name": "완전한 페르소나",
+      "description": "모든 필드를 가진 페르소나",
+      "attributes": {
+        "age": "25세",
+        "occupation": "개발자",
+        "name": "이철수",
+        "personality": "외향적, 적극적",
+        "interests": [
+          "게임",
+          "스포츠"
+        ],
+        "speaking_style": "반말 사용",
+        "background": "IT 회사 재직"
+      },
+      "created_at": "2025-08-18T22:56:24.051248",
+      "is_active": false
+    },
+    {
+      "id": "persona_329b541f",
+      "name": "사용자 페르소나",
+      "description": "학습자 페르소나",
+      "attributes": {
+        "age": "20세",
+        "occupation": "학생",
+        "name": "박학생",
+        "personality": "수줍고 조용한 성격",
+        "interests": [
+          "게임",
+          "음악"
+        ]
+      },
+      "created_at": "2025-08-18T22:56:24.052343",
+      "is_active": false
+    },
+    {
+      "id": "persona_85bf1d13",
+      "name": "글로벌 학생 페르소나",
+      "description": "모든 캐릭터에서 사용할 수 있는 학생 페르소나",
+      "attributes": {
+        "age": "22세",
+        "occupation": "대학생",
+        "name": "김민수",
+        "personality": "내향적, 학구적",
+        "interests": [
+          "독서",
+          "영화감상"
+        ],
+        "speaking_style": "존댓말 사용"
+      },
+      "created_at": "2025-08-18T22:56:28.664262",
+      "is_active": false
+    },
+    {
+      "id": "persona_8bf8756e",
+      "name": "완전한 페르소나",
+      "description": "모든 필드를 가진 페르소나",
+      "attributes": {
+        "age": "25세",
+        "occupation": "개발자",
+        "name": "이철수",
+        "personality": "외향적, 적극적",
+        "interests": [
+          "게임",
+          "스포츠"
+        ],
+        "speaking_style": "반말 사용",
+        "background": "IT 회사 재직"
+      },
+      "created_at": "2025-08-18T22:56:28.665528",
+      "is_active": false
+    },
+    {
+      "id": "persona_36983afd",
+      "name": "사용자 페르소나",
+      "description": "학습자 페르소나",
+      "attributes": {
+        "age": "20세",
+        "occupation": "학생",
+        "name": "박학생",
+        "personality": "수줍고 조용한 성격",
+        "interests": [
+          "게임",
+          "음악"
+        ]
+      },
+      "created_at": "2025-08-18T22:56:28.666744",
+      "is_active": false
+    },
+    {
+      "id": "persona_8725fa2b",
+      "name": "글로벌 학생 페르소나",
+      "description": "모든 캐릭터에서 사용할 수 있는 학생 페르소나",
+      "attributes": {
+        "age": "22세",
+        "occupation": "대학생",
+        "name": "김민수",
+        "personality": "내향적, 학구적",
+        "interests": [
+          "독서",
+          "영화감상"
+        ],
+        "speaking_style": "존댓말 사용"
+      },
+      "created_at": "2025-08-18T23:03:23.042701",
+      "is_active": false
+    },
+    {
+      "id": "persona_8779a66e",
+      "name": "완전한 페르소나",
+      "description": "모든 필드를 가진 페르소나",
+      "attributes": {
+        "age": "25세",
+        "occupation": "개발자",
+        "name": "이철수",
+        "personality": "외향적, 적극적",
+        "interests": [
+          "게임",
+          "스포츠"
+        ],
+        "speaking_style": "반말 사용",
+        "background": "IT 회사 재직"
+      },
+      "created_at": "2025-08-18T23:03:23.044303",
+      "is_active": false
+    },
+    {
+      "id": "persona_c539a360",
+      "name": "사용자 페르소나",
+      "description": "학습자 페르소나",
+      "attributes": {
+        "age": "20세",
+        "occupation": "학생",
+        "name": "박학생",
+        "personality": "수줍고 조용한 성격",
+        "interests": [
+          "게임",
+          "음악"
+        ]
+      },
+      "created_at": "2025-08-18T23:03:23.045536",
+      "is_active": false
+    },
+    {
+      "id": "persona_46fe99da",
+      "name": "글로벌 학생 페르소나",
+      "description": "모든 캐릭터에서 사용할 수 있는 학생 페르소나",
+      "attributes": {
+        "age": "22세",
+        "occupation": "대학생",
+        "name": "김민수",
+        "personality": "내향적, 학구적",
+        "interests": [
+          "독서",
+          "영화감상"
+        ],
+        "speaking_style": "존댓말 사용"
+      },
+      "created_at": "2025-08-18T23:05:12.437440",
+      "is_active": false
+    },
+    {
+      "id": "persona_7957169b",
+      "name": "완전한 페르소나",
+      "description": "모든 필드를 가진 페르소나",
+      "attributes": {
+        "age": "25세",
+        "occupation": "개발자",
+        "name": "이철수",
+        "personality": "외향적, 적극적",
+        "interests": [
+          "게임",
+          "스포츠"
+        ],
+        "speaking_style": "반말 사용",
+        "background": "IT 회사 재직"
+      },
+      "created_at": "2025-08-18T23:05:12.438979",
+      "is_active": false
+    },
+    {
+      "id": "persona_eef653ca",
+      "name": "사용자 페르소나",
+      "description": "학습자 페르소나",
+      "attributes": {
+        "age": "20세",
+        "occupation": "학생",
+        "name": "박학생",
+        "personality": "수줍고 조용한 성격",
+        "interests": [
+          "게임",
+          "음악"
+        ]
+      },
+      "created_at": "2025-08-18T23:05:12.440316",
+      "is_active": false
+    },
+    {
+      "id": "persona_bff27785",
+      "name": "글로벌 학생 페르소나",
+      "description": "모든 캐릭터에서 사용할 수 있는 학생 페르소나",
+      "attributes": {
+        "age": "22세",
+        "occupation": "대학생",
+        "name": "김민수",
+        "personality": "내향적, 학구적",
+        "interests": [
+          "독서",
+          "영화감상"
+        ],
+        "speaking_style": "존댓말 사용"
+      },
+      "created_at": "2025-08-18T23:10:14.486106",
+      "is_active": false
+    },
+    {
+      "id": "persona_30946a41",
+      "name": "완전한 페르소나",
+      "description": "모든 필드를 가진 페르소나",
+      "attributes": {
+        "age": "25세",
+        "occupation": "개발자",
+        "name": "이철수",
+        "personality": "외향적, 적극적",
+        "interests": [
+          "게임",
+          "스포츠"
+        ],
+        "speaking_style": "반말 사용",
+        "background": "IT 회사 재직"
+      },
+      "created_at": "2025-08-18T23:10:14.491301",
+      "is_active": false
+    },
+    {
+      "id": "persona_1b7477fd",
+      "name": "사용자 페르소나",
+      "description": "학습자 페르소나",
+      "attributes": {
+        "age": "20세",
+        "occupation": "학생",
+        "name": "박학생",
+        "personality": "수줍고 조용한 성격",
+        "interests": [
+          "게임",
+          "음악"
+        ]
+      },
+      "created_at": "2025-08-18T23:10:14.494970",
+      "is_active": false
+    },
+    {
+      "id": "persona_1b7cd63b",
+      "name": "글로벌 학생 페르소나",
+      "description": "모든 캐릭터에서 사용할 수 있는 학생 페르소나",
+      "attributes": {
+        "age": "22세",
+        "occupation": "대학생",
+        "name": "김민수",
+        "personality": "내향적, 학구적",
+        "interests": [
+          "독서",
+          "영화감상"
+        ],
+        "speaking_style": "존댓말 사용"
+      },
+      "created_at": "2025-08-18T23:22:22.620135",
+      "is_active": false
+    },
+    {
+      "id": "persona_ee1435ab",
+      "name": "완전한 페르소나",
+      "description": "모든 필드를 가진 페르소나",
+      "attributes": {
+        "age": "25세",
+        "occupation": "개발자",
+        "name": "이철수",
+        "personality": "외향적, 적극적",
+        "interests": [
+          "게임",
+          "스포츠"
+        ],
+        "speaking_style": "반말 사용",
+        "background": "IT 회사 재직"
+      },
+      "created_at": "2025-08-18T23:22:22.621939",
+      "is_active": false
+    },
+    {
+      "id": "persona_a93078ed",
+      "name": "사용자 페르소나",
+      "description": "학습자 페르소나",
+      "attributes": {
+        "age": "20세",
+        "occupation": "학생",
+        "name": "박학생",
+        "personality": "수줍고 조용한 성격",
+        "interests": [
+          "게임",
+          "음악"
+        ]
+      },
+      "created_at": "2025-08-18T23:22:22.623609",
+      "is_active": false
+    },
+    {
+      "id": "persona_df965763",
+      "name": "글로벌 학생 페르소나",
+      "description": "모든 캐릭터에서 사용할 수 있는 학생 페르소나",
+      "attributes": {
+        "age": "22세",
+        "occupation": "대학생",
+        "name": "김민수",
+        "personality": "내향적, 학구적",
+        "interests": [
+          "독서",
+          "영화감상"
+        ],
+        "speaking_style": "존댓말 사용"
+      },
+      "created_at": "2025-08-18T23:40:12.618760",
+      "is_active": false
+    },
+    {
+      "id": "persona_4fd88105",
+      "name": "완전한 페르소나",
+      "description": "모든 필드를 가진 페르소나",
+      "attributes": {
+        "age": "25세",
+        "occupation": "개발자",
+        "name": "이철수",
+        "personality": "외향적, 적극적",
+        "interests": [
+          "게임",
+          "스포츠"
+        ],
+        "speaking_style": "반말 사용",
+        "background": "IT 회사 재직"
+      },
+      "created_at": "2025-08-18T23:40:12.620513",
+      "is_active": false
+    },
+    {
+      "id": "persona_c75d68b2",
+      "name": "사용자 페르소나",
+      "description": "학습자 페르소나",
+      "attributes": {
+        "age": "20세",
+        "occupation": "학생",
+        "name": "박학생",
+        "personality": "수줍고 조용한 성격",
+        "interests": [
+          "게임",
+          "음악"
+        ]
+      },
+      "created_at": "2025-08-18T23:40:12.622095",
+      "is_active": false
+    },
+    {
+      "id": "persona_8ef9eb43",
+      "name": "글로벌 학생 페르소나",
+      "description": "모든 캐릭터에서 사용할 수 있는 학생 페르소나",
+      "attributes": {
+        "age": "22세",
+        "occupation": "대학생",
+        "name": "김민수",
+        "personality": "내향적, 학구적",
+        "interests": [
+          "독서",
+          "영화감상"
+        ],
+        "speaking_style": "존댓말 사용"
+      },
+      "created_at": "2025-08-19T00:18:02.078492",
+      "is_active": false
+    },
+    {
+      "id": "persona_1d8bb5e8",
+      "name": "완전한 페르소나",
+      "description": "모든 필드를 가진 페르소나",
+      "attributes": {
+        "age": "25세",
+        "occupation": "개발자",
+        "name": "이철수",
+        "personality": "외향적, 적극적",
+        "interests": [
+          "게임",
+          "스포츠"
+        ],
+        "speaking_style": "반말 사용",
+        "background": "IT 회사 재직"
+      },
+      "created_at": "2025-08-19T00:18:02.081774",
+      "is_active": false
+    },
+    {
+      "id": "persona_71a4fc41",
+      "name": "사용자 페르소나",
+      "description": "학습자 페르소나",
+      "attributes": {
+        "age": "20세",
+        "occupation": "학생",
+        "name": "박학생",
+        "personality": "수줍고 조용한 성격",
+        "interests": [
+          "게임",
+          "음악"
+        ]
+      },
+      "created_at": "2025-08-19T00:18:02.083481",
+      "is_active": false
+    },
+    {
+      "id": "persona_19f9693a",
+      "name": "글로벌 학생 페르소나",
+      "description": "모든 캐릭터에서 사용할 수 있는 학생 페르소나",
+      "attributes": {
+        "age": "22세",
+        "occupation": "대학생",
+        "name": "김민수",
+        "personality": "내향적, 학구적",
+        "interests": [
+          "독서",
+          "영화감상"
+        ],
+        "speaking_style": "존댓말 사용"
+      },
+      "created_at": "2025-08-19T00:19:27.885735",
+      "is_active": false
+    },
+    {
+      "id": "persona_90a699d3",
+      "name": "완전한 페르소나",
+      "description": "모든 필드를 가진 페르소나",
+      "attributes": {
+        "age": "25세",
+        "occupation": "개발자",
+        "name": "이철수",
+        "personality": "외향적, 적극적",
+        "interests": [
+          "게임",
+          "스포츠"
+        ],
+        "speaking_style": "반말 사용",
+        "background": "IT 회사 재직"
+      },
+      "created_at": "2025-08-19T00:19:27.887633",
+      "is_active": false
+    },
+    {
+      "id": "persona_e8b4199e",
+      "name": "사용자 페르소나",
+      "description": "학습자 페르소나",
+      "attributes": {
+        "age": "20세",
+        "occupation": "학생",
+        "name": "박학생",
+        "personality": "수줍고 조용한 성격",
+        "interests": [
+          "게임",
+          "음악"
+        ]
+      },
+      "created_at": "2025-08-19T00:19:27.889943",
+      "is_active": false
+    },
+    {
+      "id": "persona_61f12af4",
+      "name": "글로벌 학생 페르소나",
+      "description": "모든 캐릭터에서 사용할 수 있는 학생 페르소나",
+      "attributes": {
+        "age": "22세",
+        "occupation": "대학생",
+        "name": "김민수",
+        "personality": "내향적, 학구적",
+        "interests": [
+          "독서",
+          "영화감상"
+        ],
+        "speaking_style": "존댓말 사용"
+      },
+      "created_at": "2025-08-19T12:15:46.404951",
+      "is_active": false
+    },
+    {
+      "id": "persona_8d1859ba",
+      "name": "완전한 페르소나",
+      "description": "모든 필드를 가진 페르소나",
+      "attributes": {
+        "age": "25세",
+        "occupation": "개발자",
+        "name": "이철수",
+        "personality": "외향적, 적극적",
+        "interests": [
+          "게임",
+          "스포츠"
+        ],
+        "speaking_style": "반말 사용",
+        "background": "IT 회사 재직"
+      },
+      "created_at": "2025-08-19T12:15:46.407194",
+      "is_active": false
+    },
+    {
+      "id": "persona_d95405eb",
+      "name": "사용자 페르소나",
+      "description": "학습자 페르소나",
+      "attributes": {
+        "age": "20세",
+        "occupation": "학생",
+        "name": "박학생",
+        "personality": "수줍고 조용한 성격",
+        "interests": [
+          "게임",
+          "음악"
+        ]
+      },
+      "created_at": "2025-08-19T12:15:46.409062",
+      "is_active": false
+    },
+    {
+      "id": "persona_f14c812d",
+      "name": "글로벌 학생 페르소나",
+      "description": "모든 캐릭터에서 사용할 수 있는 학생 페르소나",
+      "attributes": {
+        "age": "22세",
+        "occupation": "대학생",
+        "name": "김민수",
+        "personality": "내향적, 학구적",
+        "interests": [
+          "독서",
+          "영화감상"
+        ],
+        "speaking_style": "존댓말 사용"
+      },
+      "created_at": "2025-08-19T16:45:24.769394",
+      "is_active": false
+    },
+    {
+      "id": "persona_6c8e8062",
+      "name": "완전한 페르소나",
+      "description": "모든 필드를 가진 페르소나",
+      "attributes": {
+        "age": "25세",
+        "occupation": "개발자",
+        "name": "이철수",
+        "personality": "외향적, 적극적",
+        "interests": [
+          "게임",
+          "스포츠"
+        ],
+        "speaking_style": "반말 사용",
+        "background": "IT 회사 재직"
+      },
+      "created_at": "2025-08-19T16:45:24.771740",
+      "is_active": false
+    },
+    {
+      "id": "persona_3b6208f5",
+      "name": "사용자 페르소나",
+      "description": "학습자 페르소나",
+      "attributes": {
+        "age": "20세",
+        "occupation": "학생",
+        "name": "박학생",
+        "personality": "수줍고 조용한 성격",
+        "interests": [
+          "게임",
+          "음악"
+        ]
+      },
+      "created_at": "2025-08-19T16:45:24.773679",
+      "is_active": true
+    }
+  ],
+  "active_persona_id": "persona_3b6208f5"
+}

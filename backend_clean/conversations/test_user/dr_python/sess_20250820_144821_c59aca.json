@@ -1,0 +1,26 @@
+{
+  "session_id": "sess_20250820_144821_c59aca",
+  "user_id": "test_user",
+  "character_id": "dr_python",
+  "persona_id": null,
+  "created_at": "2025-08-20T14:48:21.298567",
+  "last_updated": "2025-08-20T14:48:23.238726",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "안녕하세요! 파이썬을 배우고 싶어요.",
+      "timestamp": "2025-08-20T14:48:21.299629"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "안녕하세요! 파이썬을 배우고 싶으시군요. 어디서부터 시작하고 싶으신가요? 기본 문법부터 배우는 것도 좋을 것 같아요!",
+      "timestamp": "2025-08-20T14:48:23.238719"
+    }
+  ],
+  "message_count": 2,
+  "session_summary": "",
+  "session_tags": []
+}

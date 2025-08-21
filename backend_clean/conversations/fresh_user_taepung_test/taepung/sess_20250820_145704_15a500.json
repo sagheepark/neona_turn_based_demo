@@ -1,0 +1,26 @@
+{
+  "session_id": "sess_20250820_145704_15a500",
+  "user_id": "fresh_user_taepung_test",
+  "character_id": "taepung",
+  "persona_id": null,
+  "created_at": "2025-08-20T14:57:04.821802",
+  "last_updated": "2025-08-20T14:57:06.100921",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "안녕하세요!",
+      "timestamp": "2025-08-20T14:57:04.822750"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "안녕하세요! 어떤 주제로 논의하고 싶으신가요? 저는 어떤 주제든 논리적으로 다룰 준비가 되어 있습니다.",
+      "timestamp": "2025-08-20T14:57:06.100906"
+    }
+  ],
+  "message_count": 2,
+  "session_summary": "",
+  "session_tags": []
+}

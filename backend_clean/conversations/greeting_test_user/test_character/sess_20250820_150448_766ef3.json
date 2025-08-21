@@ -1,0 +1,50 @@
+{
+  "session_id": "sess_20250820_150448_766ef3",
+  "user_id": "greeting_test_user",
+  "character_id": "test_character",
+  "persona_id": null,
+  "created_at": "2025-08-20T15:04:48.250238",
+  "last_updated": "2025-08-20T15:04:52.941414",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "안녕하세요!",
+      "timestamp": "2025-08-20T15:04:48.251347"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "안녕하세요! 만나서 반가워요. 오늘 어떻게 도와드릴까요?",
+      "timestamp": "2025-08-20T15:04:49.867925"
+    },
+    {
+      "id": "msg_003",
+      "role": "user",
+      "content": "제 이름은 김철수이고 학생입니다.",
+      "timestamp": "2025-08-20T15:04:50.084225"
+    },
+    {
+      "id": "msg_004",
+      "role": "assistant",
+      "content": "반가워요, 김철수 학생! 어떤 과목을 공부하고 계신가요?",
+      "timestamp": "2025-08-20T15:04:51.242149"
+    },
+    {
+      "id": "msg_005",
+      "role": "user",
+      "content": "안녕하세요!",
+      "timestamp": "2025-08-20T15:04:51.424681"
+    },
+    {
+      "id": "msg_006",
+      "role": "assistant",
+      "content": "안녕하세요, 김철수 학생! 다시 만나서 반가워요. 오늘은 어떤 도움이 필요하신가요?",
+      "timestamp": "2025-08-20T15:04:52.941399"
+    }
+  ],
+  "message_count": 6,
+  "session_summary": "",
+  "session_tags": []
+}

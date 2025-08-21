@@ -1,0 +1,20 @@
+{
+  "session_id": "sess_20250818_151752_3a8402",
+  "user_id": "test_user",
+  "character_id": "dr_python",
+  "persona_id": "persona_2e70323a",
+  "created_at": "2025-08-18T15:17:52.631163",
+  "last_updated": "2025-08-18T15:32:19.073371",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "Python 변수가 뭔가요?",
+      "timestamp": "2025-08-18T15:32:19.073363"
+    }
+  ],
+  "message_count": 1,
+  "session_summary": "",
+  "session_tags": []
+}

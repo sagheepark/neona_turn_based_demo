@@ -1,0 +1,24 @@
+{
+  "default": {
+    "image": "/images/dr_python_default.png",
+    "description": "Normal conversational state"
+  },
+  "teaching": {
+    "image": "/images/dr_python_teaching.png",
+    "trigger_keywords": [
+      "explain",
+      "variables",
+      "functions"
+    ],
+    "description": "When explaining concepts"
+  },
+  "encouraging": {
+    "image": "/images/dr_python_happy.png",
+    "trigger_keywords": [
+      "good",
+      "excellent",
+      "correct"
+    ],
+    "description": "When praising"
+  }
+}

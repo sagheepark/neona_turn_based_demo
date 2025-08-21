@@ -1,0 +1,22 @@
+{
+  "personas": [
+    {
+      "id": "persona_9149286e",
+      "name": "잼민이",
+      "description": "코딩 처음 배움",
+      "attributes": {
+        "age": "10살",
+        "occupation": "초등학생",
+        "personality": "바보임",
+        "interests": [
+          "프로그래밍"
+        ],
+        "speaking_style": "친근하게",
+        "background": ""
+      },
+      "created_at": "2025-08-18T15:55:33.767173",
+      "is_active": true
+    }
+  ],
+  "active_persona_id": "persona_9149286e"
+}

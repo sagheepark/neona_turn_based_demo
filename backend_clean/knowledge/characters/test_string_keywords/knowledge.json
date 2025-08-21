@@ -1,0 +1,18 @@
+{
+  "character_id": "test_string_keywords",
+  "knowledge_items": [
+    {
+      "title": "String Keywords Test",
+      "content": "Testing comma-separated string keywords",
+      "keywords": [
+        "python",
+        "programming",
+        "variables",
+        "data types"
+      ],
+      "category": "testing",
+      "id": "kb_7dc0068d",
+      "created_at": "2025-08-19T12:22:14.974880"
+    }
+  ]
+}

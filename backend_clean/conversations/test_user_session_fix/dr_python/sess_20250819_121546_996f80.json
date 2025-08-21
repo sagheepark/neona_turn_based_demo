@@ -1,0 +1,26 @@
+{
+  "session_id": "sess_20250819_121546_996f80",
+  "user_id": "test_user_session_fix",
+  "character_id": "dr_python",
+  "persona_id": null,
+  "created_at": "2025-08-19T12:15:46.440700",
+  "last_updated": "2025-08-19T12:15:46.441989",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "안녕하세요",
+      "timestamp": "2025-08-19T12:15:46.441430"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "안녕하세요! 파이썬에 대해 궁금한 것이 있으시면 언제든 물어보세요!",
+      "timestamp": "2025-08-19T12:15:46.441987"
+    }
+  ],
+  "message_count": 2,
+  "session_summary": "",
+  "session_tags": []
+}

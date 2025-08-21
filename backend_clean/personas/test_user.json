@@ -1,0 +1,18 @@
+{
+  "personas": [
+    {
+      "id": "persona_2e70323a",
+      "name": "초보 개발자",
+      "description": "Python을 처음 배우는 학생",
+      "attributes": {
+        "age": "22세",
+        "occupation": "대학생",
+        "personality": "호기심 많음",
+        "speaking_style": "존댓말"
+      },
+      "created_at": "2025-08-18T15:17:41.986991",
+      "is_active": false
+    }
+  ],
+  "active_persona_id": null
+}

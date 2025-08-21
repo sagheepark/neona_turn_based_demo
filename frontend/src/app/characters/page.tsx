@@ -5,12 +5,18 @@ import { Plus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { CharacterCard } from '@/components/characters/CharacterCard'
+import { PersonaManagementModal } from '@/components/characters/PersonaManagementModal'
 import { CharacterStorage } from '@/lib/storage'
 import { Character } from '@/types/character'
+import { KnowledgeManagementSection } from '@/components/knowledge/KnowledgeManagementSection'
+import { ApiClient } from '@/lib/api-client'
 
 export default function CharactersPage() {
   const [characters, setCharacters] = useState<Character[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedCharacterForPersona, setSelectedCharacterForPersona] = useState<Character | null>(null)
+  const [editingCharacter, setEditingCharacter] = useState<Character | null>(null)
+  const [knowledgeItems, setKnowledgeItems] = useState<any[]>([])
   const router = useRouter()
   
   useEffect(() => {
@@ -21,6 +27,40 @@ export default function CharactersPage() {
     }
     loadCharacters()
   }, [])
+
+  const getCharacterKnowledge = async (characterId: string) => {
+    try {
+      const knowledge = await ApiClient.getCharacterKnowledge(characterId)
+      setKnowledgeItems(knowledge)
+    } catch (error) {
+      console.error('Failed to fetch character knowledge:', error)
+      setKnowledgeItems([])
+    }
+  }
+
+  const handleKnowledgeChange = async (items: any[]) => {
+    setKnowledgeItems(items)
+    if (editingCharacter) {
+      // Save knowledge items for the character
+      for (const item of items) {
+        if (item.id?.startsWith('temp_')) {
+          // Create new item
+          await createKnowledgeItem(editingCharacter.id, item)
+        } else {
+          // Update existing item
+          await ApiClient.updateKnowledgeItem(item.id, editingCharacter.id, item)
+        }
+      }
+    }
+  }
+
+  const createKnowledgeItem = async (characterId: string, item: any) => {
+    try {
+      await ApiClient.createKnowledgeItem(characterId, item)
+    } catch (error) {
+      console.error('Failed to create knowledge item:', error)
+    }
+  }
   
   if (loading) {
     return (
@@ -50,6 +90,7 @@ export default function CharactersPage() {
               CharacterStorage.delete(character.id)
               setCharacters(CharacterStorage.getAll())
             }}
+            onPersona={() => setSelectedCharacterForPersona(character)}
           />
         ))}
         
@@ -63,6 +104,15 @@ export default function CharactersPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Persona Management Modal */}
+      {selectedCharacterForPersona && (
+        <PersonaManagementModal
+          isOpen={!!selectedCharacterForPersona}
+          onClose={() => setSelectedCharacterForPersona(null)}
+          character={selectedCharacterForPersona}
+        />
+      )}
     </div>
   )
 }

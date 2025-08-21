@@ -1,0 +1,26 @@
+{
+  "session_id": "sess_20250818_222500_b5d5ba",
+  "user_id": "test_char_identity",
+  "character_id": "taepung",
+  "persona_id": "default",
+  "created_at": "2025-08-18T22:25:00.156043",
+  "last_updated": "2025-08-18T22:25:07.214671",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "당신은 누구십니까?",
+      "timestamp": "2025-08-18T22:25:05.833800"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "안녕하세요! 저는 도와드리는 AI 어시스턴트 태풍입니다. 무엇을 도와드릴까요?",
+      "timestamp": "2025-08-18T22:25:07.214656"
+    }
+  ],
+  "message_count": 2,
+  "session_summary": "",
+  "session_tags": []
+}

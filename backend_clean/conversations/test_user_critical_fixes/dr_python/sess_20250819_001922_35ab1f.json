@@ -1,0 +1,20 @@
+{
+  "session_id": "sess_20250819_001922_35ab1f",
+  "user_id": "test_user_critical_fixes",
+  "character_id": "dr_python",
+  "persona_id": "default",
+  "created_at": "2025-08-19T00:19:22.479408",
+  "last_updated": "2025-08-19T00:19:22.479822",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "assistant",
+      "content": "안녕하세요! 저는 파이썬 튜터입니다.",
+      "timestamp": "2025-08-19T00:19:22.479821"
+    }
+  ],
+  "message_count": 1,
+  "session_summary": "",
+  "session_tags": []
+}

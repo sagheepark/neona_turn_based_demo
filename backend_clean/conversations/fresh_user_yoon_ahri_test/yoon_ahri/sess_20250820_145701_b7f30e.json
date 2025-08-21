@@ -1,0 +1,26 @@
+{
+  "session_id": "sess_20250820_145701_b7f30e",
+  "user_id": "fresh_user_yoon_ahri_test",
+  "character_id": "yoon_ahri",
+  "persona_id": null,
+  "created_at": "2025-08-20T14:57:01.294847",
+  "last_updated": "2025-08-20T14:57:03.186922",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "안녕하세요!",
+      "timestamp": "2025-08-20T14:57:01.295425"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "안녕하세요! 오늘은 어떤 일로 오셨나요? 마음속에 담아두신 이야기를 편하게 나눠주시면 좋겠어요.",
+      "timestamp": "2025-08-20T14:57:03.186916"
+    }
+  ],
+  "message_count": 2,
+  "session_summary": "",
+  "session_tags": []
+}

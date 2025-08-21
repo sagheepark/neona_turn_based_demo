@@ -1,0 +1,50 @@
+{
+  "session_id": "sess_20250819_180452_bf0424",
+  "user_id": "demo_user",
+  "character_id": "dr_python",
+  "persona_id": null,
+  "created_at": "2025-08-19T18:04:52.203021",
+  "last_updated": "2025-08-19T18:04:52.206167",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "Question 1 about Python",
+      "timestamp": "2025-08-19T18:04:52.203718"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "Answer 1 about Python concepts",
+      "timestamp": "2025-08-19T18:04:52.204226"
+    },
+    {
+      "id": "msg_003",
+      "role": "user",
+      "content": "Question 2 about Python",
+      "timestamp": "2025-08-19T18:04:52.204708"
+    },
+    {
+      "id": "msg_004",
+      "role": "assistant",
+      "content": "Answer 2 about Python concepts",
+      "timestamp": "2025-08-19T18:04:52.205188"
+    },
+    {
+      "id": "msg_005",
+      "role": "user",
+      "content": "Question 3 about Python",
+      "timestamp": "2025-08-19T18:04:52.205678"
+    },
+    {
+      "id": "msg_006",
+      "role": "assistant",
+      "content": "Answer 3 about Python concepts",
+      "timestamp": "2025-08-19T18:04:52.206166"
+    }
+  ],
+  "message_count": 6,
+  "session_summary": "",
+  "session_tags": []
+}

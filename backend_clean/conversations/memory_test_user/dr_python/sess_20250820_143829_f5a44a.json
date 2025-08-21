@@ -1,0 +1,50 @@
+{
+  "session_id": "sess_20250820_143829_f5a44a",
+  "user_id": "memory_test_user",
+  "character_id": "dr_python",
+  "persona_id": null,
+  "created_at": "2025-08-20T14:38:29.406577",
+  "last_updated": "2025-08-20T14:38:30.441922",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "안녕하세요! 제 이름은 김철수입니다. 파이썬을 배우고 싶어요.",
+      "timestamp": "2025-08-20T14:38:29.407602"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "죄송합니다. 응답을 생성하는 중에 오류가 발생했습니다.",
+      "timestamp": "2025-08-20T14:38:29.409838"
+    },
+    {
+      "id": "msg_003",
+      "role": "user",
+      "content": "저는 서울에 살고 있고, 대학생입니다. 데이터 분석에 관심이 많아요.",
+      "timestamp": "2025-08-20T14:38:30.105200"
+    },
+    {
+      "id": "msg_004",
+      "role": "assistant",
+      "content": "죄송합니다. 응답을 생성하는 중에 오류가 발생했습니다.",
+      "timestamp": "2025-08-20T14:38:30.107052"
+    },
+    {
+      "id": "msg_005",
+      "role": "user",
+      "content": "제 이름과 관심분야를 기억하고 계시나요?",
+      "timestamp": "2025-08-20T14:38:30.440136"
+    },
+    {
+      "id": "msg_006",
+      "role": "assistant",
+      "content": "죄송합니다. 응답을 생성하는 중에 오류가 발생했습니다.",
+      "timestamp": "2025-08-20T14:38:30.441919"
+    }
+  ],
+  "message_count": 6,
+  "session_summary": "",
+  "session_tags": []
+}

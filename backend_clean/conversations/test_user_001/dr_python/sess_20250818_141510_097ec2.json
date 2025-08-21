@@ -1,0 +1,13 @@
+{
+  "session_id": "sess_20250818_141510_097ec2",
+  "user_id": "test_user_001",
+  "character_id": "dr_python",
+  "persona_id": "persona_student",
+  "created_at": "2025-08-18T14:15:10.913682",
+  "last_updated": "2025-08-18T14:15:10.913685",
+  "status": "active",
+  "messages": [],
+  "message_count": 0,
+  "session_summary": "",
+  "session_tags": []
+}

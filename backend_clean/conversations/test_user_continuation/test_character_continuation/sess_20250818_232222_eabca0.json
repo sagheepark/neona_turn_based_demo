@@ -1,0 +1,20 @@
+{
+  "session_id": "sess_20250818_232222_eabca0",
+  "user_id": "test_user_continuation",
+  "character_id": "test_character_continuation",
+  "persona_id": "test_persona_id",
+  "created_at": "2025-08-18T23:22:22.631523",
+  "last_updated": "2025-08-18T23:22:22.632543",
+  "status": "continued",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "First message after continuation",
+      "timestamp": "2025-08-18T23:22:22.632541"
+    }
+  ],
+  "message_count": 1,
+  "session_summary": "",
+  "session_tags": []
+}

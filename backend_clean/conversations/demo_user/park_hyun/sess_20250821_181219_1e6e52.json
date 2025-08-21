@@ -1,0 +1,50 @@
+{
+  "session_id": "sess_20250821_181219_1e6e52",
+  "user_id": "demo_user",
+  "character_id": "park_hyun",
+  "persona_id": null,
+  "created_at": "2025-08-21T18:12:19.909052",
+  "last_updated": "2025-08-21T18:12:39.462418",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "안녕하세요",
+      "timestamp": "2025-08-21T18:12:19.913470"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "안녕하세요. 오늘 어떤 억울한 일이나 불공정한 상황을 겪으셨나요? 제가 대신 분노해드리겠습니다.",
+      "timestamp": "2025-08-21T18:12:21.254805"
+    },
+    {
+      "id": "msg_003",
+      "role": "user",
+      "content": "너가 뭔데",
+      "timestamp": "2025-08-21T18:12:32.235607"
+    },
+    {
+      "id": "msg_004",
+      "role": "assistant",
+      "content": "저는 사용자의 억울함과 분노를 대신 표현해주는 박현입니다. 혹시 무슨 일이 있었는지 말씀해주실 수 있으신가요?",
+      "timestamp": "2025-08-21T18:12:34.237321"
+    },
+    {
+      "id": "msg_005",
+      "role": "user",
+      "content": "조용히해",
+      "timestamp": "2025-08-21T18:12:38.527193"
+    },
+    {
+      "id": "msg_006",
+      "role": "assistant",
+      "content": "알겠습니다. 언제든지 도움이 필요하시면 말씀해주세요. 당신의 편에서 항상 기다리고 있습니다.",
+      "timestamp": "2025-08-21T18:12:39.462403"
+    }
+  ],
+  "message_count": 6,
+  "session_summary": "",
+  "session_tags": []
+}

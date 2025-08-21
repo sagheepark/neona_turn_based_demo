@@ -1,0 +1,78 @@
+{
+  "character_id": "test_character",
+  "knowledge_items": [
+    {
+      "title": "Test API Knowledge",
+      "content": "Testing knowledge creation via REST API",
+      "keywords": [
+        "api",
+        "test",
+        "rest",
+        "knowledge"
+      ],
+      "category": "testing",
+      "id": "kb_554806bf",
+      "created_at": "2025-08-19T11:45:55.283389"
+    },
+    {
+      "title": "API Test Knowledge",
+      "content": "Testing knowledge creation via API",
+      "keywords": [
+        "api",
+        "test",
+        "knowledge"
+      ],
+      "category": "testing",
+      "id": "kb_8b5c5494",
+      "created_at": "2025-08-19T12:15:40.874996"
+    },
+    {
+      "title": "API Test Knowledge",
+      "content": "Testing knowledge creation via API",
+      "keywords": [
+        "api",
+        "test",
+        "knowledge"
+      ],
+      "category": "testing",
+      "id": "kb_5cfbb8ec",
+      "created_at": "2025-08-19T12:15:55.060641"
+    },
+    {
+      "title": "API Test Knowledge",
+      "content": "Testing knowledge creation via API",
+      "keywords": [
+        "api",
+        "test",
+        "knowledge"
+      ],
+      "category": "testing",
+      "id": "kb_52925f70",
+      "created_at": "2025-08-19T12:16:59.589204"
+    },
+    {
+      "title": "API Test Knowledge",
+      "content": "Testing knowledge creation via API",
+      "keywords": [
+        "api",
+        "test",
+        "knowledge"
+      ],
+      "category": "testing",
+      "id": "kb_6c11707a",
+      "created_at": "2025-08-19T12:18:29.467326"
+    },
+    {
+      "title": "API Test Knowledge",
+      "content": "Testing knowledge creation via API",
+      "keywords": [
+        "api",
+        "test",
+        "knowledge"
+      ],
+      "category": "testing",
+      "id": "kb_e069c2f8",
+      "created_at": "2025-08-19T16:45:19.241006"
+    }
+  ]
+}

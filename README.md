@@ -95,4 +95,4 @@ This is a demo project for Neosapience's voice technology capabilities.
 
 ## License
 
-Proprietary - Neosapience
+Proprietary - Neosapience# ssfm_qa

@@ -1,0 +1,26 @@
+{
+  "session_id": "sess_20250818_234007_604cb1",
+  "user_id": "test_user_critical_fixes",
+  "character_id": "dr_python",
+  "persona_id": "default",
+  "created_at": "2025-08-18T23:40:07.209647",
+  "last_updated": "2025-08-18T23:40:07.210307",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "Hello",
+      "timestamp": "2025-08-18T23:40:07.209999"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "Hi there!",
+      "timestamp": "2025-08-18T23:40:07.210306"
+    }
+  ],
+  "message_count": 2,
+  "session_summary": "",
+  "session_tags": []
+}

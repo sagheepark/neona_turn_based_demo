@@ -1,0 +1,50 @@
+{
+  "session_id": "sess_20250820_145825_c16553",
+  "user_id": "session_test_user",
+  "character_id": "yoon_ahri",
+  "persona_id": null,
+  "created_at": "2025-08-20T14:58:25.337683",
+  "last_updated": "2025-08-20T14:58:29.444607",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "안녕하세요!",
+      "timestamp": "2025-08-20T14:58:25.339693"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "안녕하세요! 오늘은 어떤 고민을 나눠주실 건가요?",
+      "timestamp": "2025-08-20T14:58:26.681955"
+    },
+    {
+      "id": "msg_003",
+      "role": "user",
+      "content": "제 이름은 김민수이고 개발자입니다.",
+      "timestamp": "2025-08-20T14:58:26.891716"
+    },
+    {
+      "id": "msg_004",
+      "role": "assistant",
+      "content": "반가워요, 민수님. 개발자로서 어떤 고민이 있으신가요?",
+      "timestamp": "2025-08-20T14:58:27.873333"
+    },
+    {
+      "id": "msg_005",
+      "role": "user",
+      "content": "안녕하세요!",
+      "timestamp": "2025-08-20T14:58:28.146323"
+    },
+    {
+      "id": "msg_006",
+      "role": "assistant",
+      "content": "안녕하세요, 민수님. 다시 만나 뵙게 되어 반가워요. 오늘은 어떤 이야기를 나눠볼까요?",
+      "timestamp": "2025-08-20T14:58:29.444599"
+    }
+  ],
+  "message_count": 6,
+  "session_summary": "",
+  "session_tags": []
+}

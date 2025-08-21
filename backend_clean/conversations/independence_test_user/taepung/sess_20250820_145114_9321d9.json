@@ -1,0 +1,26 @@
+{
+  "session_id": "sess_20250820_145114_9321d9",
+  "user_id": "independence_test_user",
+  "character_id": "taepung",
+  "persona_id": null,
+  "created_at": "2025-08-20T14:51:14.478719",
+  "last_updated": "2025-08-20T14:51:16.652375",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "안녕하세요, 스트레스가 많아요.",
+      "timestamp": "2025-08-20T14:51:14.479310"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "스트레스가 많다고 하셨군요. 그 원인이 무엇인지 논리적으로 분석해 보는 것이 중요합니다. 일단 어떤 상황에서 스트레스를 느끼시는지 말씀해 주시겠어요?",
+      "timestamp": "2025-08-20T14:51:16.652359"
+    }
+  ],
+  "message_count": 2,
+  "session_summary": "",
+  "session_tags": []
+}

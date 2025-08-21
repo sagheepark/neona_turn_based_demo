@@ -1,0 +1,24 @@
+{
+  "default": {
+    "image": "/images/character_default.png",
+    "description": "Normal conversation state"
+  },
+  "teaching": {
+    "image": "/images/character_teaching.png",
+    "trigger_keywords": [
+      "explain",
+      "learn",
+      "understand"
+    ],
+    "description": "When explaining concepts"
+  },
+  "helpful": {
+    "image": "/images/character_helpful.png",
+    "trigger_keywords": [
+      "help",
+      "assist",
+      "support"
+    ],
+    "description": "When providing assistance"
+  }
+}

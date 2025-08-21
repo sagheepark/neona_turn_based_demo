@@ -1,0 +1,38 @@
+{
+  "session_id": "sess_20250820_145009_1ee311",
+  "user_id": "memory_test_user",
+  "character_id": "dr_python",
+  "persona_id": null,
+  "created_at": "2025-08-20T14:50:09.021768",
+  "last_updated": "2025-08-20T14:50:14.083563",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "안녕하세요! 제 이름은 테스트유저이고 개발자입니다.",
+      "timestamp": "2025-08-20T14:50:09.022856"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "안녕하세요, 테스트유저님! 만나서 반갑습니다. 개발자시라니 정말 멋지네요. 어떤 분야에서 일하고 계신가요?",
+      "timestamp": "2025-08-20T14:50:10.253553"
+    },
+    {
+      "id": "msg_003",
+      "role": "user",
+      "content": "제 이름과 직업을 기억하시나요?",
+      "timestamp": "2025-08-20T14:50:12.085064"
+    },
+    {
+      "id": "msg_004",
+      "role": "assistant",
+      "content": "물론이죠, 테스트유저님! 개발자이시고요. 어떤 프로그래밍 언어를 주로 사용하시나요?",
+      "timestamp": "2025-08-20T14:50:14.083557"
+    }
+  ],
+  "message_count": 4,
+  "session_summary": "",
+  "session_tags": []
+}

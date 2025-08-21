@@ -1,0 +1,26 @@
+{
+  "session_id": "sess_20250820_144957_3d68ee",
+  "user_id": "greeting_test_user",
+  "character_id": "park_hyun",
+  "persona_id": null,
+  "created_at": "2025-08-20T14:49:57.294689",
+  "last_updated": "2025-08-20T14:49:58.463346",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "안녕하세요!",
+      "timestamp": "2025-08-20T14:49:57.295504"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "안녕하세요! 오늘 어떤 불공정한 일을 겪으셨나요? 제가 대신 화내드릴게요!",
+      "timestamp": "2025-08-20T14:49:58.463334"
+    }
+  ],
+  "message_count": 2,
+  "session_summary": "",
+  "session_tags": []
+}

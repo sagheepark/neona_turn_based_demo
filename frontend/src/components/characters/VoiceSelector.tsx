@@ -12,6 +12,7 @@ interface Voice {
   age?: string
   language?: string
   description?: string
+  isDefault?: boolean
 }
 
 interface VoiceSelectorProps {
@@ -34,8 +35,22 @@ export default function VoiceSelector({ selectedVoiceId, onSelect }: VoiceSelect
   const [loadingProgress, setLoadingProgress] = useState<string>('')
   const ITEMS_PER_PAGE = 10
 
+  // Default voice system for fallback
+  const defaultVoice: Voice = {
+    id: 'default_voice_001',
+    name: 'Default Voice',
+    gender: 'neutral',
+    language: 'en',
+    description: 'Standard voice for all characters (fallback)',
+    isDefault: true
+  }
+
   // Load quick access voices immediately, then full list
   useEffect(() => {
+    // Always include default voice as fallback
+    setVoices([defaultVoice])
+    setFilteredVoices([defaultVoice])
+    
     loadQuickVoices()
     loadFullVoices()
   }, [])
@@ -67,8 +82,9 @@ export default function VoiceSelector({ selectedVoiceId, onSelect }: VoiceSelect
   }, [searchTerm, voices])
 
   const loadQuickVoices = () => {
-    // 즉시 사용 가능한 인기 목소리들 (로컬 데이터)
+    // Always include default voice as fallback, plus popular voices
     const quickVoices = [
+      defaultVoice, // Default voice first for fallback
       { id: 'tc_61c97b56f1b7877a74df625b', name: 'Emma', gender: '여성', age: '20대', description: '부드럽고 친근한 여성 목소리' },
       { id: 'tc_6073b2f6817dccf658bb159f', name: 'Duke', gender: '남성', age: '30대', description: '차분하고 신뢰감 있는 남성 목소리' },
       { id: 'tc_624152dced4a43e78f703148', name: 'Tyson', gender: '남성', age: '40대', description: '강인하고 카리스마 있는 남성 목소리' },
@@ -82,23 +98,42 @@ export default function VoiceSelector({ selectedVoiceId, onSelect }: VoiceSelect
     setLoading(true)
     setLoadingProgress('목소리 리스트를 불러오는 중...')
     
+    // Add timeout to prevent "dropped out" experience
+    const controller = new AbortController()
+    let timeoutId: NodeJS.Timeout | null = null
+    
     try {
       const startTime = Date.now()
-      const response = await fetch('http://localhost:8000/api/voices/korean')
+      
+      timeoutId = setTimeout(() => controller.abort(), 3000) // 3 second timeout
+      
+      const response = await fetch('http://localhost:8000/api/voices/korean', {
+        signal: controller.signal
+      })
+      
+      // Clear timeout immediately after successful fetch
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+        timeoutId = null
+      }
       
       if (response.ok) {
         setLoadingProgress('목소리 정보를 처리 중...')
         const data = await response.json()
         const voiceList = data.voices || []
         
-        const formattedVoices = voiceList.map((v: any) => ({
-          id: v.voice_id || v.id,
-          name: v.voice_name || v.name,
-          gender: v.gender,
-          age: v.age,
-          language: v.language,
-          description: v.description
-        }))
+        // Always include default voice in final list
+        const formattedVoices = [
+          defaultVoice, // Ensure default is always available
+          ...voiceList.map((v: any) => ({
+            id: v.voice_id || v.id,
+            name: v.voice_name || v.name,
+            gender: v.gender,
+            age: v.age,
+            language: v.language,
+            description: v.description
+          }))
+        ]
         
         const loadTime = Date.now() - startTime
         setLoadingProgress(`${formattedVoices.length}개 목소리 로드 완료! (${(loadTime/1000).toFixed(1)}초)`)
@@ -112,11 +147,27 @@ export default function VoiceSelector({ selectedVoiceId, onSelect }: VoiceSelect
       } else {
         throw new Error(`HTTP ${response.status}`)
       }
-    } catch (error) {
-      console.error('Failed to load full voices:', error)
-      setLoadingProgress('일부 목소리만 표시됩니다 (네트워크 오류)')
+    } catch (error: any) {
+      // Handle AbortError specifically - this prevents crashes and navigation issues
+      if (error.name === 'AbortError') {
+        console.log('Voice API request was aborted (timeout)')
+        setLoadingProgress('음성 로딩 중단됨 - 기본 음성 사용')
+      } else {
+        console.error('Failed to load full voices:', error)
+        setLoadingProgress('일부 목소리만 표시됩니다 (네트워크 오류)')
+      }
+      
+      // Ensure default voice is always available even on AbortError
+      const fallbackVoices = voices.includes(defaultVoice) ? voices : [defaultVoice, ...voices]
+      setVoices(fallbackVoices)
+      setFilteredVoices(fallbackVoices)
+      
       setTimeout(() => setLoadingProgress(''), 3000)
     } finally {
+      // Ensure timeout is always cleared to prevent memory leaks
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
       setLoading(false)
     }
   }
@@ -210,7 +261,18 @@ export default function VoiceSelector({ selectedVoiceId, onSelect }: VoiceSelect
   return (
     <div className="relative">
       <Button 
-        onClick={() => setIsOpen(!isOpen)} 
+        type="button"
+        onClick={(e) => {
+          // Prevent any navigation or default behaviors that could cause crashes
+          try {
+            e.preventDefault()
+            e.stopPropagation()
+            setIsOpen(!isOpen)
+          } catch (error) {
+            console.error('Voice selector click error:', error)
+            // Don't let the error propagate and cause navigation
+          }
+        }} 
         variant="outline" 
         className="w-full justify-between"
         disabled={loading}
@@ -259,10 +321,19 @@ export default function VoiceSelector({ selectedVoiceId, onSelect }: VoiceSelect
               >
                 <div 
                   className="flex-1 cursor-pointer"
-                  onClick={() => {
-                    onSelect(voice.id)
-                    setIsOpen(false)
-                    stopAudio()
+                  onClick={(e) => {
+                    // Prevent any errors from causing navigation issues
+                    try {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      onSelect(voice.id)
+                      setIsOpen(false)
+                      stopAudio()
+                    } catch (error) {
+                      console.error('Voice selection error:', error)
+                      // Don't let the error propagate and cause navigation
+                      setIsOpen(false) // At least close the dropdown
+                    }
                   }}
                 >
                   <div className="font-medium">{voice.name}</div>
@@ -281,11 +352,19 @@ export default function VoiceSelector({ selectedVoiceId, onSelect }: VoiceSelect
                 </div>
                 
                 <Button
+                  type="button"
                   size="sm"
                   variant="ghost"
                   onClick={(e) => {
-                    e.stopPropagation()
-                    previewVoice(voice.id)
+                    // Prevent any errors from causing navigation issues
+                    try {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      previewVoice(voice.id)
+                    } catch (error) {
+                      console.error('Voice preview error:', error)
+                      // Don't let the error propagate and cause navigation
+                    }
                   }}
                   disabled={loadingVoiceId !== null && loadingVoiceId !== voice.id}
                   className="flex items-center justify-center w-8 h-8"
@@ -311,6 +390,7 @@ export default function VoiceSelector({ selectedVoiceId, onSelect }: VoiceSelect
               </div>
               <div className="flex items-center gap-2">
                 <Button
+                  type="button"
                   size="sm"
                   variant="outline"
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
@@ -322,6 +402,7 @@ export default function VoiceSelector({ selectedVoiceId, onSelect }: VoiceSelect
                   {currentPage} / {totalPages}
                 </span>
                 <Button
+                  type="button"
                   size="sm"
                   variant="outline"
                   onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}

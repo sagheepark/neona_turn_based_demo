@@ -1,0 +1,38 @@
+{
+  "session_id": "sess_20250820_143720_83ee60",
+  "user_id": "memory_test_user",
+  "character_id": "dr_python",
+  "persona_id": null,
+  "created_at": "2025-08-20T14:37:20.848901",
+  "last_updated": "2025-08-20T14:37:20.852852",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "안녕하세요! 제 이름은 김철수입니다.",
+      "timestamp": "2025-08-20T14:37:20.850221"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "안녕하세요 김철수님! 만나서 반갑습니다.",
+      "timestamp": "2025-08-20T14:37:20.851213"
+    },
+    {
+      "id": "msg_003",
+      "role": "user",
+      "content": "파이썬을 배우고 싶어요. 저는 서울에 사는 대학생입니다.",
+      "timestamp": "2025-08-20T14:37:20.852162"
+    },
+    {
+      "id": "msg_004",
+      "role": "assistant",
+      "content": "파이썬은 좋은 선택이에요! 서울 대학생이시군요.",
+      "timestamp": "2025-08-20T14:37:20.852850"
+    }
+  ],
+  "message_count": 4,
+  "session_summary": "",
+  "session_tags": []
+}

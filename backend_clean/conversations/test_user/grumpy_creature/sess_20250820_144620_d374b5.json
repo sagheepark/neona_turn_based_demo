@@ -1,0 +1,26 @@
+{
+  "session_id": "sess_20250820_144620_d374b5",
+  "user_id": "test_user",
+  "character_id": "grumpy_creature",
+  "persona_id": null,
+  "created_at": "2025-08-20T14:46:20.664866",
+  "last_updated": "2025-08-20T14:46:21.765487",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "안녕하세요!",
+      "timestamp": "2025-08-20T14:46:20.665948"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "안녕하세요! 만나서 반갑습니다. 오늘 하루는 어떠셨나요?",
+      "timestamp": "2025-08-20T14:46:21.765473"
+    }
+  ],
+  "message_count": 2,
+  "session_summary": "",
+  "session_tags": []
+}

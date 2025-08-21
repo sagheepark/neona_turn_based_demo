@@ -1,0 +1,50 @@
+{
+  "session_id": "sess_20250818_224117_c26e89",
+  "user_id": "test_user_simplified_ux",
+  "character_id": "dr_python",
+  "persona_id": "default",
+  "created_at": "2025-08-18T22:41:17.221118",
+  "last_updated": "2025-08-18T22:41:17.223025",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "첫 번째 질문",
+      "timestamp": "2025-08-18T22:41:17.221440"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "첫 번째 답변",
+      "timestamp": "2025-08-18T22:41:17.221668"
+    },
+    {
+      "id": "msg_003",
+      "role": "user",
+      "content": "두 번째 질문",
+      "timestamp": "2025-08-18T22:41:17.221934"
+    },
+    {
+      "id": "msg_004",
+      "role": "assistant",
+      "content": "두 번째 답변",
+      "timestamp": "2025-08-18T22:41:17.222399"
+    },
+    {
+      "id": "msg_005",
+      "role": "user",
+      "content": "마지막 질문입니다",
+      "timestamp": "2025-08-18T22:41:17.222671"
+    },
+    {
+      "id": "msg_006",
+      "role": "assistant",
+      "content": "마지막 답변입니다. 추가 질문이 있으면 언제든지 물어보세요!",
+      "timestamp": "2025-08-18T22:41:17.223024"
+    }
+  ],
+  "message_count": 6,
+  "session_summary": "",
+  "session_tags": []
+}

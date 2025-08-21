@@ -1,0 +1,20 @@
+{
+  "session_id": "sess_20250819_180439_c3c6eb",
+  "user_id": "demo_user",
+  "character_id": "dr_python",
+  "persona_id": null,
+  "created_at": "2025-08-19T18:04:39.860295",
+  "last_updated": "2025-08-19T18:04:39.861461",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "Help me with Python data structures",
+      "timestamp": "2025-08-19T18:04:39.861459"
+    }
+  ],
+  "message_count": 1,
+  "session_summary": "",
+  "session_tags": []
+}

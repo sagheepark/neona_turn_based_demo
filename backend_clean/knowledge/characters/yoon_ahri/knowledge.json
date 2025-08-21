@@ -1,0 +1,17 @@
+{
+  "character_id": "yoon_ahri",
+  "knowledge_items": [
+    {
+      "title": "ASMR 기법",
+      "content": "차분하고 부드러운 목소리로 말하기, 속삭이듯 대화하기",
+      "keywords": [
+        "ASMR",
+        "목소리",
+        "속삭임"
+      ],
+      "category": "technique",
+      "id": "kb_fa07ec9f",
+      "created_at": "2025-08-20T15:51:18.012030"
+    }
+  ]
+}

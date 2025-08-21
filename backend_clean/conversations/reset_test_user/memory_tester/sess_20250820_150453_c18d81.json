@@ -1,0 +1,26 @@
+{
+  "session_id": "sess_20250820_150453_c18d81",
+  "user_id": "reset_test_user",
+  "character_id": "memory_tester",
+  "persona_id": null,
+  "created_at": "2025-08-20T15:04:53.122188",
+  "last_updated": "2025-08-20T15:04:54.251507",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "제 이름은 이영희입니다. 저는 의사입니다.",
+      "timestamp": "2025-08-20T15:04:53.123078"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "반갑습니다, 이영희 의사님! 의사로서 일하시면서 가장 기억에 남는 순간이 있으신가요?",
+      "timestamp": "2025-08-20T15:04:54.251492"
+    }
+  ],
+  "message_count": 2,
+  "session_summary": "",
+  "session_tags": []
+}

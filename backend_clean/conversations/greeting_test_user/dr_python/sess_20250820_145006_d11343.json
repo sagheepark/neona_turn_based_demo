@@ -1,0 +1,26 @@
+{
+  "session_id": "sess_20250820_145006_d11343",
+  "user_id": "greeting_test_user",
+  "character_id": "dr_python",
+  "persona_id": null,
+  "created_at": "2025-08-20T14:50:06.663425",
+  "last_updated": "2025-08-20T14:50:07.519307",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "안녕하세요!",
+      "timestamp": "2025-08-20T14:50:06.664294"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "안녕하세요! Python 프로그래밍을 배우고 싶으신가요? 어떤 부분에 대해 궁금하신지 말씀해 주세요.",
+      "timestamp": "2025-08-20T14:50:07.519299"
+    }
+  ],
+  "message_count": 2,
+  "session_summary": "",
+  "session_tags": []
+}

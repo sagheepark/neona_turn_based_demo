@@ -1,0 +1,26 @@
+{
+  "session_id": "sess_20250819_164524_5af694",
+  "user_id": "demo_user",
+  "character_id": "dr_python",
+  "persona_id": "persona_9149286e",
+  "created_at": "2025-08-19T16:45:24.788841",
+  "last_updated": "2025-08-19T16:45:24.789844",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "안녕하세요",
+      "timestamp": "2025-08-19T16:45:24.789401"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "안녕! 반가워!",
+      "timestamp": "2025-08-19T16:45:24.789843"
+    }
+  ],
+  "message_count": 2,
+  "session_summary": "",
+  "session_tags": []
+}

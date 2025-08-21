@@ -1,0 +1,26 @@
+{
+  "session_id": "sess_20250819_164519_bcea1e",
+  "user_id": "test_user_audio_regression",
+  "character_id": "dr_python",
+  "persona_id": null,
+  "created_at": "2025-08-19T16:45:19.025225",
+  "last_updated": "2025-08-19T16:45:19.025840",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "안녕하세요, 음성 테스트입니다",
+      "timestamp": "2025-08-19T16:45:19.025605"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "안녕하세요! 음성이 정상적으로 들리시나요?",
+      "timestamp": "2025-08-19T16:45:19.025839"
+    }
+  ],
+  "message_count": 2,
+  "session_summary": "",
+  "session_tags": []
+}

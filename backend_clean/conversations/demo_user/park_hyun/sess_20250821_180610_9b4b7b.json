@@ -1,0 +1,26 @@
+{
+  "session_id": "sess_20250821_180610_9b4b7b",
+  "user_id": "demo_user",
+  "character_id": "park_hyun",
+  "persona_id": null,
+  "created_at": "2025-08-21T18:06:10.953876",
+  "last_updated": "2025-08-21T18:06:12.194280",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "안녕하세요",
+      "timestamp": "2025-08-21T18:06:10.957864"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "안녕하세요. 오늘 어떤 억울한 일 겪으셨나요? 제가 대신 화를 내드리겠습니다.",
+      "timestamp": "2025-08-21T18:06:12.194268"
+    }
+  ],
+  "message_count": 2,
+  "session_summary": "",
+  "session_tags": []
+}

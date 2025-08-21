@@ -1,0 +1,20 @@
+{
+  "session_id": "sess_20250818_230512_f8c35a",
+  "user_id": "test_user_simplified_ux",
+  "character_id": "dr_python",
+  "persona_id": "default",
+  "created_at": "2025-08-18T23:05:12.481339",
+  "last_updated": "2025-08-18T23:05:12.481724",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "첫 번째 입력",
+      "timestamp": "2025-08-18T23:05:12.481722"
+    }
+  ],
+  "message_count": 1,
+  "session_summary": "",
+  "session_tags": []
+}

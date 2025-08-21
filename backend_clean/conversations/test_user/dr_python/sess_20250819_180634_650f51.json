@@ -1,0 +1,26 @@
+{
+  "session_id": "sess_20250819_180634_650f51",
+  "user_id": "test_user",
+  "character_id": "dr_python",
+  "persona_id": null,
+  "created_at": "2025-08-19T18:06:34.410743",
+  "last_updated": "2025-08-19T18:06:36.632451",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "Hello, teach me Python!",
+      "timestamp": "2025-08-19T18:06:34.411737"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "안녕하세요! 파이썬을 배우고 싶으시군요. 파이썬은 매우 강력하고 사용하기 쉬운 프로그래밍 언어입니다. 기본적인 문법부터 시작해 볼까요?",
+      "timestamp": "2025-08-19T18:06:36.632440"
+    }
+  ],
+  "message_count": 2,
+  "session_summary": "",
+  "session_tags": []
+}

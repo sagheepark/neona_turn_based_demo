@@ -1,0 +1,26 @@
+{
+  "session_id": "sess_20250818_200659_accdd4",
+  "user_id": "test_user",
+  "character_id": "dr_python",
+  "persona_id": "default",
+  "created_at": "2025-08-18T20:06:59.899780",
+  "last_updated": "2025-08-18T20:07:46.388421",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "안녕하세요",
+      "timestamp": "2025-08-18T20:07:44.691340"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "안녕하세요! 무엇을 도와드릴까요? 오늘도 Python과 함께 즐거운 코딩을 해볼까요?",
+      "timestamp": "2025-08-18T20:07:46.388411"
+    }
+  ],
+  "message_count": 2,
+  "session_summary": "",
+  "session_tags": []
+}

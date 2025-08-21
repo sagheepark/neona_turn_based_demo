@@ -1,0 +1,20 @@
+{
+  "session_id": "sess_20250819_001927_33b314",
+  "user_id": "test_user_tts",
+  "character_id": "test_char_tts",
+  "persona_id": "default",
+  "created_at": "2025-08-19T00:19:27.936054",
+  "last_updated": "2025-08-19T00:19:27.936670",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "TTS 테스트 메시지입니다.",
+      "timestamp": "2025-08-19T00:19:27.936668"
+    }
+  ],
+  "message_count": 1,
+  "session_summary": "",
+  "session_tags": []
+}

@@ -1,0 +1,105 @@
+{
+  "character_id": "test_ui_character",
+  "knowledge_items": [
+    {
+      "title": "Character Introduction",
+      "content": "This character specializes in testing",
+      "keywords": [
+        "testing",
+        "character",
+        "demo"
+      ],
+      "category": "introduction",
+      "id": "kb_4c25fc18",
+      "created_at": "2025-08-19T12:20:37.693192"
+    },
+    {
+      "title": "Character Skills",
+      "content": "Expert in frontend testing and UI development",
+      "keywords": [
+        "frontend",
+        "testing",
+        "ui",
+        "development"
+      ],
+      "category": "skills",
+      "id": "kb_faddd435",
+      "created_at": "2025-08-19T12:20:37.695992"
+    },
+    {
+      "title": "Character Introduction",
+      "content": "This character specializes in testing",
+      "keywords": [
+        "testing",
+        "character",
+        "demo"
+      ],
+      "category": "introduction",
+      "id": "kb_1b2bbd76",
+      "created_at": "2025-08-19T12:20:57.281346"
+    },
+    {
+      "title": "Character Skills",
+      "content": "Expert in frontend testing and UI development",
+      "keywords": [
+        "frontend",
+        "testing",
+        "ui",
+        "development"
+      ],
+      "category": "skills",
+      "id": "kb_24ce4ec0",
+      "created_at": "2025-08-19T12:20:57.283630"
+    },
+    {
+      "title": "Character Introduction",
+      "content": "This character specializes in testing",
+      "keywords": [
+        "testing",
+        "character",
+        "demo"
+      ],
+      "category": "introduction",
+      "id": "kb_06855811",
+      "created_at": "2025-08-19T12:32:47.883905"
+    },
+    {
+      "title": "Character Skills",
+      "content": "Expert in frontend testing and UI development",
+      "keywords": [
+        "frontend",
+        "testing",
+        "ui",
+        "development"
+      ],
+      "category": "skills",
+      "id": "kb_42672f3d",
+      "created_at": "2025-08-19T12:32:47.886387"
+    },
+    {
+      "title": "Character Introduction",
+      "content": "This character specializes in testing",
+      "keywords": [
+        "testing",
+        "character",
+        "demo"
+      ],
+      "category": "introduction",
+      "id": "kb_31270364",
+      "created_at": "2025-08-19T16:45:19.180094"
+    },
+    {
+      "title": "Character Skills",
+      "content": "Expert in frontend testing and UI development",
+      "keywords": [
+        "frontend",
+        "testing",
+        "ui",
+        "development"
+      ],
+      "category": "skills",
+      "id": "kb_a880e905",
+      "created_at": "2025-08-19T16:45:19.183431"
+    }
+  ]
+}

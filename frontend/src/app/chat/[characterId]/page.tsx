@@ -12,6 +12,8 @@ import { ChatMessage, ChatResponse } from '@/types/chat'
 import { ArrowLeft, Send, Mic, MicOff, Loader2, X } from 'lucide-react'
 import { TypewriterText } from '@/components/chat/TypewriterText'
 import { AudioPlayer } from '@/components/chat/AudioPlayer'
+import { SessionContinuationModal } from '@/components/chat/SessionContinuationModal'
+import { SessionStartResponse } from '@/lib/api-client'
 
 export default function ChatPage() {
   const params = useParams()
@@ -36,11 +38,18 @@ export default function ChatPage() {
   const [userHasInteracted, setUserHasInteracted] = useState(false)
   const [isAudioPlaying, setIsAudioPlaying] = useState(false)
 
+  // Session state for enhanced memory
+  const [sessionId, setSessionId] = useState<string | null>(null)
   const [welcomeGenerated, setWelcomeGenerated] = useState(false)
+  
+  // Session continuation modal states
+  const [showSessionModal, setShowSessionModal] = useState(false)
+  const [sessionData, setSessionData] = useState<SessionStartResponse | null>(null)
+  const [isLoadingSessionData, setIsLoadingSessionData] = useState(false)
 
   useEffect(() => {
     const characterId = params.characterId as string
-    const char = CharacterStorage.getById(characterId)
+    const char = CharacterStorage.getAll().find(c => c.id === characterId)
     
     if (!char) {
       router.push('/characters')
@@ -55,8 +64,38 @@ export default function ChatPage() {
     setCurrentAudio(null)
     setMessages([])
     setWelcomeGenerated(false) // Reset welcome state for new character
+    setSessionId(null) // Reset session for new character
+    
+    // Check for existing sessions
+    checkForExistingSessions(characterId)
     
   }, [params.characterId, router]) // Removed welcomeGenerated dependency
+
+  const checkForExistingSessions = async (characterId: string) => {
+    try {
+      setIsLoadingSessionData(true)
+      const sessionStartResponse = await ApiClient.startSession({
+        user_id: 'demo_user',
+        character_id: characterId
+      })
+      
+      if (sessionStartResponse.data.can_continue && sessionStartResponse.data.previous_sessions.length > 0) {
+        setSessionData(sessionStartResponse)
+        setShowSessionModal(true)
+      } else {
+        // No previous sessions, start fresh
+        setShowSessionModal(false)
+        setSessionData(null)
+      }
+    } catch (error) {
+      console.error('Failed to check existing sessions:', error)
+      // If error, just start fresh
+      setShowSessionModal(false)
+      setSessionData(null)
+    } finally {
+      setIsLoadingSessionData(false)
+    }
+  }
 
   // Cleanup effect for recording resources
   useEffect(() => {
@@ -71,26 +110,39 @@ export default function ChatPage() {
     }
   }, [])
 
-  // Separate effect for welcome message generation to prevent duplicate calls
+  // Enhanced welcome message generation with session support
   useEffect(() => {
-    if (!character || welcomeGenerated) return
+    if (!character || welcomeGenerated || showSessionModal || isLoadingSessionData) return
     
     const generateWelcome = async () => {
-      const welcomeMessage = `안녕하세요! 저는 ${character.name}입니다. ${character.description}. 궁금한 것이 있으시면 언제든지 물어보세요!`
+      // Use random greeting from greetings array if available, otherwise generate welcome
+      let welcomeMessage = `안녕하세요! 저는 ${character.name}입니다. ${character.description}. 궁금한 것이 있으시면 언제든지 물어보세요!`
+      
+      if (character.greetings && character.greetings.length > 0) {
+        const randomIndex = Math.floor(Math.random() * character.greetings.length)
+        welcomeMessage = character.greetings[randomIndex]
+      }
       
       // Show thinking state briefly
       setIsThinking(true)
       setWelcomeGenerated(true) // Prevent duplicate calls
       
       try {
-        // Use the same chat endpoint for consistency
-        const response: ChatResponse = await ApiClient.chat({
+        // Use session-based chat API for consistency
+        const response: ChatResponse = await ApiClient.chatWithSession({
+          session_id: sessionId || undefined,
           message: '안녕하세요', // Simple greeting to trigger welcome
           character_prompt: character.prompt,
-          history: [], // Empty history for first message
           character_id: character.id,
+          user_id: 'demo_user',
           voice_id: character.voice_id
         })
+        
+        // Update session ID if new
+        if (response.session_id && !sessionId) {
+          setSessionId(response.session_id)
+          console.log('✅ Session created for welcome:', response.session_id)
+        }
         
         // Set response data
         setCurrentResponse(response.dialogue)
@@ -134,7 +186,71 @@ export default function ChatPage() {
     const timer = setTimeout(generateWelcome, 1000)
     return () => clearTimeout(timer)
     
-  }, [character, welcomeGenerated])
+  }, [character, welcomeGenerated, sessionId, showSessionModal, isLoadingSessionData])
+
+  const handleContinueSession = async (selectedSessionId: string) => {
+    try {
+      console.log('Continuing session:', selectedSessionId)
+      const continueResponse = await ApiClient.continueSession(selectedSessionId, 'demo_user')
+      
+      if (continueResponse.success) {
+        setSessionId(selectedSessionId)
+        
+        // Load previous messages if any
+        if (continueResponse.data.session.messages.length > 0) {
+          const loadedMessages = continueResponse.data.session.messages.map(msg => ({
+            id: msg.id,
+            role: msg.role as 'user' | 'assistant',
+            content: msg.content,
+            timestamp: msg.timestamp
+          }))
+          setMessages(loadedMessages)
+        }
+        
+        // Show last assistant response if available
+        if (continueResponse.data.last_qa.assistant_message) {
+          setCurrentResponse(continueResponse.data.last_qa.assistant_message)
+          setShouldStartTyping(true)
+        }
+        
+        console.log('Session continued successfully:', {
+          session_id: selectedSessionId,
+          message_count: continueResponse.data.session.message_count
+        })
+      }
+    } catch (error) {
+      console.error('Failed to continue session:', error)
+      // Fall back to new session
+      handleCreateNewSession()
+    } finally {
+      setWelcomeGenerated(true) // Prevent welcome generation
+    }
+  }
+
+  const handleCreateNewSession = () => {
+    // Clear any existing session data
+    setSessionId(null)
+    setMessages([])
+    setCurrentResponse('')
+    setCurrentAudio(null)
+    setWelcomeGenerated(false) // Allow welcome generation
+    
+    console.log('Starting new session')
+  }
+
+  const handleDeleteSession = async (sessionIdToDelete: string) => {
+    try {
+      // Note: You may need to implement a delete session API endpoint
+      console.log('Delete session requested:', sessionIdToDelete)
+      
+      // For now, just refresh the session data
+      if (character) {
+        await checkForExistingSessions(character.id)
+      }
+    } catch (error) {
+      console.error('Failed to delete session:', error)
+    }
+  }
 
   const handleSend = async (message?: string) => {
     const textToSend = message || inputText.trim()
@@ -156,20 +272,28 @@ export default function ChatPage() {
     }
     setMessages(prev => [...prev, userMessage])
     
-    // Show thinking state
+    // Show thinking state  
     setIsThinking(true)
     setCurrentResponse('')
-    setCurrentAudio(null)
+    setCurrentAudio(null) // Clear previous audio when starting new message
     setShouldStartTyping(false)
     
     try {
-      const response: ChatResponse = await ApiClient.chat({
+      // Use session-based chat API with memory
+      const response: ChatResponse = await ApiClient.chatWithSession({
+        session_id: sessionId || undefined,
         message: textToSend,
         character_prompt: character.prompt,
-        history: messages,
         character_id: character.id,
+        user_id: 'demo_user',
         voice_id: character.voice_id
       })
+      
+      // Update session ID if new
+      if (response.session_id && !sessionId) {
+        setSessionId(response.session_id)
+        console.log('✅ Session created:', response.session_id)
+      }
       
       // Set response data
       setCurrentResponse(response.dialogue)
@@ -545,7 +669,7 @@ export default function ChatPage() {
   
   const handleAudioPlayEnd = () => {
     setIsAudioPlaying(false)
-    setCurrentAudio(null)
+    // Don't clear currentAudio so player UI stays visible for replay
   }
   
   if (characterLoading) {
@@ -588,6 +712,9 @@ export default function ChatPage() {
         <div className="text-center">
           <h2 className="font-semibold">{character.name}</h2>
           <p className="text-xs text-muted-foreground">{character.description}</p>
+          {sessionId && (
+            <p className="text-xs text-gray-400">Session: {sessionId.slice(0, 12)}...</p>
+          )}
         </div>
         
         <div className="w-10" /> {/* Spacer for centering */}
@@ -841,12 +968,26 @@ export default function ChatPage() {
               disabled={!inputText.trim() || isThinking || recordingState !== 'idle'}
               className="rounded-full h-12 w-12 border-2"
               variant={inputText.trim() && recordingState === 'idle' ? "default" : "outline"}
+              title="메시지 전송"
             >
               <Send className="w-5 h-5" />
             </Button>
           )}
         </div>
       </div>
+
+      {/* Session Continuation Modal */}
+      {sessionData && (
+        <SessionContinuationModal
+          isOpen={showSessionModal}
+          onClose={() => setShowSessionModal(false)}
+          sessionData={sessionData}
+          onContinueSession={handleContinueSession}
+          onCreateNew={handleCreateNewSession}
+          onDeleteSession={handleDeleteSession}
+          characterName={character.name}
+        />
+      )}
     </div>
   )
 }

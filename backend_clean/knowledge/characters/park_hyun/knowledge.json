@@ -1,0 +1,17 @@
+{
+  "character_id": "park_hyun",
+  "knowledge_items": [
+    {
+      "title": "욕설 패턴",
+      "content": "상황에 맞는 욕설 사용법과 감정 표현 방식",
+      "keywords": [
+        "욕설",
+        "감정",
+        "표현"
+      ],
+      "category": "communication",
+      "id": "kb_5f1005df",
+      "created_at": "2025-08-20T15:56:16.937298"
+    }
+  ]
+}

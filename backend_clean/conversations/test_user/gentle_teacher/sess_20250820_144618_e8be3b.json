@@ -1,0 +1,26 @@
+{
+  "session_id": "sess_20250820_144618_e8be3b",
+  "user_id": "test_user",
+  "character_id": "gentle_teacher",
+  "persona_id": null,
+  "created_at": "2025-08-20T14:46:18.691479",
+  "last_updated": "2025-08-20T14:46:20.401251",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "안녕하세요!",
+      "timestamp": "2025-08-20T14:46:18.692698"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "안녕하세요! 어떻게 지내셨어요?",
+      "timestamp": "2025-08-20T14:46:20.401242"
+    }
+  ],
+  "message_count": 2,
+  "session_summary": "",
+  "session_tags": []
+}

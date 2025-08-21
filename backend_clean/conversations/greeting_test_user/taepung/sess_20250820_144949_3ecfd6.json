@@ -1,0 +1,26 @@
+{
+  "session_id": "sess_20250820_144949_3ecfd6",
+  "user_id": "greeting_test_user",
+  "character_id": "taepung",
+  "persona_id": null,
+  "created_at": "2025-08-20T14:49:49.161432",
+  "last_updated": "2025-08-20T14:49:50.159872",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "안녕하세요!",
+      "timestamp": "2025-08-20T14:49:49.162275"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "안녕하세요! 논쟁할 준비가 되셨나요?",
+      "timestamp": "2025-08-20T14:49:50.159857"
+    }
+  ],
+  "message_count": 2,
+  "session_summary": "",
+  "session_tags": []
+}

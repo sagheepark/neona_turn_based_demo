@@ -1,0 +1,20 @@
+{
+  "session_id": "sess_20250818_230512_3adfae",
+  "user_id": "test_user_modal_trigger_check_b502a4a1",
+  "character_id": "dr_python",
+  "persona_id": "default",
+  "created_at": "2025-08-18T23:05:12.479499",
+  "last_updated": "2025-08-18T23:05:12.479873",
+  "status": "active",
+  "messages": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "안녕하세요",
+      "timestamp": "2025-08-18T23:05:12.479872"
+    }
+  ],
+  "message_count": 1,
+  "session_summary": "",
+  "session_tags": []
+}
