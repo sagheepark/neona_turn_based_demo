@@ -1,0 +1,77 @@
+{
+  "character_id": "game_master",
+  "knowledge_items": [
+    {
+      "id": "k001",
+      "type": "world_lore",
+      "title": "Realm of Aetheria",
+      "content": "Aetheria is a mystical realm where five elemental forces maintain cosmic balance: Fire (passion/destruction), Water (healing/change), Earth (stability/growth), Air (freedom/communication), and Spirit (connection/transcendence). The realm consists of diverse regions each attuned to different elements, from the Ember Peaks of fire to the Crystal Caverns of earth.",
+      "tags": ["world", "lore", "elements", "geography"],
+      "trigger_keywords": ["aetheria", "realm", "world", "where am i", "elements", "magic"],
+      "priority": 1
+    },
+    {
+      "id": "k002", 
+      "type": "threat_lore",
+      "title": "The Ancient Darkness",
+      "content": "Long ago, the Shadow Realm was sealed by the first Guardians using five Elemental Crystals. Now the seals weaken and dark creatures seep through, corrupting the land. The Shadow Lord seeks to break free and plunge all realms into eternal darkness. Only a new Guardian can gather the scattered crystals and restore the barriers.",
+      "tags": ["threat", "history", "crystals", "shadow realm"],
+      "trigger_keywords": ["darkness", "shadow", "threat", "danger", "crystals", "guardian", "evil"],
+      "priority": 1
+    },
+    {
+      "id": "k003",
+      "type": "character_lore", 
+      "title": "The Guardian's Path",
+      "content": "Guardians are rare individuals born with the ability to channel pure elemental energy. They begin their journey weak but grow stronger through trials, choices, and bonds. A Guardian's power comes not just from magic, but from wisdom gained, alliances forged, and corruption resisted. The path is dangerous - many have fallen to darkness.",
+      "tags": ["guardian", "player", "progression", "power"],
+      "trigger_keywords": ["guardian", "power", "abilities", "magic", "chosen", "destiny"],
+      "priority": 1
+    },
+    {
+      "id": "k004",
+      "type": "gameplay",
+      "title": "The Five Elemental Crystals",
+      "content": "Fire Crystal (Ember Peaks) - Tests courage in the face of destruction. Water Crystal (Misty Shores) - Tests adaptability and healing others. Earth Crystal (Crystal Caverns) - Tests patience and protecting the innocent. Air Crystal (Sky Citadel) - Tests wisdom and communication skills. Spirit Crystal (Nexus Temple) - Tests unity and sacrifice for the greater good.",
+      "tags": ["objectives", "crystals", "locations", "trials"],
+      "trigger_keywords": ["crystal", "crystals", "fire", "water", "earth", "air", "spirit", "quest", "goal"],
+      "priority": 1
+    },
+    {
+      "id": "k005",
+      "type": "companions",
+      "title": "Potential Allies",
+      "content": "Kira the Flame Dancer (Fire Elemental) - Passionate warrior seeking redemption. Elder Moss (Earth Elemental) - Ancient guardian of nature's wisdom. Captain Zephyr (Air Elemental) - Sky pirate with knowledge of hidden paths. Marina the Tidecaller (Water Elemental) - Healer haunted by past failures. Various faction leaders and common folk whose trust must be earned.",
+      "tags": ["allies", "companions", "relationships"],
+      "trigger_keywords": ["ally", "companion", "friend", "help", "kira", "moss", "zephyr", "marina"],
+      "priority": 2
+    },
+    {
+      "id": "k006",
+      "type": "factions",
+      "title": "Factions of Aetheria",
+      "content": "The Order of Light (zealous but rigid guardians), The Elemental Circles (balanced magic users), The Shadow Touched (corrupted beings seeking redemption), The Common Folk (farmers, merchants, craftspeople), The Wild Ones (druids and forest dwellers), The Sky Riders (aerial nomads and traders). Each faction has different values and may aid or hinder the Guardian based on past actions.",
+      "tags": ["factions", "politics", "reputation"],
+      "trigger_keywords": ["order", "circle", "faction", "group", "people", "help", "enemy"],
+      "priority": 2
+    },
+    {
+      "id": "k007",
+      "type": "magic_system",
+      "title": "Elemental Magic System",
+      "content": "Magic flows from the five elements but requires balance. Pure elemental magic is powerful but unstable. Combined elements create new effects: Fire+Air=Lightning, Water+Earth=Life, etc. Shadow corruption offers quick power but damages the soul. Guardians must learn restraint and harmony rather than raw power to succeed.",
+      "tags": ["magic", "system", "elements", "corruption"],
+      "trigger_keywords": ["magic", "spell", "power", "element", "corruption", "shadow magic"],
+      "priority": 2
+    },
+    {
+      "id": "k008",
+      "type": "progression",
+      "title": "Character Development",
+      "content": "Hero Level increases through overcoming challenges and making brave choices. Reputation grows by helping people and keeping promises. Wisdom comes from exploring, reading ancient texts, and learning from mistakes. Corruption increases from using shadow magic or selfish acts. Bond Strength develops through meaningful interactions with companions and consistent behavior.",
+      "tags": ["progression", "stats", "development"],
+      "trigger_keywords": ["level", "stronger", "improve", "progress", "reputation", "wisdom", "corruption", "bond"],
+      "priority": 1
+    }
+  ]
+}

@@ -1,24 +1,30 @@
 """
 Chat Orchestrator Service
-Combines Knowledge, Conversation, and Persona services for complete chat functionality
+Combines Knowledge, Conversation, Persona, and Selective Memory services for complete chat functionality
 """
 
 from typing import Dict, List, Optional
 from .knowledge_service import KnowledgeService
 from .conversation_service import ConversationService
 from .persona_service import PersonaService
+from .selective_memory_service import SelectiveMemoryService
+from .config_parser_service import ConfigParserService
+from .database_service import DatabaseService
 
 
 class ChatOrchestrator:
     """
     Orchestrates all services to provide complete chat functionality
-    integrating knowledge retrieval, conversation history, and persona context
+    integrating knowledge retrieval, conversation history, persona context, and selective memory
     """
     
-    def __init__(self):
+    def __init__(self, database_service: Optional[DatabaseService] = None):
         self.knowledge_service = KnowledgeService()
         self.conversation_service = ConversationService()
         self.persona_service = PersonaService()
+        self.selective_memory_service = SelectiveMemoryService(database_service)
+        self.config_parser_service = ConfigParserService()
+        self.database_service = database_service
     
     def start_chat_session(self, user_id: str, character_id: str, persona_id: Optional[str] = None) -> Dict:
         """
@@ -240,6 +246,120 @@ class ChatOrchestrator:
             Active persona data or None
         """
         return self.persona_service.get_active_persona(user_id)
+    
+    async def process_chat_with_memory(self, user_id: str, character_id: str, 
+                                      user_message: str, session_id: str,
+                                      character_prompt: str) -> Dict:
+        """
+        Process a chat message with selective memory integration
+        
+        Args:
+            user_id: ID of the user
+            character_id: ID of the character
+            user_message: User's message
+            session_id: Current session ID
+            character_prompt: Character's base prompt
+            
+        Returns:
+            Enhanced context with memory integration
+        """
+        # Ensure database is connected
+        if self.database_service and not self.database_service.is_connected():
+            await self.database_service.connect()
+        
+        # Get character configuration
+        config = self.config_parser_service.parse_configuration(
+            self.config_parser_service.generate_default_config()
+        )
+        
+        # Get or initialize core memory
+        core_memory = await self.selective_memory_service.get_core_memory(user_id, character_id)
+        if not core_memory:
+            core_memory = await self.selective_memory_service.initialize_memory(
+                user_id, character_id, config
+            )
+        
+        # Search for relevant knowledge
+        relevant_knowledge = self.knowledge_service.search_relevant_knowledge(
+            user_message, character_id
+        )
+        
+        # Get persona context
+        persona_context = self.persona_service.generate_persona_context(user_id)
+        
+        # Format memory for prompt injection
+        memory_prompt = ""
+        if config.get("prompt_injection_template"):
+            memory_prompt = self.selective_memory_service.format_for_prompt(
+                core_memory, config["prompt_injection_template"]
+            )
+        
+        # Detect events from user message
+        events_to_add = []
+        status_updates = {}
+        
+        # Simple event detection (can be enhanced with NLP)
+        message_lower = user_message.lower()
+        if any(word in message_lower for word in ["좋아", "사랑", "고마워", "최고"]):
+            events_to_add.append({
+                "event_type": "user_compliment",
+                "description": "사용자가 긍정적인 반응을 보임",
+                "impact": {"affection": 5}
+            })
+            status_updates["affection"] = 5
+        
+        if any(word in message_lower for word in ["싫어", "나빠", "별로", "안좋"]):
+            events_to_add.append({
+                "event_type": "user_criticism",
+                "description": "사용자가 부정적인 반응을 보임",
+                "impact": {"affection": -3, "stress": 5}
+            })
+            status_updates["affection"] = -3
+            status_updates["stress"] = 5
+        
+        # Apply status updates
+        if status_updates:
+            await self.selective_memory_service.update_status_values(
+                user_id, character_id, status_updates, config
+            )
+        
+        # Add events
+        for event in events_to_add:
+            await self.selective_memory_service.add_event(user_id, character_id, event)
+        
+        # Check for milestone achievements
+        context = {
+            "message_count": core_memory.get("conversation_count", 0) + 1,
+            "user_message": user_message
+        }
+        achieved_milestones = await self.selective_memory_service.check_milestones(
+            user_id, character_id, config, context
+        )
+        
+        # Build enhanced prompt
+        enhanced_prompt = f"{character_prompt}\n\n"
+        
+        if memory_prompt:
+            enhanced_prompt += f"[Character Memory State]\n{memory_prompt}\n\n"
+        
+        if relevant_knowledge:
+            knowledge_text = "\n".join([f"- {k['title']}: {k['content']}" for k in relevant_knowledge])
+            enhanced_prompt += f"[Relevant Knowledge]\n{knowledge_text}\n\n"
+        
+        if persona_context:
+            enhanced_prompt += f"[User Persona]\n{persona_context}\n\n"
+        
+        if achieved_milestones:
+            milestone_text = ", ".join([m["description"] for m in achieved_milestones])
+            enhanced_prompt += f"[New Achievements]\n{milestone_text}\n\n"
+        
+        return {
+            "enhanced_prompt": enhanced_prompt,
+            "core_memory": core_memory,
+            "relevant_knowledge": relevant_knowledge,
+            "achieved_milestones": achieved_milestones,
+            "status_updates": status_updates
+        }
     
     def get_user_personas(self, user_id: str) -> List[Dict]:
         """

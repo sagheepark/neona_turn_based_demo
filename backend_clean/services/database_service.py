@@ -136,3 +136,10 @@ class DatabaseService:
         if self.db is None:
             raise Exception("Not connected to database")
         return self.db.characters
+    
+    @property
+    def selective_memories(self):
+        """Access to selective_memories collection for simulation system"""
+        if self.db is None:
+            raise Exception("Not connected to database")
+        return self.db.selective_memories

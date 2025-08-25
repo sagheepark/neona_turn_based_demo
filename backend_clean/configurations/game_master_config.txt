@@ -1,0 +1,52 @@
+# Status Values
+hero_level: 1-100, default=1, "캐릭터의 전체적인 힘과 경험 수준"
+reputation: 0-100, default=50, "다양한 세력들 사이에서의 명성과 신뢰도"
+corruption: 0-100, default=0, "어둠의 마법에 의한 영혼의 오염도"
+wisdom: 0-100, default=10, "고대 지식과 경험으로 얻은 지혜"
+bond_strength: 0-100, default=0, "동료들과의 유대감과 신뢰 관계"
+
+# Milestones
+first_awakening: "첫 번째 각성 - 마법 능력 발견" -> hero_level+10, wisdom+5
+village_savior: "마을 구원자 - 첫 번째 퀘스트 완료" -> reputation+15, bond_strength+10
+ancient_knowledge: "고대의 지식 - 첫 번째 크리스탈 발견" -> wisdom+20, hero_level+5
+corruption_resist: "타락 저항 - 어둠의 유혹 거부" -> corruption-10, wisdom+10
+true_bond: "진정한 유대 - 동료와 깊은 신뢰 형성" -> bond_strength+25, reputation+10
+elemental_mastery: "원소 숙련 - 원소 마법 조합 성공" -> hero_level+15, wisdom+10
+shadow_resistance: "그림자 저항 - 그림자 군주의 공격 생존" -> corruption-20, hero_level+20
+faction_alliance: "세력 동맹 - 주요 세력과 동맹 체결" -> reputation+20, bond_strength+15
+crystal_guardian: "크리스탈 수호자 - 3개 이상 크리스탈 수집" -> hero_level+25, wisdom+15
+realm_savior: "세계의 구원자 - 최종 목표 달성" -> hero_level+50, reputation+50
+
+# Event Triggers
+brave_choice -> hero_level+3, reputation+2
+wise_decision -> wisdom+5, reputation+3
+help_innocent -> reputation+5, bond_strength+3
+use_shadow_magic -> corruption+10, hero_level+5
+cruel_action -> reputation-10, corruption+5
+betray_ally -> bond_strength-15, reputation-20
+learn_ancient_lore -> wisdom+8, hero_level+2
+resist_temptation -> corruption-5, wisdom+3
+show_mercy -> reputation+8, bond_strength+5
+make_sacrifice -> bond_strength+10, reputation+15
+
+# Memory Compression Prompt
+"이 대화에서 플레이어의 주요 선택, 캐릭터 발전, 스토리 진행 상황, 동료 관계 변화, 그리고 수집한 중요한 정보나 아이템을 중심으로 요약하세요. 특히 플레이어의 도덕적 선택과 그것이 세계에 미친 영향에 주목하세요."
+
+# Prompt Injection Template
+"[가디언의 현재 상태]
+영웅 레벨: {hero_level}/100 (초보자 1-20, 숙련자 21-50, 전문가 51-80, 전설 81-100)
+명성: {reputation}/100 (악명 0-20, 무명 21-40, 보통 41-60, 유명 61-80, 전설적 81-100)
+타락도: {corruption}/100 (순수 0-10, 약간 오염 11-30, 위험 31-60, 심각한 타락 61-100)
+지혜: {wisdom}/100 (무지 0-20, 기초 21-40, 현명 41-70, 현자 71-100)
+유대감: {bond_strength}/100 (고립 0-20, 동료 21-50, 친구 51-80, 가족 같은 81-100)
+
+[달성한 업적]
+{milestones}
+
+[기억하는 중요한 사실들]
+{persistent_facts}
+
+[이전 모험 요약]
+{compressed_history}
+
+중요: 플레이어의 현재 상태에 따라 NPC 반응을 조정하고, 달성한 업적을 언급하며, 과거 선택의 결과를 자연스럽게 반영하세요."

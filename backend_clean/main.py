@@ -19,9 +19,17 @@ from services.chat_orchestrator import ChatOrchestrator
 from services.knowledge_service import KnowledgeService
 from services.character_mood_service import CharacterMoodService
 from services.conversation_service import ConversationService
+from services.selective_memory_service import SelectiveMemoryService
+from services.config_parser_service import ConfigParserService
+from services.database_service import DatabaseService
 
-# Initialize chat orchestrator
-chat_orchestrator = ChatOrchestrator()
+# Initialize selective memory system
+database_service = DatabaseService()
+selective_memory_service = SelectiveMemoryService(database_service)
+config_parser_service = ConfigParserService()
+
+# Initialize chat orchestrator with database
+chat_orchestrator = ChatOrchestrator(database_service)
 
 # Initialize knowledge management services
 knowledge_service = KnowledgeService()
@@ -1199,6 +1207,198 @@ async def delete_knowledge_item(knowledge_id: str, request: KnowledgeItemDelete)
         raise
     except Exception as e:
         print(f"Error deleting knowledge item: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# =============================================
+# SELECTIVE MEMORY SYSTEM ENDPOINTS
+# =============================================
+
+class SelectiveConfigRequest(BaseModel):
+    """Request model for updating character selective configuration"""
+    config_text: str
+
+class MemoryUpdateRequest(BaseModel):
+    """Request model for updating memory status values"""
+    status_updates: Dict[str, float]
+    events: Optional[List[Dict]] = []
+    facts: Optional[List[str]] = []
+
+@app.post("/api/startup")
+async def startup():
+    """Initialize database connection on startup"""
+    try:
+        connected = await database_service.connect()
+        return {"status": "connected" if connected else "disconnected"}
+    except Exception as e:
+        print(f"Database connection error: {e}")
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/characters/{character_id}/selective-config")
+async def get_selective_config(character_id: str):
+    """Get character's selective knowledge configuration"""
+    try:
+        # Check if we have a custom config for this character
+        config_path = f"configurations/{character_id}_config.txt"
+        config_text = ""
+        
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config_text = f.read()
+        except FileNotFoundError:
+            # Fallback to default config based on character type
+            if character_id == "game_master":
+                character_type = "default"  # Use default template for now
+            else:
+                character_type = "companion"
+            config_text = config_parser_service.generate_default_config(character_type)
+        
+        return {
+            "character_id": character_id,
+            "config_text": config_text,
+            "parsed": config_parser_service.parse_configuration(config_text)
+        }
+    except Exception as e:
+        print(f"Error getting selective config: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/characters/{character_id}/selective-config")
+async def update_selective_config(character_id: str, request: SelectiveConfigRequest):
+    """Update character's selective knowledge configuration"""
+    try:
+        # Parse the configuration
+        parsed_config = config_parser_service.parse_configuration(request.config_text)
+        
+        # Validate configuration
+        errors = config_parser_service.validate_configuration(parsed_config)
+        if errors:
+            raise HTTPException(status_code=400, detail={"errors": errors})
+        
+        # TODO: Save to database
+        # For now, just return success
+        return {
+            "success": True,
+            "character_id": character_id,
+            "parsed_config": parsed_config
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error updating selective config: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/memory/{character_id}/{user_id}")
+async def get_core_memory(character_id: str, user_id: str):
+    """Get core memory for user-character pair"""
+    try:
+        # Ensure database is connected
+        if not database_service.is_connected():
+            await database_service.connect()
+        
+        core_memory = await selective_memory_service.get_core_memory(user_id, character_id)
+        
+        if not core_memory:
+            # Initialize if doesn't exist - get character-specific config
+            config_response = await get_selective_config(character_id)
+            config = config_response["parsed"]
+            core_memory = await selective_memory_service.initialize_memory(
+                user_id, character_id, config
+            )
+        
+        return {
+            "user_id": user_id,
+            "character_id": character_id,
+            "core_memory": core_memory
+        }
+    except Exception as e:
+        print(f"Error getting core memory: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/memory/{character_id}/{user_id}/initialize")
+async def initialize_memory(character_id: str, user_id: str):
+    """Initialize or reset core memory"""
+    try:
+        # Ensure database is connected
+        if not database_service.is_connected():
+            await database_service.connect()
+        
+        # Get character config (would fetch from DB in production)
+        config = config_parser_service.parse_configuration(
+            config_parser_service.generate_default_config()
+        )
+        
+        core_memory = await selective_memory_service.reset_memory(
+            user_id, character_id, config
+        )
+        
+        return {
+            "success": True,
+            "user_id": user_id,
+            "character_id": character_id,
+            "core_memory": core_memory
+        }
+    except Exception as e:
+        print(f"Error initializing memory: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/memory/{character_id}/{user_id}/update")
+async def update_memory(character_id: str, user_id: str, request: MemoryUpdateRequest):
+    """Update memory with status changes, events, and facts"""
+    try:
+        # Ensure database is connected
+        if not database_service.is_connected():
+            await database_service.connect()
+        
+        # Get character config
+        config = config_parser_service.parse_configuration(
+            config_parser_service.generate_default_config()
+        )
+        
+        # Update status values
+        if request.status_updates:
+            await selective_memory_service.update_status_values(
+                user_id, character_id, request.status_updates, config
+            )
+        
+        # Add events
+        for event in request.events or []:
+            await selective_memory_service.add_event(user_id, character_id, event)
+        
+        # Add facts
+        for fact in request.facts or []:
+            await selective_memory_service.add_persistent_fact(user_id, character_id, fact)
+        
+        # Get updated memory
+        core_memory = await selective_memory_service.get_core_memory(user_id, character_id)
+        
+        return {
+            "success": True,
+            "core_memory": core_memory
+        }
+    except Exception as e:
+        print(f"Error updating memory: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/memory/{character_id}/{user_id}/compress")
+async def compress_memory_history(character_id: str, user_id: str, messages: List[Dict]):
+    """Compress conversation history into memory"""
+    try:
+        # Get character config for compression prompt
+        config = config_parser_service.parse_configuration(
+            config_parser_service.generate_default_config()
+        )
+        
+        compression_prompt = config.get("memory_compression_prompt", "")
+        
+        compressed = await selective_memory_service.compress_history(
+            user_id, character_id, messages, compression_prompt
+        )
+        
+        return {
+            "success": True,
+            "compressed_history": compressed
+        }
+    except Exception as e:
+        print(f"Error compressing history: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # =============================================
