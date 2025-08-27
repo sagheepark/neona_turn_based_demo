@@ -302,6 +302,28 @@ export class ApiClient {
     }
   }
 
+  static async deleteSession(session_id: string, user_id: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/sessions/${session_id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ user_id }),
+        mode: 'cors',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      console.error('Delete session API call failed:', error);
+      throw error;
+    }
+  }
+
   // ============================================
   // PERSONA MANAGEMENT METHODS
   // ============================================

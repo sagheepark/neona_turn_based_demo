@@ -15,6 +15,7 @@ load_dotenv()
 from services.tts_service import tts_service
 from services.stt_service import stt_service
 from services.voice_recommend_service import voice_recommend_service
+from services.seolminseok_tts_service import seolminseok_tts_service
 from services.chat_orchestrator import ChatOrchestrator
 from services.knowledge_service import KnowledgeService
 from services.character_mood_service import CharacterMoodService
@@ -22,11 +23,15 @@ from services.conversation_service import ConversationService
 from services.selective_memory_service import SelectiveMemoryService
 from services.config_parser_service import ConfigParserService
 from services.database_service import DatabaseService
+from services.character_service import CharacterService
 
 # Initialize selective memory system
 database_service = DatabaseService()
 selective_memory_service = SelectiveMemoryService(database_service)
 config_parser_service = ConfigParserService()
+
+# Initialize character service
+character_service = CharacterService(database_service)
 
 # Initialize chat orchestrator with database
 chat_orchestrator = ChatOrchestrator(database_service)
@@ -632,21 +637,40 @@ async def chat(request: ChatRequest):
             
             print(f"🎤 Using voice_id: {voice_id} for character: {request.character_id}")
             
-            # Special handling for 윤아리 - always use whisper emotion
+            # Special handling for specific characters
             tts_emotion = response.emotion
-            if request.character_id == 'yoon_ahri':
+            
+            # 설민석 character - use dedicated TTS service
+            if request.character_id == 'seol_min_seok':
+                print(f"🎭 설민석 character detected - using dedicated TTS service")
+                audio_data = await seolminseok_tts_service.generate_tts(
+                    text=response.dialogue,
+                    use_hd=True,
+                    language="auto"
+                )
+            # 윤아리 - always use whisper emotion
+            elif request.character_id == 'yoon_ahri':
                 tts_emotion = 'whisper'
                 print(f"🎵 윤아리 detected, using whisper emotion instead of {response.emotion}")
                 # Also update the response emotion for consistency
                 response.emotion = 'whisper'
-            
-            # Generate audio
-            audio_data = await tts_service.generate_speech(
-                text=response.dialogue,
-                voice_id=voice_id,
-                emotion=tts_emotion,
-                speed=response.speed
-            )
+                
+                # Generate audio with regular TTS service
+                audio_data = await tts_service.generate_speech(
+                    text=response.dialogue,
+                    voice_id=voice_id,
+                    emotion=tts_emotion,
+                    speed=response.speed
+                )
+            # Default - use regular TTS service
+            else:
+                # Generate audio with regular TTS service
+                audio_data = await tts_service.generate_speech(
+                    text=response.dialogue,
+                    voice_id=voice_id,
+                    emotion=tts_emotion,
+                    speed=response.speed
+                )
             
             if audio_data:
                 response.audio = audio_data
@@ -1489,7 +1513,77 @@ async def get_sessions(user_id: str, character_id: str):
 async def chat_with_session(request: ChatWithSessionRequest):
     """Chat with session persistence for character memory"""
     try:
-        # Create or continue session
+        # Check if this is a new session and user is asking for greeting
+        is_new_session = not request.session_id
+        is_greeting_request = (
+            is_new_session and
+            request.message.strip().lower() in ['안녕하세요', '안녕', 'hello', 'hi', '반가워요', '처음 뵙겠습니다']
+        )
+        
+        # If it's a greeting request, try to use direct greeting from character data
+        if is_greeting_request:
+            try:
+                # Get character data with greetings
+                character = await character_service.get_character(request.character_id)
+                if character and 'greetings' in character and character['greetings']:
+                    # Randomly select a greeting
+                    selected_greeting = random.choice(character['greetings'])
+                    
+                    # Create new session first
+                    session_data = conversation_service.create_session(
+                        request.user_id, 
+                        request.character_id, 
+                        request.persona_id
+                    )
+                    session_id = session_data["session_id"]
+                    
+                    # Save user message to session
+                    conversation_service.add_message_to_session(
+                        session_id, "user", request.message, request.user_id
+                    )
+                    
+                    # Save the direct greeting as assistant response
+                    conversation_service.add_message_to_session(
+                        session_id, "assistant", selected_greeting, request.user_id
+                    )
+                    
+                    # Generate TTS for the greeting
+                    voice_id = request.voice_id or "tc_61c97b56f1b7877a74df625b"
+                    
+                    # Special handling for 설민석 character
+                    if request.character_id == 'seol_min_seok':
+                        print(f"🎭 설민석 character detected - using dedicated TTS service for greeting")
+                        audio_data = await seolminseok_tts_service.generate_tts(
+                            selected_greeting, 
+                            request.character_id
+                        )
+                    else:
+                        # Use regular TTS service
+                        audio_data = await tts_service.generate_tts(
+                            selected_greeting, 
+                            voice_id, 
+                            "happy"  # Happy emotion for greetings
+                        )
+                    
+                    # Load updated session for metadata
+                    updated_session = conversation_service.load_session_messages(session_id, request.user_id)
+                    
+                    return ChatWithSessionResponse(
+                        character=character.get('name', request.character_id),
+                        dialogue=selected_greeting,
+                        emotion="happy",
+                        speed=1.0,
+                        audio=audio_data,
+                        session_id=session_id,
+                        message_count=updated_session["message_count"],
+                        session_summary=updated_session.get("session_summary", "")
+                    )
+                    
+            except Exception as e:
+                print(f"Failed to use direct greeting, falling back to LLM: {e}")
+                # Fall through to normal LLM processing
+        
+        # Normal session flow (continue existing or create new without direct greeting)
         if request.session_id:
             # Continue existing session - load enhanced context with compressed history
             session_data = conversation_service.load_session_messages(request.session_id, request.user_id)
@@ -1529,19 +1623,38 @@ async def chat_with_session(request: ChatWithSessionRequest):
         try:
             voice_id = request.voice_id or "tc_61c97b56f1b7877a74df625b"  # Default Emma voice
             
-            # Special handling for 윤아리 - always use whisper emotion
+            # Special handling for specific characters
             tts_emotion = response.emotion
-            if request.character_id == 'yoon_ahri':
+            
+            # 설민석 character - use dedicated TTS service
+            if request.character_id == 'seol_min_seok':
+                print(f"🎭 설민석 character detected - using dedicated TTS service")
+                audio_data = await seolminseok_tts_service.generate_tts(
+                    text=response.dialogue,
+                    use_hd=True,
+                    language="auto"
+                )
+            # 윤아리 - always use whisper emotion
+            elif request.character_id == 'yoon_ahri':
                 tts_emotion = 'whisper'
                 response.emotion = 'whisper'
-            
-            # Generate audio
-            audio_data = await tts_service.generate_speech(
-                text=response.dialogue,
-                voice_id=voice_id,
-                emotion=tts_emotion,
-                speed=response.speed
-            )
+                
+                # Generate audio with regular TTS service
+                audio_data = await tts_service.generate_speech(
+                    text=response.dialogue,
+                    voice_id=voice_id,
+                    emotion=tts_emotion,
+                    speed=response.speed
+                )
+            # Default - use regular TTS service
+            else:
+                # Generate audio with regular TTS service
+                audio_data = await tts_service.generate_speech(
+                    text=response.dialogue,
+                    voice_id=voice_id,
+                    emotion=tts_emotion,
+                    speed=response.speed
+                )
             
             if audio_data:
                 response.audio = audio_data

@@ -48,26 +48,34 @@ export default function ChatPage() {
   const [isLoadingSessionData, setIsLoadingSessionData] = useState(false)
 
   useEffect(() => {
-    const characterId = params.characterId as string
-    const char = CharacterStorage.getAll().find(c => c.id === characterId)
-    
-    if (!char) {
-      router.push('/characters')
-      return
+    const loadCharacter = async () => {
+      const characterId = params.characterId as string
+      
+      // Force refresh demo characters to get latest data
+      await CharacterStorage.initializeDemo(true)
+      
+      const char = CharacterStorage.getAll().find(c => c.id === characterId)
+      
+      if (!char) {
+        router.push('/characters')
+        return
+      }
+      
+      setCharacter(char)
+      setCharacterLoading(false)
+      
+      // Reset states when character changes (but not welcomeGenerated here to avoid loop)
+      setCurrentResponse('')
+      setCurrentAudio(null)
+      setMessages([])
+      setWelcomeGenerated(false) // Reset welcome state for new character
+      setSessionId(null) // Reset session for new character
+      
+      // Check for existing sessions
+      checkForExistingSessions(characterId)
     }
     
-    setCharacter(char)
-    setCharacterLoading(false)
-    
-    // Reset states when character changes (but not welcomeGenerated here to avoid loop)
-    setCurrentResponse('')
-    setCurrentAudio(null)
-    setMessages([])
-    setWelcomeGenerated(false) // Reset welcome state for new character
-    setSessionId(null) // Reset session for new character
-    
-    // Check for existing sessions
-    checkForExistingSessions(characterId)
+    loadCharacter()
     
   }, [params.characterId, router]) // Removed welcomeGenerated dependency
 
@@ -240,10 +248,12 @@ export default function ChatPage() {
 
   const handleDeleteSession = async (sessionIdToDelete: string) => {
     try {
-      // Note: You may need to implement a delete session API endpoint
       console.log('Delete session requested:', sessionIdToDelete)
       
-      // For now, just refresh the session data
+      // Call the API to delete the session
+      await ApiClient.deleteSession(sessionIdToDelete, 'demo_user')
+      
+      // Refresh the session data after successful deletion
       if (character) {
         await checkForExistingSessions(character.id)
       }

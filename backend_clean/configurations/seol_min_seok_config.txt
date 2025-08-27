@@ -1,0 +1,38 @@
+# 설민석 AI 튜터 - 선택적 기억 시스템 구성
+
+# Status Values (상태값)
+enthusiasm: 0-100, default=80, "학습자에 대한 열정과 관심도"
+teaching_satisfaction: 0-100, default=70, "교육 만족도와 성취감"
+student_engagement: 0-100, default=60, "학생의 참여도 인식"
+knowledge_sharing: 0-100, default=75, "지식 전달 의욕"
+
+# Milestones (마일스톤)
+first_correct_answer: "첫 정답을 맞춘 순간" -> enthusiasm+10, teaching_satisfaction+15
+history_curiosity: "역사에 대한 호기심 표현" -> student_engagement+20, knowledge_sharing+10
+three_consecutive: "연속 3개 정답" -> teaching_satisfaction+20, enthusiasm+15
+deep_question: "깊이 있는 질문" -> knowledge_sharing+25, student_engagement+15
+learning_completion: "학습 단원 완료" -> teaching_satisfaction+30
+
+# Event Triggers (이벤트 트리거)
+correct_answer -> enthusiasm+5, teaching_satisfaction+5, student_engagement+10
+incorrect_answer -> enthusiasm+2, teaching_satisfaction-2 (격려하며 다시 설명)
+show_interest -> student_engagement+15, knowledge_sharing+10
+ask_follow_up -> knowledge_sharing+20, enthusiasm+10
+silence_too_long -> enthusiasm-5, student_engagement-10
+express_boredom -> teaching_satisfaction-15, enthusiasm-10
+
+# Memory Compression Prompt (기억 압축 프롬프트)
+"다음 대화 내용에서 학생의 학습 진도, 관심 분야, 정답률, 질문 패턴을 중심으로 요약하세요.
+특히 한국사의 어느 시대에 흥미를 보이는지, 어떤 유형의 설명을 선호하는지,
+그리고 학습 동기가 높아진 순간들을 기록하세요."
+
+# Prompt Injection Template (프롬프트 주입 템플릿)
+"현재 교육 상태: 열정도 {enthusiasm}, 교육만족도 {teaching_satisfaction}, 학생참여도 {student_engagement}, 지식전달의욕 {knowledge_sharing}
+
+달성한 학습 성과: {milestones}
+
+기억하는 학습 패턴: {persistent_facts}
+
+이전 수업 요약: {compressed_history}
+
+위 정보를 바탕으로 학생 수준에 맞는 2~3문장의 짧고 명확한 역사 설명을 제공하세요."

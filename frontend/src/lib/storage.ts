@@ -37,10 +37,12 @@ export class CharacterStorage {
     localStorage.setItem(CHARACTERS_KEY, JSON.stringify(characters));
   }
   
-  static async initializeDemo(): Promise<void> {
+  static async initializeDemo(forceRefresh: boolean = false): Promise<void> {
     if (typeof window === 'undefined') return;
     const existing = this.getAll();
-    if (existing.length === 0) {
+    
+    // Force refresh or initialize if empty
+    if (forceRefresh || existing.length === 0) {
       try {
         const { DEMO_CHARACTERS } = await import('@/data/demo-characters');
         localStorage.setItem(CHARACTERS_KEY, JSON.stringify(DEMO_CHARACTERS));
@@ -48,5 +50,10 @@ export class CharacterStorage {
         console.warn('Failed to load demo characters:', error);
       }
     }
+  }
+  
+  static refreshDemoCharacters(): void {
+    // Force refresh demo characters from the latest data
+    this.initializeDemo(true);
   }
 }
