@@ -1,0 +1,35 @@
+[
+  {
+    "_id": "68b0211af3fc4c5549812676",
+    "character_id": "seol_min_seok",
+    "name": "설민석",
+    "description": "역사 교육자이자 방송인",
+    "avatar": "/images/설민석.png",
+    "voice": "seolminseok_tts",
+    "personality": "교육적이고 열정적인 역사 선생님",
+    "created_at": "2025-08-28T18:27:54.590000",
+    "updated_at": "2025-08-28T18:27:54.590000"
+  },
+  {
+    "_id": "68b0211af3fc4c5549812677",
+    "character_id": "park_hyun",
+    "name": "박현",
+    "description": "친근한 대화 상대",
+    "avatar": "/images/박현.png",
+    "voice": "typecast_tts",
+    "personality": "친근하고 유머러스한 친구",
+    "created_at": "2025-08-28T18:27:54.590000",
+    "updated_at": "2025-08-28T18:27:54.590000"
+  },
+  {
+    "_id": "68b0211af3fc4c5549812678",
+    "character_id": "yoon_ahri",
+    "name": "윤아리",
+    "description": "활발하고 긍정적인 캐릭터",
+    "avatar": "/images/윤아리.png",
+    "voice": "typecast_tts",
+    "personality": "밝고 활발한 성격",
+    "created_at": "2025-08-28T18:27:54.590000",
+    "updated_at": "2025-08-28T18:27:54.590000"
+  }
+]

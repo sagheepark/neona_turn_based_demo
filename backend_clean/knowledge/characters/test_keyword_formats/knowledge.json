@@ -117,6 +117,45 @@
       "category": "testing",
       "id": "kb_d15bbb44",
       "created_at": "2025-08-19T16:45:19.194952"
+    },
+    {
+      "title": "Keyword Test 1: Comma-separated string",
+      "content": "Testing Comma-separated string format",
+      "keywords": [
+        "python",
+        "programming",
+        "variables",
+        "data types"
+      ],
+      "category": "testing",
+      "id": "kb_53599adf",
+      "created_at": "2025-08-27T20:22:11.781215"
+    },
+    {
+      "title": "Keyword Test 2: Array of strings",
+      "content": "Testing Array of strings format",
+      "keywords": [
+        "functions",
+        "def",
+        "return",
+        "parameters"
+      ],
+      "category": "testing",
+      "id": "kb_6aab1480",
+      "created_at": "2025-08-27T20:22:11.785398"
+    },
+    {
+      "title": "Keyword Test 3: Mixed case and spacing",
+      "content": "Testing Mixed case and spacing format",
+      "keywords": [
+        "API",
+        "Rest",
+        "JSON",
+        "HTTP"
+      ],
+      "category": "testing",
+      "id": "kb_378e3be2",
+      "created_at": "2025-08-27T20:22:11.789099"
     }
   ]
 }

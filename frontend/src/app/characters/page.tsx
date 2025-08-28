@@ -91,6 +91,7 @@ export default function CharactersPage() {
               setCharacters(CharacterStorage.getAll())
             }}
             onPersona={() => setSelectedCharacterForPersona(character)}
+            onSimulation={() => router.push(`/characters/${character.id}/simulation`)}
           />
         ))}
         

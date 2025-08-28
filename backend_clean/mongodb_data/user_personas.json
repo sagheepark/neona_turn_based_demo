@@ -1,0 +1,18 @@
+[
+  {
+    "_id": "68b0211af3fc4c554981267c",
+    "user_id": "demo_user",
+    "name": "데모 사용자",
+    "preferences": {
+      "preferred_language": "korean",
+      "interaction_style": "casual",
+      "topics_of_interest": [
+        "역사",
+        "교육",
+        "문화"
+      ]
+    },
+    "created_at": "2025-08-28T18:27:54.715000",
+    "updated_at": "2025-08-28T18:27:54.715000"
+  }
+]

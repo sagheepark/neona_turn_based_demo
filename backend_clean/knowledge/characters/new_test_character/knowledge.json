@@ -72,6 +72,30 @@
       "category": "expertise",
       "id": "kb_924137a5",
       "created_at": "2025-08-19T16:45:19.275891"
+    },
+    {
+      "title": "Character Introduction",
+      "content": "Basic information about this character",
+      "keywords": [
+        "introduction",
+        "basic",
+        "character"
+      ],
+      "category": "fundamentals",
+      "id": "kb_12554eea",
+      "created_at": "2025-08-27T20:22:11.917050"
+    },
+    {
+      "title": "Character Expertise",
+      "content": "What this character specializes in",
+      "keywords": [
+        "expertise",
+        "specialization",
+        "skills"
+      ],
+      "category": "expertise",
+      "id": "kb_73164c09",
+      "created_at": "2025-08-27T20:22:11.917221"
     }
   ]
 }

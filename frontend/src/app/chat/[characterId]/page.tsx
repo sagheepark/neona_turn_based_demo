@@ -120,10 +120,19 @@ export default function ChatPage() {
 
   // Enhanced welcome message generation with session support
   useEffect(() => {
+    console.log('🔍 Welcome generation check:', {
+      hasCharacter: !!character,
+      characterName: character?.name,
+      welcomeGenerated,
+      showSessionModal,
+      isLoadingSessionData,
+      hasGreetings: character?.greetings?.length || 0
+    })
+    
     if (!character || welcomeGenerated || showSessionModal || isLoadingSessionData) return
     
     const generateWelcome = async () => {
-      // Use random greeting from greetings array if available, otherwise generate welcome
+      // Use random greeting from greetings array if available, otherwise generate default welcome
       let welcomeMessage = `안녕하세요! 저는 ${character.name}입니다. ${character.description}. 궁금한 것이 있으시면 언제든지 물어보세요!`
       
       if (character.greetings && character.greetings.length > 0) {
@@ -136,48 +145,95 @@ export default function ChatPage() {
       setWelcomeGenerated(true) // Prevent duplicate calls
       
       try {
-        // Use session-based chat API for consistency
-        const response: ChatResponse = await ApiClient.chatWithSession({
-          session_id: sessionId || undefined,
-          message: '안녕하세요', // Simple greeting to trigger welcome
-          character_prompt: character.prompt,
-          character_id: character.id,
-          user_id: 'demo_user',
-          voice_id: character.voice_id
-        })
-        
-        // Update session ID if new
-        if (response.session_id && !sessionId) {
-          setSessionId(response.session_id)
-          console.log('✅ Session created for welcome:', response.session_id)
-        }
-        
-        // Set response data
-        setCurrentResponse(response.dialogue)
-        setCharacterEmotion(response.emotion)
-        
-        console.log('Welcome chat response:', { 
-          dialogue: response.dialogue, 
-          emotion: response.emotion, 
-          audioLength: response.audio?.length 
-        })
-        
-        if (response.audio) {
-          console.log('Setting welcome audio, length:', response.audio.length)
-          setCurrentAudio(response.audio)
-          setShouldStartTyping(false) // Wait for audio to start
+        // For characters with predefined greetings, use them directly but also store in backend session
+        if (character.greetings && character.greetings.length > 0) {
+          console.log('🎭 Character has predefined greetings:', character.greetings)
+          console.log('🎭 Using predefined greeting:', welcomeMessage)
+          
+          // Send the predefined greeting to backend with a special flag to store it properly
+          const response: ChatResponse = await ApiClient.chatWithSession({
+            session_id: sessionId || undefined,
+            message: `__PREDEFINED_GREETING__:${welcomeMessage}`, // Special flag for backend
+            character_prompt: character.prompt,
+            character_id: character.id,
+            user_id: 'demo_user',
+            voice_id: character.voice_id
+          })
+          
+          // Update session ID if new
+          if (response.session_id && !sessionId) {
+            setSessionId(response.session_id)
+            console.log('✅ Session created for predefined greeting:', response.session_id)
+          }
+          
+          // Generate TTS for the predefined greeting (use predefined, not backend response)
+          const ttsResponse = await ApiClient.textToSpeech(welcomeMessage, character.voice_id, 'happy', character.id)
+          
+          // Set response data using predefined greeting
+          setCurrentResponse(welcomeMessage)
+          setCharacterEmotion('happy')
+          
+          if (ttsResponse.audio) {
+            console.log('Setting welcome TTS audio, length:', ttsResponse.audio.length)
+            setCurrentAudio(ttsResponse.audio)
+            setShouldStartTyping(false) // Wait for audio to start
+          } else {
+            console.log('No TTS audio generated')
+            setShouldStartTyping(true) // No audio, start typing immediately
+          }
+          
+          // Add the welcome message to history as assistant message
+          const welcomeHistoryMessage: ChatMessage = {
+            role: 'assistant',
+            content: welcomeMessage,
+            timestamp: new Date().toISOString()
+          }
+          setMessages([welcomeHistoryMessage])
+          
         } else {
-          console.log('No audio in welcome response')
-          setShouldStartTyping(true) // No audio, start typing immediately
+          // For characters without predefined greetings, use LLM-generated welcome
+          const response: ChatResponse = await ApiClient.chatWithSession({
+            session_id: sessionId || undefined,
+            message: '안녕하세요', // Simple greeting to trigger welcome
+            character_prompt: character.prompt,
+            character_id: character.id,
+            user_id: 'demo_user',
+            voice_id: character.voice_id
+          })
+          
+          // Update session ID if new
+          if (response.session_id && !sessionId) {
+            setSessionId(response.session_id)
+            console.log('✅ Session created for welcome:', response.session_id)
+          }
+          
+          // Set response data
+          setCurrentResponse(response.dialogue)
+          setCharacterEmotion(response.emotion)
+          
+          console.log('Welcome chat response:', { 
+            dialogue: response.dialogue, 
+            emotion: response.emotion, 
+            audioLength: response.audio?.length 
+          })
+          
+          if (response.audio) {
+            console.log('Setting welcome audio, length:', response.audio.length)
+            setCurrentAudio(response.audio)
+            setShouldStartTyping(false) // Wait for audio to start
+          } else {
+            console.log('No audio in welcome response')
+            setShouldStartTyping(true) // No audio, start typing immediately
+          }
+          
+          // Add the welcome message to history as assistant message
+          const welcomeHistoryMessage: ChatMessage = {
+            role: 'assistant',
+            content: response.dialogue,
+            timestamp: new Date().toISOString()
+          }
+          setMessages([welcomeHistoryMessage])
         }
-        
-        // Add the welcome message to history as assistant message
-        const welcomeHistoryMessage: ChatMessage = {
-          role: 'assistant',
-          content: response.dialogue,
-          timestamp: new Date().toISOString()
-        }
-        setMessages([welcomeHistoryMessage])
         
       } catch (error) {
         console.error('Failed to generate welcome message:', error)
@@ -243,7 +299,7 @@ export default function ChatPage() {
     setCurrentAudio(null)
     setWelcomeGenerated(false) // Allow welcome generation
     
-    console.log('Starting new session')
+    console.log('🔄 Starting new session - welcome generation allowed')
   }
 
   const handleDeleteSession = async (sessionIdToDelete: string) => {

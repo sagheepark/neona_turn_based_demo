@@ -1,6 +1,6 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, User } from 'lucide-react';
+import { Edit, Trash2, User, Settings } from 'lucide-react';
 import { Character } from '@/types/character';
 // Knowledge management integration - minimal for TDD GREEN phase
 // TODO: Add knowledge display and management UI
@@ -11,6 +11,7 @@ interface CharacterCardProps {
   onEdit?: () => void;
   onDelete?: () => void;
   onPersona?: () => void;
+  onSimulation?: () => void;
 }
 
 export function CharacterCard({ 
@@ -18,7 +19,8 @@ export function CharacterCard({
   onClick, 
   onEdit, 
   onDelete,
-  onPersona 
+  onPersona,
+  onSimulation 
 }: CharacterCardProps) {
   return (
     <Card 
@@ -26,6 +28,20 @@ export function CharacterCard({
       onClick={onClick}
     >
       <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10">
+        {onSimulation && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-8 w-8 p-0"
+            onClick={(e) => {
+              e.stopPropagation();
+              onSimulation();
+            }}
+            title="시뮬레이션 설정"
+          >
+            <Settings className="w-4 h-4" />
+          </Button>
+        )}
         {onPersona && (
           <Button
             size="sm"

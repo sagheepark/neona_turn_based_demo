@@ -24,6 +24,9 @@ from services.selective_memory_service import SelectiveMemoryService
 from services.config_parser_service import ConfigParserService
 from services.database_service import DatabaseService
 from services.character_service import CharacterService
+from services.incremental_knowledge_cache import IncrementalKnowledgeCache
+from services.optimized_prompt_builder import OptimizedPromptBuilder
+from services.fallback_tts_service import FallbackTTSService
 
 # Initialize selective memory system
 database_service = DatabaseService()
@@ -40,6 +43,9 @@ chat_orchestrator = ChatOrchestrator(database_service)
 knowledge_service = KnowledgeService()
 character_mood_service = CharacterMoodService()
 conversation_service = ConversationService()
+incremental_cache = IncrementalKnowledgeCache()
+prompt_builder = OptimizedPromptBuilder()
+fallback_tts = FallbackTTSService()
 
 # Print STT service status on startup
 print(f"📢 STT Service Status: {'✅ Available' if stt_service.available else '❌ Not Available'}")
@@ -766,20 +772,35 @@ class TTSRequest(BaseModel):
 async def generate_tts(request: TTSRequest):
     """Generate TTS audio for given text"""
     try:
-        # Special handling for 윤아리 - always use whisper emotion
+        # Special handling for specific characters
         tts_emotion = request.emotion
-        if request.character_id == 'yoon_ahri':
+        
+        # 설민석 character - use dedicated TTS service
+        if request.character_id == 'seol_min_seok':
+            print(f"🎭 설민석 character detected - using dedicated TTS service for standalone TTS")
+            audio_data = await seolminseok_tts_service.generate_tts(
+                text=request.text,
+                use_hd=True,
+                language="auto"
+            )
+        # Special handling for 윤아리 - always use whisper emotion
+        elif request.character_id == 'yoon_ahri':
             tts_emotion = 'whisper'
             print(f"🎵 윤아리 TTS detected, using whisper emotion instead of {request.emotion}")
-        
-        print(f"🎤 TTS request - voice_id: {request.voice_id}, emotion: {tts_emotion}")
-        
-        audio_data = await tts_service.generate_speech(
-            text=request.text,
-            voice_id=request.voice_id,
-            emotion=tts_emotion,
-            speed=request.speed
-        )
+            audio_data = await tts_service.generate_speech(
+                text=request.text,
+                voice_id=request.voice_id,
+                emotion=tts_emotion,
+                speed=request.speed
+            )
+        else:
+            print(f"🎤 Regular TTS request - voice_id: {request.voice_id}, emotion: {tts_emotion}")
+            audio_data = await tts_service.generate_speech(
+                text=request.text,
+                voice_id=request.voice_id,
+                emotion=tts_emotion,
+                speed=request.speed
+            )
         
         if audio_data:
             return {
@@ -791,10 +812,46 @@ async def generate_tts(request: TTSRequest):
                 "emotion": request.emotion
             }
         else:
-            raise HTTPException(status_code=500, detail="TTS generation failed")
+            # Use fallback TTS with appropriate duration
+            print("🔄 Primary TTS failed, using fallback silent audio")
+            fallback_audio = await fallback_tts.generate_tts(
+                text=request.text,
+                voice_id=request.voice_id,
+                emotion=tts_emotion
+            )
+            
+            return {
+                "status": "success",
+                "audio": fallback_audio,
+                "audio_base64": fallback_audio,
+                "text": request.text,
+                "voice_id": request.voice_id,
+                "emotion": request.emotion,
+                "fallback": True  # Indicate this is fallback audio
+            }
             
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"TTS error: {str(e)}")
+        # Use fallback TTS for any exception
+        print(f"🔄 TTS exception occurred, using fallback: {str(e)}")
+        try:
+            fallback_audio = await fallback_tts.generate_tts(
+                text=request.text,
+                voice_id=request.voice_id,
+                emotion=request.emotion
+            )
+            
+            return {
+                "status": "success",
+                "audio": fallback_audio,
+                "audio_base64": fallback_audio,
+                "text": request.text,
+                "voice_id": request.voice_id,
+                "emotion": request.emotion,
+                "fallback": True,
+                "fallback_reason": str(e)
+            }
+        except Exception as fallback_error:
+            raise HTTPException(status_code=500, detail=f"Both TTS and fallback failed: {str(fallback_error)}")
 
 class STTRequest(BaseModel):
     audio: str  # base64 encoded audio data
@@ -1513,6 +1570,55 @@ async def get_sessions(user_id: str, character_id: str):
 async def chat_with_session(request: ChatWithSessionRequest):
     """Chat with session persistence for character memory"""
     try:
+        # Check for predefined greeting message from frontend
+        if request.message.startswith("__PREDEFINED_GREETING__:"):
+            predefined_greeting = request.message[len("__PREDEFINED_GREETING__:"):]
+            print(f"🎭 Received predefined greeting from frontend: '{predefined_greeting}'")
+            
+            # Create or get session
+            if not request.session_id:
+                session_data = conversation_service.create_session(
+                    request.user_id, 
+                    request.character_id, 
+                    request.persona_id
+                )
+                session_id = session_data["session_id"]
+                print(f"✅ Created new session for predefined greeting: {session_id}")
+            else:
+                session_id = request.session_id
+            
+            # 🆕 PROACTIVE KNOWLEDGE CACHING FROM GREETING
+            cached_knowledge = incremental_cache.cache_greeting_knowledge(
+                session_id, predefined_greeting, request.character_id
+            )
+            print(f"📚 Cached {len(cached_knowledge)} knowledge items from greeting")
+            
+            # Store the greeting exchange in session history
+            # Store user's greeting request
+            conversation_service.add_message_to_session(
+                session_id, "user", "안녕하세요", request.user_id
+            )
+            
+            # Store the predefined greeting as assistant response
+            conversation_service.add_message_to_session(
+                session_id, "assistant", predefined_greeting, request.user_id
+            )
+            
+            # Get updated session info
+            updated_session = conversation_service.get_session(session_id, request.user_id)
+            
+            # Return the predefined greeting (no LLM call needed)
+            return ChatWithSessionResponse(
+                character=request.character_id,
+                dialogue=predefined_greeting,
+                emotion="happy",
+                speed=1.0,
+                audio=None,  # Frontend will handle TTS separately
+                session_id=session_id,
+                message_count=updated_session["message_count"],
+                session_summary=updated_session.get("session_summary", "")
+            )
+        
         # Check if this is a new session and user is asking for greeting
         is_new_session = not request.session_id
         is_greeting_request = (
@@ -1520,14 +1626,21 @@ async def chat_with_session(request: ChatWithSessionRequest):
             request.message.strip().lower() in ['안녕하세요', '안녕', 'hello', 'hi', '반가워요', '처음 뵙겠습니다']
         )
         
+        print(f"🔍 Greeting check - New session: {is_new_session}, Message: '{request.message}', Is greeting: {is_greeting_request}")
+        
         # If it's a greeting request, try to use direct greeting from character data
         if is_greeting_request:
             try:
                 # Get character data with greetings
                 character = await character_service.get_character(request.character_id)
+                print(f"🎭 Character found: {character is not None}")
+                if character:
+                    print(f"🎭 Character greetings: {character.get('greetings', 'NOT FOUND')}")
+                
                 if character and 'greetings' in character and character['greetings']:
                     # Randomly select a greeting
                     selected_greeting = random.choice(character['greetings'])
+                    print(f"✅ Using direct greeting: '{selected_greeting}'")
                     
                     # Create new session first
                     session_data = conversation_service.create_session(
@@ -1580,8 +1693,10 @@ async def chat_with_session(request: ChatWithSessionRequest):
                     )
                     
             except Exception as e:
-                print(f"Failed to use direct greeting, falling back to LLM: {e}")
+                print(f"❌ Failed to use direct greeting, falling back to LLM: {e}")
                 # Fall through to normal LLM processing
+        else:
+            print(f"⏭️  Not a greeting request, proceeding with normal LLM flow")
         
         # Normal session flow (continue existing or create new without direct greeting)
         if request.session_id:
@@ -1602,12 +1717,75 @@ async def chat_with_session(request: ChatWithSessionRequest):
             session_id, "user", request.message, request.user_id
         )
         
-        # Get enhanced AI context with compressed history
-        ai_context = conversation_service.get_enhanced_ai_context(session_id, request.user_id)
+        # 🆕 ENHANCED: Use incremental knowledge cache + optimized prompts
         
-        # Generate AI response using enhanced context
+        # Get cached knowledge with incremental additions
+        cached_knowledge = incremental_cache.add_knowledge_incrementally(
+            session_id, request.message, request.character_id
+        )
+        
+        # Get conversation history for prompt building
+        session_data = conversation_service.load_session_messages(session_id, request.user_id)
+        conversation_history = session_data.get("messages", [])
+        
+        # Generate AI response using optimized prompt structure
         if llm_available:
-            response = await generate_enhanced_ai_response(request.character_prompt, ai_context, request.message)
+            # Build optimized prompt with 3-tier structure
+            optimized_prompt = prompt_builder.build_llm_prompt(
+                character_prompt=request.character_prompt,
+                cached_knowledge=cached_knowledge,
+                conversation_history=conversation_history,
+                current_user_input=request.message
+            )
+            
+            print(f"🔧 Using optimized prompt with {len(cached_knowledge)} cached knowledge items")
+            
+            # Generate response using optimized prompt
+            response = azure_client.chat.completions.create(
+                model=AZURE_OPENAI_DEPLOYMENT,
+                messages=[{"role": "system", "content": optimized_prompt}],
+                max_tokens=300,
+                temperature=0.7,
+                top_p=0.95,
+                frequency_penalty=0,
+                presence_penalty=0
+            )
+            
+            response_text = response.choices[0].message.content.strip()
+            
+            # Parse JSON response
+            try:
+                import re
+                json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+                if json_match:
+                    response_data = json.loads(json_match.group())
+                else:
+                    response_data = json.loads(response_text)
+                
+                # Create ChatResponse object
+                from dataclasses import dataclass
+                @dataclass 
+                class ChatResponse:
+                    character: str
+                    dialogue: str
+                    emotion: str
+                    speed: float
+                
+                response = ChatResponse(
+                    character=response_data.get('character', request.character_id),
+                    dialogue=response_data.get('dialogue', '응답을 생성할 수 없습니다.'),
+                    emotion=response_data.get('emotion', 'normal'),
+                    speed=response_data.get('speed', 1.0)
+                )
+                
+            except (json.JSONDecodeError, KeyError) as e:
+                print(f"Failed to parse AI response: {e}")
+                response = ChatResponse(
+                    character=request.character_id,
+                    dialogue="응답을 생성하는 중 오류가 발생했습니다.",
+                    emotion="normal",
+                    speed=1.0
+                )
         else:
             response = generate_mock_response()
         

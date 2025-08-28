@@ -73,6 +73,18 @@
       "category": "testing",
       "id": "kb_e069c2f8",
       "created_at": "2025-08-19T16:45:19.241006"
+    },
+    {
+      "title": "API Test Knowledge",
+      "content": "Testing knowledge creation via API",
+      "keywords": [
+        "api",
+        "test",
+        "knowledge"
+      ],
+      "category": "testing",
+      "id": "kb_5d54b0b4",
+      "created_at": "2025-08-27T20:22:11.858598"
     }
   ]
 }

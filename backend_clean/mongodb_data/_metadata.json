@@ -1,0 +1,26 @@
+{
+  "exported_at": "2025-08-28T18:28:18.255168",
+  "database": "neona_chat",
+  "collections": [
+    {
+      "name": "knowledge_base",
+      "count": 3,
+      "file": "knowledge_base.json"
+    },
+    {
+      "name": "conversations",
+      "count": 1,
+      "file": "conversations.json"
+    },
+    {
+      "name": "characters",
+      "count": 3,
+      "file": "characters.json"
+    },
+    {
+      "name": "user_personas",
+      "count": 1,
+      "file": "user_personas.json"
+    }
+  ]
+}

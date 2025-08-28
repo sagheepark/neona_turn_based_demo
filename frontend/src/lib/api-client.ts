@@ -210,6 +210,36 @@ export class ApiClient {
     }
   }
 
+  static async textToSpeech(text: string, voice_id?: string, emotion?: string, character_id?: string): Promise<{ audio?: string; status: string; message?: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/tts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: text,
+          voice_id: voice_id,
+          emotion: emotion || 'happy',
+          character_id: character_id
+        }),
+        mode: 'cors',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return response.json();
+    } catch (error) {
+      console.error('TTS API call failed:', error);
+      return {
+        status: "error",
+        message: "Text-to-speech generation failed"
+      };
+    }
+  }
+
   // ============================================
   // NEW SESSION MANAGEMENT METHODS
   // ============================================

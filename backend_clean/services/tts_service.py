@@ -97,6 +97,7 @@ class TypecastTTSService:
             response = requests.post(url, headers=self.headers, json=payload, timeout=30)
             
             logger.info(f"TTS Response status: {response.status_code}")
+            print(f"🔍 TTS RESPONSE STATUS: {response.status_code}")
             logger.info(f"TTS Response headers: {dict(response.headers)}")
             
             if response.status_code == 200:
@@ -111,14 +112,16 @@ class TypecastTTSService:
                 
                 # Fallback to mock audio
                 logger.info(f"🎵 Falling back to mock TTS for text: '{text[:50]}...'")
+                duration_seconds = max(2.0, min(15.0, len(text) / 6.0))
+                print(f"🎵 FALLBACK TTS: Generating {len(text)} char text -> duration will be {duration_seconds:.1f}s")
                 
                 # Create a simple mock WAV header (44 bytes) + some silence
                 import struct
                 
-                # WAV header for 16-bit PCM, 44.1kHz, mono, 1 second of silence
+                # WAV header for 16-bit PCM, 44.1kHz, mono
                 sample_rate = 44100
-                duration_seconds = max(1, len(text) // 20)  # Rough duration based on text length
-                num_samples = sample_rate * duration_seconds
+                # Better duration calculation for Korean text (5-6 chars per second speaking rate) 
+                num_samples = int(sample_rate * duration_seconds)
                 
                 wav_header = struct.pack('<4sI4s4sIHHIIHH4sI',
                     b'RIFF',

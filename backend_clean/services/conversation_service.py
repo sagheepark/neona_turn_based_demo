@@ -398,6 +398,43 @@ class ConversationService:
         
         return session_data
     
+    def get_session(self, session_id: str, user_id: str) -> Dict:
+        """
+        Get session by ID with user validation
+        
+        Args:
+            session_id: ID of the session to retrieve
+            user_id: ID of the user (for security/validation)
+            
+        Returns:
+            Session data
+        """
+        # Find the session file
+        session_file = None
+        for user_dir in self.conversations_path.iterdir():
+            if user_dir.is_dir():
+                for char_dir in user_dir.iterdir():
+                    if char_dir.is_dir():
+                        potential_file = char_dir / f"{session_id}.json"
+                        if potential_file.exists():
+                            session_file = potential_file
+                            break
+                if session_file:
+                    break
+        
+        if not session_file:
+            raise ValueError(f"Session {session_id} not found")
+        
+        # Load session
+        with open(session_file, 'r', encoding='utf-8') as f:
+            session = json.load(f)
+        
+        # Verify user has access to this session
+        if session["user_id"] != user_id:
+            raise ValueError("User does not have access to this session")
+        
+        return session
+    
     # ===== CONVERSATION COMPRESSION METHODS (Phase 2) =====
     
     def should_compress_session(self, session_id: str, user_id: str) -> bool:

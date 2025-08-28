@@ -98,22 +98,73 @@ class SeolMinSeokTTSService:
             else:
                 logger.error(f"TTS generation failed: HTTP {response.status_code}")
                 
-                # Log error details
+                # Log error details  
                 try:
                     error_data = response.json()
                     logger.error(f"Error details: {error_data}")
+                    print(f"TTS generation failed: {response.status_code} - {error_data}")
                 except:
                     logger.error(f"Error response: {response.text[:200]}")
+                    print(f"TTS generation failed: {response.status_code} - {response.text}")
                 
-                return None
+                # Generate fallback audio instead of returning None
+                print(f"🔄 SeolMinSeok TTS failed, generating fallback audio for: '{text[:30]}...'")
+                return self._generate_fallback_audio(text)
                 
         except requests.Timeout:
             logger.error("TTS request timeout (30s)")
-            return None
+            print("🔄 SeolMinSeok TTS timeout, generating fallback audio")
+            return self._generate_fallback_audio(text)
             
         except Exception as e:
             logger.error(f"TTS generation error: {e}")
-            return None
+            print(f"🔄 SeolMinSeok TTS exception: {e}, generating fallback audio")
+            return self._generate_fallback_audio(text)
+    
+    def _generate_fallback_audio(self, text: str) -> str:
+        """
+        Generate fallback silent audio with appropriate duration
+        
+        Args:
+            text: Text to calculate duration for
+            
+        Returns:
+            Base64 encoded WAV audio with data URI format
+        """
+        import struct
+        import wave
+        import io
+        
+        # Calculate realistic duration based on Korean text
+        character_count = len(text)
+        # For Korean text: ~350 characters per minute
+        duration_seconds = max(2.0, min(15.0, (character_count / 350) * 60))
+        
+        print(f"🔇 Generating {duration_seconds:.1f}s fallback audio for {character_count} characters")
+        
+        sample_rate = 44100
+        channels = 1
+        num_samples = int(duration_seconds * sample_rate)
+        
+        # Create WAV file in memory
+        buffer = io.BytesIO()
+        
+        with wave.open(buffer, 'wb') as wav_file:
+            wav_file.setnchannels(channels)
+            wav_file.setsampwidth(2)  # 16-bit
+            wav_file.setframerate(sample_rate)
+            
+            # Write silent samples (all zeros)
+            silent_samples = b'\x00\x00' * num_samples
+            wav_file.writeframes(silent_samples)
+        
+        # Get WAV data and encode to base64
+        buffer.seek(0)
+        wav_data = buffer.read()
+        audio_base64 = base64.b64encode(wav_data).decode('utf-8')
+        
+        # Return with data URI format like the successful response
+        return f"data:audio/wav;base64,{audio_base64}"
     
     def test_connection(self) -> bool:
         """

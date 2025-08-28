@@ -78,6 +78,32 @@
       "id": "kb_46fb6402",
       "created_at": "2025-08-19T16:45:19.282457",
       "updated_at": "2025-08-19T16:45:19.282593"
+    },
+    {
+      "title": "Test Knowledge for UI",
+      "content": "This is test content for UI integration",
+      "keywords": [
+        "test",
+        "ui",
+        "integration",
+        "knowledge"
+      ],
+      "category": "testing",
+      "id": "kb_46ef5c72",
+      "created_at": "2025-08-27T20:22:11.927581"
+    },
+    {
+      "title": "Updated Title",
+      "content": "Updated content with changes",
+      "keywords": [
+        "updated",
+        "test",
+        "modified"
+      ],
+      "category": "testing",
+      "id": "kb_6a1113f7",
+      "created_at": "2025-08-27T20:22:11.930196",
+      "updated_at": "2025-08-27T20:22:11.931150"
     }
   ]
 }

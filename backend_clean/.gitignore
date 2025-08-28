@@ -1,15 +1,8 @@
-# ===========================================
-# NEONA CHAT DEMO - Git Ignore
-# ===========================================
-
 # Environment Variables
 .env
 .env.local
 .env.development
 .env.production
-.env.development.local
-.env.test.local
-.env.production.local
 
 # Python
 __pycache__/
@@ -39,21 +32,6 @@ venv/
 ENV/
 env/
 .venv/
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Node.js
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# Next.js
-.next/
-out/
-build/
-dist/
 
 # IDE
 .vscode/
@@ -65,7 +43,9 @@ dist/
 # Logs
 *.log
 backend*.log
-debug.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # Runtime data
 pids
@@ -76,7 +56,6 @@ pids
 # Coverage directory used by tools like istanbul
 coverage/
 *.lcov
-.nyc_output
 
 # Pytest
 .pytest_cache/
@@ -103,20 +82,9 @@ conversations/
 ehthumbs.db
 Thumbs.db
 
+# Node modules (if any)
+node_modules/
+
 # Temporary files
 tmp/
 temp/
-.cache/
-
-# Misc
-*.orig
-
-# Production build
-/frontend/build
-/frontend/.next
-
-# Vercel
-.vercel
-
-# TypeScript
-*.tsbuildinfo
