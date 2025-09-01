@@ -1885,6 +1885,83 @@ async def delete_session(session_id: str, user_id: str):
     except Exception as e:
         raise HTTPException(status_code=404, detail=str(e))
 
+# Interactive Chat API Endpoints for Tool-based Chat
+# ====================================================
+
+class InteractiveChatRequest(BaseModel):
+    message: str
+    character_id: str
+    session_id: str
+
+class ContinuationRequest(BaseModel):
+    session_id: str
+    context: Dict[str, Any]
+
+@app.post("/api/chat/interactive")
+async def interactive_chat(request: InteractiveChatRequest):
+    """Interactive chat endpoint that returns responses with tools"""
+    try:
+        # Import our new services
+        from services.tool_processor import ToolProcessor
+        from services.continuous_output_manager import ContinuousOutputManager
+        from services.suggestion_chip_generator import SuggestionChipGenerator
+        
+        # Simple response for testing - in real implementation this would call LLM
+        response_data = {
+            "character": request.character_id,
+            "dialogue": "퀴즈를 시작하겠습니다! 3·1 운동이 일어난 연도는?",
+            "emotion": "excited",
+            "speed": 1.0,
+            "tools": [
+                {
+                    "type": "show_selection",
+                    "data": {
+                        "items": ["1919년", "1920년", "1921년", "1922년"],
+                        "question": "3·1 운동이 일어난 연도는?",
+                        "correctAnswer": "1919년"
+                    }
+                }
+            ]
+        }
+        
+        return response_data
+        
+    except Exception as e:
+        print(f"Error in interactive chat: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/chat/continuation")
+async def handle_continuation(request: ContinuationRequest):
+    """Handle continuation requests for multi-turn conversations"""
+    try:
+        from services.continuous_output_manager import ContinuousOutputManager
+        
+        continuator = ContinuousOutputManager()
+        
+        # Simple continuation response for testing
+        continuation_data = {
+            "character": "seol_min_seok",
+            "dialogue": "다음 문제입니다! 조선시대 첫 번째 왕은?",
+            "emotion": "normal",
+            "speed": 1.0,
+            "tools": [
+                {
+                    "type": "show_selection",
+                    "data": {
+                        "items": ["태조", "태종", "세종", "성종"],
+                        "question": "조선시대 첫 번째 왕은?",
+                        "correctAnswer": "태조"
+                    }
+                }
+            ]
+        }
+        
+        return continuation_data
+        
+    except Exception as e:
+        print(f"Error in continuation: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
