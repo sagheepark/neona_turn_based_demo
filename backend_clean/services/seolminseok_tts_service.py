@@ -107,19 +107,18 @@ class SeolMinSeokTTSService:
                     logger.error(f"Error response: {response.text[:200]}")
                     print(f"TTS generation failed: {response.status_code} - {response.text}")
                 
-                # Generate fallback audio instead of returning None
-                print(f"🔄 SeolMinSeok TTS failed, generating fallback audio for: '{text[:30]}...'")
-                return self._generate_fallback_audio(text)
+                print(f"🔇 SeolMinSeok TTS failed, returning None (no fake audio)")
+                return None
                 
         except requests.Timeout:
             logger.error("TTS request timeout (30s)")
-            print("🔄 SeolMinSeok TTS timeout, generating fallback audio")
-            return self._generate_fallback_audio(text)
+            print("🔇 SeolMinSeok TTS timeout, returning None (no fake audio)")
+            return None
             
         except Exception as e:
             logger.error(f"TTS generation error: {e}")
-            print(f"🔄 SeolMinSeok TTS exception: {e}, generating fallback audio")
-            return self._generate_fallback_audio(text)
+            print(f"🔇 SeolMinSeok TTS exception: {e}, returning None (no fake audio)")
+            return None
     
     def _generate_fallback_audio(self, text: str) -> str:
         """

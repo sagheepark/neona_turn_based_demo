@@ -7,6 +7,7 @@ export interface Character {
   greetings?: string[];  // 캐릭터별 초기 인사말들 (복수)
   conversation_examples?: string[];  // 대화 예시들
   voice_id: string;
+  temperature?: number;  // LLM temperature (0.0 - 1.0)
   created_at: Date;
   updated_at: Date;
 }

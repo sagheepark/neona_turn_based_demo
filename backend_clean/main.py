@@ -54,7 +54,7 @@ app = FastAPI(title="Voice Character Chat API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://localhost:3002"],
+    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://localhost:3008"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -85,6 +85,7 @@ class ChatRequest(BaseModel):
     history: list = []
     character_id: str
     voice_id: Optional[str] = None
+    character_temperature: Optional[float] = None
 
 class ChatResponse(BaseModel):
     character: str
@@ -278,13 +279,16 @@ async def generate_enhanced_ai_response(character_prompt: str, ai_context: dict,
     try:
         system_prompt = create_enhanced_system_prompt_with_memory(character_prompt, ai_context, user_message)
         
+        # Get temperature from ai_context or use default
+        temperature = ai_context.get("character_temperature", 0.7)
+        
         response = azure_client.chat.completions.create(
             model=AZURE_OPENAI_DEPLOYMENT,
             messages=[
                 {"role": "system", "content": system_prompt}
             ],
             max_tokens=300,
-            temperature=0.7,
+            temperature=temperature,
             top_p=0.95,
             frequency_penalty=0,
             presence_penalty=0
@@ -385,10 +389,13 @@ Rules:
 
     return prompt
 
-async def generate_ai_response(character_prompt: str, history: list, user_message: str) -> ChatResponse:
+async def generate_ai_response(character_prompt: str, history: list, user_message: str, character_temperature: float = None) -> ChatResponse:
     """Generate response using Azure OpenAI"""
     try:
         system_prompt = create_system_prompt(character_prompt, history, user_message)
+        
+        # Use character-specific temperature or default to 0.7
+        temperature = character_temperature if character_temperature is not None else 0.7
         
         response = azure_client.chat.completions.create(
             model=AZURE_OPENAI_DEPLOYMENT,
@@ -396,7 +403,7 @@ async def generate_ai_response(character_prompt: str, history: list, user_messag
                 {"role": "system", "content": system_prompt}
             ],
             max_tokens=300,
-            temperature=0.7,
+            temperature=temperature,
             top_p=0.95,
             frequency_penalty=0,
             presence_penalty=0
@@ -476,16 +483,19 @@ def create_enhanced_system_prompt(character_prompt: str, user_message: str, know
     
     return enhanced_prompt
 
-async def generate_ai_response_enhanced(system_prompt: str) -> ChatResponse:
+async def generate_ai_response_enhanced(system_prompt: str, character_temperature: float = None) -> ChatResponse:
     """Generate AI response using enhanced system prompt"""
     try:
+        # Use character-specific temperature or default to 0.7
+        temperature = character_temperature if character_temperature is not None else 0.7
+        
         response = azure_client.chat.completions.create(
             model=AZURE_OPENAI_DEPLOYMENT,
             messages=[
                 {"role": "system", "content": system_prompt}
             ],
             max_tokens=300,
-            temperature=0.7,
+            temperature=temperature,
             top_p=0.95,
             frequency_penalty=0,
             presence_penalty=0
@@ -627,7 +637,7 @@ async def list_available_models():
 async def chat(request: ChatRequest):
     try:
         if llm_available:
-            response = await generate_ai_response(request.character_prompt, request.history, request.message)
+            response = await generate_ai_response(request.character_prompt, request.history, request.message, request.character_temperature)
         else:
             # Fallback to mock response
             print("⚠️ Using mock response - Azure OpenAI not available")

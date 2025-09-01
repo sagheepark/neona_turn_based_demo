@@ -109,45 +109,8 @@ class TypecastTTSService:
                 return audio_base64
             else:
                 logger.error(f"TTS generation failed: {response.status_code} - {response.text}")
-                
-                # Fallback to mock audio
-                logger.info(f"🎵 Falling back to mock TTS for text: '{text[:50]}...'")
-                duration_seconds = max(2.0, min(15.0, len(text) / 6.0))
-                print(f"🎵 FALLBACK TTS: Generating {len(text)} char text -> duration will be {duration_seconds:.1f}s")
-                
-                # Create a simple mock WAV header (44 bytes) + some silence
-                import struct
-                
-                # WAV header for 16-bit PCM, 44.1kHz, mono
-                sample_rate = 44100
-                # Better duration calculation for Korean text (5-6 chars per second speaking rate) 
-                num_samples = int(sample_rate * duration_seconds)
-                
-                wav_header = struct.pack('<4sI4s4sIHHIIHH4sI',
-                    b'RIFF',
-                    36 + num_samples * 2,  # File size
-                    b'WAVE',
-                    b'fmt ',
-                    16,  # Format chunk size
-                    1,   # PCM
-                    1,   # Mono
-                    sample_rate,
-                    sample_rate * 2,  # Byte rate
-                    2,   # Block align
-                    16,  # Bits per sample
-                    b'data',
-                    num_samples * 2  # Data size
-                )
-                
-                # Generate some simple audio data (silence for now)
-                audio_samples = [0] * num_samples
-                audio_data = wav_header + b''.join(struct.pack('<h', sample) for sample in audio_samples)
-                
-                # Encode to base64
-                audio_base64 = base64.b64encode(audio_data).decode('utf-8')
-                
-                logger.info(f"✅ Mock TTS generated, audio size: {len(audio_data)} bytes")
-                return audio_base64
+                print(f"🔇 TTS failed, returning None (no fake audio)")
+                return None
                 
         except Exception as e:
             logger.error(f"Error generating speech: {str(e)}")

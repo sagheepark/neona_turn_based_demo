@@ -121,17 +121,36 @@ class IncrementalKnowledgeCache:
         # Collect relevant knowledge from multiple topics
         relevant_knowledge = []
         
+        print(f"🔍 Checking relevance for user message: '{user_message}'")
+        print(f"🔍 User topics extracted: {user_topics}")
+        print(f"🔍 Available cached topics: {list(session_knowledge.knowledge_base.keys())}")
+        
         for topic in session_knowledge.knowledge_base:
             # Calculate topic relevance to current message
             relevance = self.calculate_topic_relevance(topic, user_topics, user_message)
+            print(f"📊 Topic '{topic}' relevance: {relevance:.2f}")
             
-            if relevance > 0.3:  # Relevance threshold
+            if relevance > 0.2:  # Lower threshold for better recall
                 knowledge_items = session_knowledge.knowledge_base[topic]
                 for item in knowledge_items:
                     relevant_knowledge.append({
                         **item,
                         'cache_topic': topic,
                         'relevance_score': relevance
+                    })
+                print(f"✅ Using {len(knowledge_items)} items from topic '{topic}'")
+            else:
+                print(f"❌ Topic '{topic}' below threshold (0.2)")
+        
+        # If no relevant knowledge found, use all cached knowledge as fallback
+        if not relevant_knowledge and session_knowledge.knowledge_base:
+            print("🔄 No relevant knowledge found, using all cached knowledge as fallback")
+            for topic, knowledge_items in session_knowledge.knowledge_base.items():
+                for item in knowledge_items:
+                    relevant_knowledge.append({
+                        **item,
+                        'cache_topic': topic,
+                        'relevance_score': 0.4  # Default fallback score
                     })
         
         # Sort by relevance and limit results

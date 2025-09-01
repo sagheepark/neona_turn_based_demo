@@ -28,6 +28,7 @@ export default function EditCharacterPage() {
     description: '',
     image: '',
     voice_id: '',
+    temperature: 0.7,
     prompt: '',
     greetings: [''],
     conversation_examples: ['']
@@ -50,6 +51,7 @@ export default function EditCharacterPage() {
       description: char.description,
       image: char.image,
       voice_id: char.voice_id,
+      temperature: char.temperature ?? 0.7, // Use character temperature or default
       prompt: char.prompt,
       greetings: char.greetings && char.greetings.length > 0 ? char.greetings : [''],
       conversation_examples: char.conversation_examples && char.conversation_examples.length > 0 ? char.conversation_examples : ['']
@@ -196,6 +198,33 @@ export default function EditCharacterPage() {
                       selectedVoiceId={formData.voice_id}
                       onSelect={(voiceId) => setFormData(prev => ({ ...prev, voice_id: voiceId }))}
                     />
+                  </div>
+                </div>
+                
+                <div>
+                  <Label htmlFor="temperature">
+                    Response Creativity: {formData.temperature.toFixed(1)} 
+                    <span className="text-sm text-muted-foreground ml-2">
+                      ({formData.temperature <= 0.3 ? 'Very Consistent' : 
+                        formData.temperature <= 0.6 ? 'Focused' : 
+                        formData.temperature <= 0.8 ? 'Balanced' : 
+                        'Creative'})
+                    </span>
+                  </Label>
+                  <div className="space-y-2">
+                    <input
+                      type="range"
+                      id="temperature"
+                      min="0"
+                      max="1"
+                      step="0.1"
+                      value={formData.temperature}
+                      onChange={(e) => setFormData(prev => ({ ...prev, temperature: parseFloat(e.target.value) }))}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Controls response variety. Lower = more consistent, Higher = more creative
+                    </p>
                   </div>
                 </div>
                 
