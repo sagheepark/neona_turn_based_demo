@@ -47,11 +47,14 @@ function getOptionButtonClasses(isSelected: boolean, isCorrect: boolean, isWrong
 export function UnifiedSelection({ 
   items, 
   onSelect,
-  mode = items.length <= 4 ? 'chip' : 'option',
+  mode,
   question,
   correctAnswer,
   isVisible = true
 }: UnifiedSelectionProps) {
+  // Auto-detect mode: if there's a question OR correctAnswer, use option mode (for quizzes)
+  // Otherwise use chip mode for ≤4 items, option mode for >4 items
+  const resolvedMode = mode ?? ((question || correctAnswer) ? 'option' : (items.length <= 4 ? 'chip' : 'option'))
   const [selected, setSelected] = useState<string | null>(null)
   const [showResult, setShowResult] = useState(false)
   
@@ -73,7 +76,7 @@ export function UnifiedSelection({
   }
   
   // Chip mode for quick suggestions (minimal implementation)
-  if (mode === 'chip') {
+  if (resolvedMode === 'chip') {
     const chipContainerClasses = [
       "flex flex-wrap gap-2 p-4",
       "bg-card/50 backdrop-blur-enhanced",

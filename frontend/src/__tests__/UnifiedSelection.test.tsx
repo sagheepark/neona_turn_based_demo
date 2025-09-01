@@ -3,7 +3,7 @@
  * Testing chip and option rendering modes
  */
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { UnifiedSelection } from '@/components/ui/UnifiedSelection'
 
@@ -73,6 +73,111 @@ describe('UnifiedSelection', () => {
       // Assert
       expect(onSelect).toHaveBeenCalledWith('Test Option')
       expect(onSelect).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('Test Group 3: Quiz Flow with Validation', () => {
+    it('should display quiz with correct answer validation', () => {
+      /**
+       * Test 3.1: shouldDisplayQuizWithCorrectAnswer
+       * Red phase: This test checks if quiz questions display properly with correct answer tracking
+       */
+      // Arrange
+      const items = ['1919년', '1920년', '1921년', '1922년']
+      const correctAnswer = '1919년'
+      const question = '3·1 운동이 일어난 연도는?'
+      const onSelect = jest.fn()
+      
+      // Act
+      render(
+        <UnifiedSelection 
+          items={items} 
+          onSelect={onSelect}
+          correctAnswer={correctAnswer}
+          question={question}
+        />
+      )
+      
+      // Assert - quiz question should be displayed
+      expect(screen.getByText('3·1 운동이 일어난 연도는?')).toBeInTheDocument()
+      
+      // All answer options should be present
+      expect(screen.getByText('1919년')).toBeInTheDocument()
+      expect(screen.getByText('1920년')).toBeInTheDocument()
+      expect(screen.getByText('1921년')).toBeInTheDocument()
+      expect(screen.getByText('1922년')).toBeInTheDocument()
+      
+      // Should use option mode (not chip mode) because it has a question
+      expect(screen.getByText('A')).toBeInTheDocument() // Letter indicators
+      expect(screen.getByText('B')).toBeInTheDocument()
+    })
+
+    it('should show correct answer feedback', async () => {
+      /**
+       * Test 3.2: shouldShowCorrectAnswerFeedback
+       * Red phase: This test should check if correct answer feedback appears and then calls onSelect
+       */
+      // Arrange
+      const items = ['1919년', '1920년'] 
+      const correctAnswer = '1919년'
+      const onSelect = jest.fn()
+      
+      // Act
+      render(
+        <UnifiedSelection 
+          items={items}
+          onSelect={onSelect} 
+          correctAnswer={correctAnswer}
+        />
+      )
+      
+      // Click the correct answer
+      fireEvent.click(screen.getByText('1919년'))
+      
+      // Assert - should show correct answer feedback immediately
+      expect(screen.getByText('🎉 정답입니다!')).toBeInTheDocument()
+      
+      // Should not have called onSelect yet (waiting for feedback display)
+      expect(onSelect).not.toHaveBeenCalled()
+      
+      // Wait for the delay and check that onSelect is eventually called
+      await waitFor(() => {
+        expect(onSelect).toHaveBeenCalledWith('1919년')
+      }, { timeout: 3000 })
+    })
+
+    it('should show wrong answer feedback', async () => {
+      /**
+       * Test 3.3: shouldShowWrongAnswerFeedback  
+       * Red phase: This test checks if wrong answer feedback appears with correct answer displayed
+       */
+      // Arrange
+      const items = ['1919년', '1920년']
+      const correctAnswer = '1919년'
+      const onSelect = jest.fn()
+      
+      // Act
+      render(
+        <UnifiedSelection 
+          items={items}
+          onSelect={onSelect}
+          correctAnswer={correctAnswer}
+        />
+      )
+      
+      // Click the wrong answer
+      fireEvent.click(screen.getByText('1920년'))
+      
+      // Assert - should show wrong answer feedback with correct answer
+      expect(screen.getByText(/정답: 1919년/)).toBeInTheDocument()
+      
+      // Should not have called onSelect yet (waiting for feedback display)
+      expect(onSelect).not.toHaveBeenCalled()
+      
+      // Wait for the delay and check that onSelect is eventually called
+      await waitFor(() => {
+        expect(onSelect).toHaveBeenCalledWith('1920년') // Still calls with user's selection
+      }, { timeout: 3000 })
     })
   })
 })
