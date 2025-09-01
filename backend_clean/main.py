@@ -1906,23 +1906,51 @@ async def interactive_chat(request: InteractiveChatRequest):
         from services.continuous_output_manager import ContinuousOutputManager
         from services.suggestion_chip_generator import SuggestionChipGenerator
         
-        # Simple response for testing - in real implementation this would call LLM
-        response_data = {
-            "character": request.character_id,
-            "dialogue": "퀴즈를 시작하겠습니다! 3·1 운동이 일어난 연도는?",
-            "emotion": "excited",
-            "speed": 1.0,
-            "tools": [
-                {
-                    "type": "show_selection",
-                    "data": {
-                        "items": ["1919년", "1920년", "1921년", "1922년"],
-                        "question": "3·1 운동이 일어난 연도는?",
-                        "correctAnswer": "1919년"
-                    }
+        # Check if this is an answer to a quiz question
+        if request.message in ["1919년", "1920년", "1921년", "1922년"]:
+            if request.message == "1919년":
+                # Correct answer - provide positive feedback with continuation
+                response_data = {
+                    "character": request.character_id,
+                    "dialogue": "정답입니다! 3·1 운동은 1919년 3월 1일에 시작되었죠. 다음 문제로 가볼까요?",
+                    "emotion": "happy",
+                    "speed": 1.0,
+                    "tools": [
+                        {
+                            "type": "continue_output",
+                            "data": {
+                                "reason": "quiz_continuation"
+                            }
+                        }
+                    ]
                 }
-            ]
-        }
+            else:
+                # Wrong answer - provide explanation
+                response_data = {
+                    "character": request.character_id,
+                    "dialogue": f"아쉽네요. 정답은 1919년입니다. 3·1 운동은 1919년 3월 1일에 시작된 독립운동이에요.",
+                    "emotion": "supportive", 
+                    "speed": 1.0,
+                    "tools": []
+                }
+        else:
+            # Initial quiz request or general conversation
+            response_data = {
+                "character": request.character_id,
+                "dialogue": "퀴즈를 시작하겠습니다! 3·1 운동이 일어난 연도는?",
+                "emotion": "excited",
+                "speed": 1.0,
+                "tools": [
+                    {
+                        "type": "show_selection",
+                        "data": {
+                            "items": ["1919년", "1920년", "1921년", "1922년"],
+                            "question": "3·1 운동이 일어난 연도는?",
+                            "correctAnswer": "1919년"
+                        }
+                    }
+                ]
+            }
         
         return response_data
         
