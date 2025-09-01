@@ -506,6 +506,299 @@ dedicated_voices: {
 
 ---
 
+## 🔧 Advanced: LLM Tool-Calling Control System
+
+### Understanding Tool-Based Interactions
+
+The system supports **tool-calling** where the LLM can trigger specific UI interactions. This enables rich conversational experiences like quizzes, guided learning, and interactive content delivery.
+
+### 1. Available Tool Types
+
+```json
+{
+  "available_tools": {
+    "show_selection": {
+      "purpose": "Display selection options (chips or multiple choice)",
+      "use_cases": ["quizzes", "menu navigation", "preference selection"],
+      "data_structure": {
+        "items": ["Option 1", "Option 2", "Option 3"],
+        "question": "Optional question text", 
+        "correctAnswer": "For quiz validation",
+        "mode": "chip | option | inline"
+      }
+    },
+    "continue_output": {
+      "purpose": "Enable multi-turn continuous responses",
+      "use_cases": ["storytelling", "quiz progression", "guided tutorials"],
+      "data_structure": {
+        "reason": "quiz_continuation | story_progression | tutorial_step"
+      }
+    },
+    "show_image": {
+      "purpose": "Display relevant images or visual content",
+      "use_cases": ["historical photos", "diagrams", "visual aids"],
+      "data_structure": {
+        "url": "image URL or path",
+        "alt_text": "Accessibility description",
+        "caption": "Optional image caption"
+      }
+    }
+  }
+}
+```
+
+### 2. Controlling Tool-Calling Through Character Prompts
+
+#### Method A: Conditional Tool Instructions
+
+Include specific tool-calling logic directly in character prompts:
+
+```xml
+<character>
+  <name>설민석 AI 튜터</name>
+  <personality>한국사 전문 교육자, 퀴즈와 상호작용을 통한 학습 선호</personality>
+  
+  <tool_usage_guidelines>
+    <when_to_use_show_selection>
+      1. 사용자가 "퀴즈"라고 말하면 → show_selection with quiz format
+      2. 역사적 선택 상황 설명 시 → show_selection with options
+      3. 시대/인물 선택이 필요한 경우 → show_selection with chips
+    </when_to_use_show_selection>
+    
+    <quiz_format_rules>
+      - 정답이 있는 문제: correctAnswer 필드 반드시 포함
+      - 4개 이하 선택지: 자동으로 chip mode 적용  
+      - 5개 이상 선택지: option mode with 번호 표시
+      - 연속 퀴즈의 경우: continue_output tool 추가 사용
+    </quiz_format_rules>
+    
+    <response_format>
+      ALWAYS respond in JSON format when using tools:
+      {
+        "character": "seol_min_seok",
+        "dialogue": "3·1 운동이 일어난 연도는?",
+        "emotion": "excited",
+        "speed": 1.0,
+        "tools": [
+          {
+            "type": "show_selection",
+            "data": {
+              "items": ["1919년", "1920년", "1921년", "1922년"],
+              "question": "3·1 운동이 일어난 연도는?",
+              "correctAnswer": "1919년"
+            }
+          }
+        ]
+      }
+    </response_format>
+  </tool_usage_guidelines>
+</character>
+```
+
+#### Method B: Knowledge-Base Driven Tool-Calling
+
+Structure knowledge items to trigger specific tools:
+
+```json
+{
+  "id": "k_quiz_3_1_movement",
+  "title": "3·1 운동 연도 퀴즈",
+  "content": "3·1 운동은 1919년 3월 1일 시작된 일제강점기 최대 규모의 민족운동입니다.",
+  "keywords": ["3·1운동", "1919년", "독립운동", "민족운동"],
+  "category": "일제강점기",
+  
+  "tool_triggers": {
+    "conditions": ["사용자가 '퀴즈' 요청", "3·1운동 관련 질문 후"],
+    "tool_type": "show_selection",
+    "tool_data": {
+      "items": ["1919년", "1920년", "1921년", "1922년"],
+      "question": "3·1 운동이 시작된 연도는?",
+      "correctAnswer": "1919년"
+    }
+  },
+  
+  "follow_up_actions": {
+    "correct_answer": {
+      "use_continue_output": true,
+      "next_content": "다음 독립운동 관련 문제"
+    },
+    "wrong_answer": {
+      "provide_explanation": true,
+      "related_content": ["독립운동사", "일제강점기 연표"]
+    }
+  }
+}
+```
+
+### 3. Smart Tool-Calling Patterns
+
+#### Pattern 1: Progressive Quiz Flow
+```xml
+<conversation_pattern name="progressive_quiz">
+  <trigger>사용자가 "퀴즈", "문제", "테스트" 요청</trigger>
+  
+  <flow>
+    1. Initial question with show_selection tool
+    2. If correct → continue_output with next question  
+    3. If wrong → explanation + continue_output with related question
+    4. After 3-5 questions → summary with show_selection for topic choice
+  </flow>
+  
+  <tool_sequence>
+    Question 1: show_selection (basic)
+    → continue_output (progression)  
+    Question 2: show_selection (intermediate)
+    → continue_output (progression)
+    Final: show_selection (topic selection for next session)
+  </tool_sequence>
+</conversation_pattern>
+```
+
+#### Pattern 2: Contextual Learning
+```xml
+<conversation_pattern name="contextual_learning">
+  <trigger>복잡한 역사적 개념 설명 후</trigger>
+  
+  <flow>
+    1. Explain historical concept
+    2. show_selection: "더 알고 싶은 부분 선택"
+    3. Based on selection → show_image (if visual) or continue_output (if explanation)
+  </flow>
+</conversation_pattern>
+```
+
+### 4. Tool-Calling Control Mechanisms
+
+#### A. Prompt Engineering for Tool Control
+
+```xml
+<system_instructions>
+  <tool_decision_logic>
+    IF user_input.contains("퀴즈", "문제", "테스트"):
+      → use show_selection with quiz format
+      → add continue_output for multi-question flow
+    
+    ELSE IF explaining_complex_concept AND concept.has_visual_aid:
+      → use show_image with relevant historical image
+      → use show_selection for "더 자세히 알고 싶은 부분"
+    
+    ELSE IF user_choosing_topic:
+      → use show_selection with chip mode (friendly selection)
+    
+    ELSE:
+      → normal dialogue without tools
+  </tool_decision_logic>
+  
+  <response_validation>
+    - ALWAYS include "character", "dialogue", "emotion", "speed" fields
+    - Tools array can be empty [] if no tools needed
+    - show_selection MUST have items array with at least 2 options
+    - Quiz format MUST include correctAnswer field
+  </response_validation>
+</system_instructions>
+```
+
+#### B. Knowledge Base Configuration
+
+Create specific knowledge items that inherently trigger tools:
+
+```json
+{
+  "quiz_knowledge_items": [
+    {
+      "id": "k_quiz_trigger_1",
+      "title": "조선 건국 연도",
+      "content": "QUIZ_MODE: 조선은 언제 건국되었나요?",
+      "tool_instruction": "show_selection_required",
+      "quiz_data": {
+        "question": "조선 건국 연도는?",
+        "options": ["1392년", "1394년", "1398년", "1400년"],
+        "correct": "1392년",
+        "explanation": "1392년 이성계가 위화도 회군 후 조선을 건국했습니다."
+      }
+    }
+  ]
+}
+```
+
+### 5. Advanced Control: Character State-Based Tools
+
+```xml
+<character>
+  <tool_usage_by_relationship_state>
+    <low_intimacy>
+      <!-- Formal, educational tools -->
+      <preferred_tools>["show_selection" with formal options]</preferred_tools>
+      <tool_frequency>moderate</tool_frequency>
+    </low_intimacy>
+    
+    <medium_intimacy>
+      <!-- Interactive, engaging tools -->
+      <preferred_tools>["show_selection" with chips, "continue_output"]</preferred_tools>
+      <tool_frequency>high</tool_frequency>
+    </medium_intimacy>
+    
+    <high_intimacy>
+      <!-- Personalized, adaptive tools -->
+      <preferred_tools>["continue_output", "show_image", personalized selections]</preferred_tools>
+      <tool_frequency>very_high</tool_frequency>
+    </high_intimacy>
+  </tool_usage_by_relationship_state>
+</character>
+```
+
+### 6. Testing Tool-Calling Behavior
+
+#### Test Scenarios for Content Providers
+
+```typescript
+// Test different trigger phrases
+const test_scenarios = [
+  {
+    input: "퀴즈 내주세요",
+    expected_tools: ["show_selection"],
+    expected_format: "quiz with correctAnswer"
+  },
+  {
+    input: "조선시대에 대해 알려주세요", 
+    expected_tools: ["show_selection"],
+    expected_format: "topic selection chips"
+  },
+  {
+    input: "더 자세한 설명 부탁해요",
+    expected_tools: ["continue_output"],
+    expected_format: "detailed explanation continuation"
+  }
+]
+```
+
+### 7. Best Practices for Tool-Calling Control
+
+#### ✅ Do's:
+- **Consistent JSON Format**: Always return valid JSON when tools are used
+- **Meaningful Tool Usage**: Only use tools when they enhance the conversation
+- **Progressive Complexity**: Start with simple tools, advance to complex interactions
+- **User Context Awareness**: Adapt tool usage to user's learning level and preferences
+- **Clear Instructions**: Provide clear system instructions for when to use each tool
+
+#### ❌ Don'ts:
+- **Tool Overuse**: Don't use tools in every response - it becomes overwhelming
+- **Missing Required Fields**: Always include required fields like correctAnswer for quizzes
+- **Inconsistent Formats**: Stick to the established JSON structure
+- **Ignoring User Preferences**: Respect user's interaction style and adjust accordingly
+
+### 8. Troubleshooting Tool-Calling Issues
+
+| Problem | Solution |
+|---------|----------|
+| **Tools not triggering** | Check prompt for explicit tool usage instructions |
+| **Wrong tool format** | Verify JSON structure matches expected schema |
+| **Quiz not validating** | Ensure correctAnswer field is included |
+| **Continuous output loops** | Implement continuation_count limits |
+| **Poor tool timing** | Review conversation context and user state |
+
+---
+
 ## 📞 Support & Resources
 
 ### Documentation Files

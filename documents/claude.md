@@ -107,3 +107,67 @@ Always write one test at a time, make it run, then improve structure. Always run
 - **Voice-ready architecture** - just needs TTS restoration
 
 Follow TDD principles: Write failing test for voice issue → Fix minimum code → Refactor if needed.
+
+---
+
+# TOOL-CALLING CONTROLLABILITY FRAMEWORK (2025-08-18)
+
+## Implemented Components ✅
+- **Basic Tool System Foundation** (Test Group 1-6 complete)
+- **UnifiedSelection Component** with chip/option modes  
+- **Quiz Validation System** with correct/wrong answer feedback
+- **Continuous Output Management** with loop prevention
+- **Character-Specific Suggestions** 
+- **Interactive Chat API Endpoints** for tool-based conversations
+
+## Tool-Calling Control Mechanisms
+
+### 1. Character Prompt-Based Control
+- Include `<tool_usage_guidelines>` in character XML prompts
+- Define trigger conditions for each tool type
+- Specify JSON response format requirements
+- Set quiz validation rules (correctAnswer field mandatory)
+
+### 2. Knowledge-Base Driven Triggers  
+- Add `tool_triggers` object to knowledge items
+- Configure automatic tool activation conditions
+- Define follow-up actions for correct/wrong answers
+- Enable context-aware tool selection
+
+### 3. Smart Decision Logic
+```
+User Input Analysis Decision Tree:
+├── Contains ("퀴즈", "문제", "테스트") → show_selection (quiz)
+├── Complex topic + visuals → show_image + show_selection  
+├── Choosing options → show_selection (chips ≤4, options >4)
+├── Story/tutorial progression → continue_output
+└── Normal conversation → No tools
+```
+
+## Content Provider Guidelines
+
+### TDD Implementation for Tool-Controlled Characters:
+1. **Red**: Write failing test for specific tool trigger scenario
+2. **Green**: Implement minimum character prompt/knowledge config  
+3. **Refactor**: Improve tool logic without changing behavior
+4. **Validate**: Test all trigger conditions work as expected
+
+### Required Testing Patterns:
+```python
+def test_should_trigger_quiz_on_request():
+    # Test quiz trigger words activate show_selection
+    
+def test_should_continue_after_correct_answer():
+    # Test continue_output activates after quiz success
+    
+def test_should_prevent_tool_loops():
+    # Test continuation_count limits prevent infinite loops
+```
+
+## Next Development Priorities:
+- **Test Group 7**: Frontend tool processing integration
+- **Test Group 8**: End-to-end tool-calling flow tests  
+- **Advanced Features**: Character state-based tool selection
+- **Performance**: Tool-calling response optimization
+
+Always maintain strict TDD discipline when extending tool-calling functionality.
