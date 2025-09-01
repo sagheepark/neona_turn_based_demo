@@ -19,6 +19,31 @@ interface UnifiedSelectionProps {
 const QUIZ_RESULT_DELAY_MS = 2000
 const CHIP_ANIMATION_DELAY_MS = 50
 
+// Helper function for option button classes
+function getOptionButtonClasses(isSelected: boolean, isCorrect: boolean, isWrong: boolean): string {
+  const baseClasses = [
+    "flex items-center gap-3 p-3 rounded-lg",
+    "text-left transition-all duration-200",
+    "border-2 transform hover:scale-[1.02]",
+    "disabled:cursor-not-allowed animate-fade-in"
+  ]
+  
+  let stateClasses: string
+  if (isSelected) {
+    if (isCorrect) {
+      stateClasses = 'border-green-500 bg-green-500/10'
+    } else if (isWrong) {
+      stateClasses = 'border-destructive bg-destructive/10'
+    } else {
+      stateClasses = 'border-primary bg-primary/10'
+    }
+  } else {
+    stateClasses = 'border-border hover:border-primary/50 bg-card hover:bg-accent'
+  }
+  
+  return [...baseClasses, stateClasses].join(" ")
+}
+
 export function UnifiedSelection({ 
   items, 
   onSelect,
@@ -82,6 +107,58 @@ export function UnifiedSelection({
     )
   }
   
-  // Option mode - not implemented yet for this test
-  return <div>Option mode not implemented yet</div>
+  // Option mode for quizzes and multiple choices
+  const optionContainerClasses = [
+    "p-4 bg-card rounded-lg",
+    "border border-border shadow-enhanced"
+  ].join(" ")
+  
+  return (
+    <div className={optionContainerClasses}>
+      {question && (
+        <h3 className="text-lg font-semibold mb-4 text-card-foreground">
+          {question}
+        </h3>
+      )}
+      <div className="grid gap-2 md:grid-cols-2">
+        {items.map((item, index) => {
+          const letter = String.fromCharCode(65 + index) // A, B, C, D...
+          const isCorrect = showResult && item === correctAnswer
+          const isWrong = showResult && selected === item && item !== correctAnswer
+          
+          return (
+            <button
+              key={index}
+              onClick={() => handleSelect(item)}
+              disabled={selected !== null}
+              className={getOptionButtonClasses(selected === item, isCorrect, isWrong)}
+              style={{
+                animationDelay: `${index * CHIP_ANIMATION_DELAY_MS}ms`
+              }}
+            >
+              <span className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold">
+                {letter}
+              </span>
+              <span className="text-sm">{item}</span>
+              {showResult && (
+                <span className="ml-auto">
+                  {isCorrect && '✅'}
+                  {isWrong && '❌'}
+                </span>
+              )}
+            </button>
+          )
+        })}
+      </div>
+      {showResult && correctAnswer && (
+        <div className="mt-4 p-3 rounded-lg bg-accent animate-fade-in">
+          <p className="text-sm text-accent-foreground">
+            {selected === correctAnswer 
+              ? '🎉 정답입니다!' 
+              : `정답: ${correctAnswer}`}
+          </p>
+        </div>
+      )}
+    </div>
+  )
 }
