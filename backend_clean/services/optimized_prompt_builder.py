@@ -18,7 +18,7 @@ class OptimizedPromptBuilder:
     """
     
     def build_llm_prompt(self, character_prompt: str, cached_knowledge: List[Dict], 
-                        conversation_history: List[Dict], current_user_input: str) -> str:
+                        conversation_history: List[Dict], current_user_input: str, character_id: str = None) -> str:
         """
         Build optimized prompt structure:
         1. STABLE ELEMENTS (front) - character, instructions, knowledge
@@ -27,7 +27,7 @@ class OptimizedPromptBuilder:
         """
         
         # 1. STABLE FRONT SECTION (cached, rarely changes)
-        stable_section = self.build_stable_section(character_prompt, cached_knowledge)
+        stable_section = self.build_stable_section(character_prompt, cached_knowledge, character_id)
         
         # 2. DYNAMIC HISTORY SECTION (changes each message)
         history_section = self.build_history_section(conversation_history)
@@ -37,7 +37,7 @@ class OptimizedPromptBuilder:
         
         return f"{stable_section}\n\n{history_section}\n\n{current_section}"
     
-    def build_stable_section(self, character_prompt: str, cached_knowledge: List[Dict]) -> str:
+    def build_stable_section(self, character_prompt: str, cached_knowledge: List[Dict], character_id: str = None) -> str:
         """Build stable prompt elements that don't change often"""
         
         # Character identity and instructions (most stable)
@@ -71,7 +71,25 @@ KNOWLEDGE USAGE:
 - Combine multiple knowledge items when relevant
 - If no relevant knowledge, rely on character personality"""
 
-        return f"{character_section}{knowledge_section}"
+        # Add character-specific instructions
+        character_specific_section = ""
+        if character_id == "seol_min_seok_quiz":
+            character_specific_section = """
+
+🎯 QUIZ CHARACTER SPECIAL INSTRUCTIONS:
+When the user requests a quiz or asks you to create questions:
+- ALWAYS format quiz questions in this EXACT structure: "Question? A) Option1 B) Option2 C) Option3 D) Option4"
+- Include exactly 4 options labeled with A), B), C), D)
+- Make sure there is a clear question ending with "?"
+- Choose historically accurate correct answers based on your knowledge
+- Focus on Korean history topics (조선시대, 고려시대, etc.)
+- Examples:
+  * "다음 중 세종대왕의 업적은? A) 한글 창제 B) 불교 장려 C) 몽골 침입 D) 일제강점"
+  * "고려를 건국한 인물은? A) 왕건 B) 이성계 C) 박혁거세 D) 온조"
+
+CRITICAL: This A/B/C/D format is required for the quiz UI to work properly!"""
+
+        return f"{character_section}{knowledge_section}{character_specific_section}"
     
     def build_history_section(self, conversation_history: List[Dict]) -> str:
         """Build conversation history section"""

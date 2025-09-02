@@ -27,6 +27,7 @@ from services.character_service import CharacterService
 from services.incremental_knowledge_cache import IncrementalKnowledgeCache
 from services.optimized_prompt_builder import OptimizedPromptBuilder
 from services.fallback_tts_service import FallbackTTSService
+from services.continuous_answer_tool import continuous_answer_tool, ToolTriggerEvent
 
 # Initialize selective memory system
 database_service = DatabaseService()
@@ -113,6 +114,7 @@ class ChatWithSessionResponse(BaseModel):
     session_id: str                 # NEW: Session identification
     message_count: int              # NEW: Conversation progress
     session_summary: Optional[str] = None    # NEW: Story progression context
+    tools: Optional[List[Dict[str, Any]]] = None  # NEW: Tool-based interactions
 
 # Knowledge Management Models
 from pydantic import Field, validator
@@ -201,8 +203,11 @@ def create_system_prompt(character_prompt: str, history: list, user_message: str
         user_message.strip().lower() in ['안녕하세요', '안녕', 'hello', 'hi', '반가워요', '처음 뵙겠습니다']
     )
 
-def create_enhanced_system_prompt_with_memory(character_prompt: str, ai_context: dict, user_message: str) -> str:
-    """Create a system prompt using enhanced AI context with compressed history"""
+def create_enhanced_system_prompt_with_memory(character_prompt: str, ai_context: dict, user_message: str, character_id: str = None) -> str:
+    """Create a system prompt using enhanced AI context with compressed history and character-specific instructions"""
+    if not character_prompt:
+        print(f"⚠️  WARNING: character_prompt is None or empty")
+        character_prompt = "You are a helpful assistant."
     character_data = parse_character_prompt(character_prompt)
     
     # Use the formatted context prompt that includes actual message history
@@ -272,12 +277,36 @@ Rules:
 7. Do not include any text outside the JSON format
 8. Do not use markdown, asterisks, or action descriptions"""
 
+    # Add character-specific instructions
+    if character_id == "seol_min_seok_quiz":
+        quiz_instructions = """
+
+🎯 QUIZ CHARACTER SPECIAL INSTRUCTIONS:
+When the user requests a quiz or asks you to create questions:
+- ALWAYS format quiz questions in this EXACT structure: "Question? A) Option1 B) Option2 C) Option3 D) Option4"
+- Include exactly 4 options labeled with A), B), C), D)
+- Make sure there is a clear question ending with "?"
+- Choose historically accurate correct answers based on your knowledge
+- Focus on Korean history topics (조선시대, 고려시대, etc.)
+- Examples:
+  * "다음 중 세종대왕의 업적은? A) 한글 창제 B) 불교 장려 C) 몽골 침입 D) 일제강점"
+  * "고려를 건국한 인물은? A) 왕건 B) 이성계 C) 박혁거세 D) 온조"
+
+CRITICAL: This A/B/C/D format is required for the quiz UI to work properly!"""
+        prompt += quiz_instructions
+    
     return prompt
 
-async def generate_enhanced_ai_response(character_prompt: str, ai_context: dict, user_message: str) -> ChatResponse:
+async def generate_enhanced_ai_response(character_prompt: str, ai_context: dict, user_message: str, character_id: str = None) -> ChatResponse:
     """Generate response using Azure OpenAI with enhanced context including compressed history"""
     try:
-        system_prompt = create_enhanced_system_prompt_with_memory(character_prompt, ai_context, user_message)
+        system_prompt = create_enhanced_system_prompt_with_memory(character_prompt, ai_context, user_message, character_id)
+        
+        if not system_prompt:
+            print(f"❌ FATAL: system_prompt is None or empty!")
+            raise ValueError("System prompt cannot be empty")
+        
+        print(f"🔍 System prompt length: {len(system_prompt)} chars")
         
         # Get temperature from ai_context or use default
         temperature = ai_context.get("character_temperature", 0.7)
@@ -544,8 +573,20 @@ async def generate_ai_response_enhanced(system_prompt: str, character_temperatur
             audio=None
         )
 
-def generate_mock_response() -> ChatResponse:
+def generate_mock_response(character_id: str = None, user_message: str = "") -> ChatResponse:
     """Generate mock response when AI is not available"""
+    
+    # Special handling for 설민석 quiz character
+    if character_id in ['seol_min_seok_quiz'] and '퀴즈' in user_message:
+        # Generate a proper quiz response
+        return ChatResponse(
+            character="설민석",
+            dialogue="좋습니다! 조선시대 퀴즈를 시작해볼까요? 첫 번째 문제입니다. 다음 중 세종대왕의 업적은? A) 한글 창제 B) 불교 장려 C) 몽골 침입 D) 일제강점",
+            emotion="excited",
+            speed=1.0
+        )
+    
+    # Default responses for other cases
     responses = [
         "안녕하세요! 만나서 반가워요.",
         "오늘은 어떤 것을 배우고 싶으신가요?", 
@@ -641,7 +682,7 @@ async def chat(request: ChatRequest):
         else:
             # Fallback to mock response
             print("⚠️ Using mock response - Azure OpenAI not available")
-            response = generate_mock_response()
+            response = generate_mock_response(request.character_id, request.message)
         
         # Generate TTS audio for the response
         try:
@@ -656,9 +697,9 @@ async def chat(request: ChatRequest):
             # Special handling for specific characters
             tts_emotion = response.emotion
             
-            # 설민석 character - use dedicated TTS service
-            if request.character_id == 'seol_min_seok':
-                print(f"🎭 설민석 character detected - using dedicated TTS service")
+            # 설민석 characters (both regular and quiz) - use dedicated TTS service
+            if request.character_id in ['seol_min_seok', 'seol_min_seok_quiz']:
+                print(f"🎭 설민석 character detected ({request.character_id}) - using dedicated TTS service")
                 audio_data = await seolminseok_tts_service.generate_tts(
                     text=response.dialogue,
                     use_hd=True,
@@ -692,11 +733,12 @@ async def chat(request: ChatRequest):
                 response.audio = audio_data
                 print(f"✅ TTS generated for dialogue: '{response.dialogue[:50]}...'")
             else:
-                print("⚠️ TTS generation failed, returning text-only response")
+                print(f"❌ TTS generation failed, no audio will be provided")
+                response.audio = None
                 
         except Exception as tts_error:
-            print(f"TTS Error: {tts_error}")
-            # Continue without audio if TTS fails
+            print(f"❌ TTS Error: {tts_error}")
+            response.audio = None
         
         return response
             
@@ -785,9 +827,9 @@ async def generate_tts(request: TTSRequest):
         # Special handling for specific characters
         tts_emotion = request.emotion
         
-        # 설민석 character - use dedicated TTS service
-        if request.character_id == 'seol_min_seok':
-            print(f"🎭 설민석 character detected - using dedicated TTS service for standalone TTS")
+        # 설민석 characters (both regular and quiz) - use dedicated TTS service
+        if request.character_id in ['seol_min_seok', 'seol_min_seok_quiz']:
+            print(f"🎭 설민석 character detected ({request.character_id}) - using dedicated TTS service for standalone TTS")
             audio_data = await seolminseok_tts_service.generate_tts(
                 text=request.text,
                 use_hd=True,
@@ -822,46 +864,28 @@ async def generate_tts(request: TTSRequest):
                 "emotion": request.emotion
             }
         else:
-            # Use fallback TTS with appropriate duration
-            print("🔄 Primary TTS failed, using fallback silent audio")
-            fallback_audio = await fallback_tts.generate_tts(
-                text=request.text,
-                voice_id=request.voice_id,
-                emotion=tts_emotion
-            )
-            
+            print(f"❌ TTS generation failed, no audio will be provided")
             return {
-                "status": "success",
-                "audio": fallback_audio,
-                "audio_base64": fallback_audio,
+                "status": "error",
+                "audio": None,
+                "audio_base64": None,
                 "text": request.text,
                 "voice_id": request.voice_id,
                 "emotion": request.emotion,
-                "fallback": True  # Indicate this is fallback audio
+                "error": "TTS service failed"
             }
             
     except Exception as e:
-        # Use fallback TTS for any exception
-        print(f"🔄 TTS exception occurred, using fallback: {str(e)}")
-        try:
-            fallback_audio = await fallback_tts.generate_tts(
-                text=request.text,
-                voice_id=request.voice_id,
-                emotion=request.emotion
-            )
-            
-            return {
-                "status": "success",
-                "audio": fallback_audio,
-                "audio_base64": fallback_audio,
-                "text": request.text,
-                "voice_id": request.voice_id,
-                "emotion": request.emotion,
-                "fallback": True,
-                "fallback_reason": str(e)
-            }
-        except Exception as fallback_error:
-            raise HTTPException(status_code=500, detail=f"Both TTS and fallback failed: {str(fallback_error)}")
+        print(f"❌ TTS exception occurred: {str(e)}")
+        return {
+            "status": "error",
+            "audio": None,
+            "audio_base64": None,
+            "text": request.text,
+            "voice_id": request.voice_id,
+            "emotion": request.emotion,
+            "error": str(e)
+        }
 
 class STTRequest(BaseModel):
     audio: str  # base64 encoded audio data
@@ -1617,6 +1641,28 @@ async def chat_with_session(request: ChatWithSessionRequest):
             # Get updated session info
             updated_session = conversation_service.get_session(session_id, request.user_id)
             
+            # Check if this is the quiz character and add greeting suggestions
+            tools = None
+            if request.character_id == "seol_min_seok_quiz":
+                from services.greeting_suggestion_generator import GreetingSuggestionGenerator
+                greeting_generator = GreetingSuggestionGenerator()
+                greeting_context = {
+                    "character_id": request.character_id,
+                    "greeting_message": predefined_greeting,
+                    "character_personality": "교육적이고 친근한 역사 튜터",
+                    "suggestions_enabled": True
+                }
+                suggestions = greeting_generator.generate_greeting_suggestions(greeting_context)
+                tools = [
+                    {
+                        "type": "show_selection",
+                        "data": {
+                            "items": suggestions,
+                            "question": "어떤 퀴즈로 시작할까요?"
+                        }
+                    }
+                ]
+            
             # Return the predefined greeting (no LLM call needed)
             return ChatWithSessionResponse(
                 character=request.character_id,
@@ -1626,7 +1672,8 @@ async def chat_with_session(request: ChatWithSessionRequest):
                 audio=None,  # Frontend will handle TTS separately
                 session_id=session_id,
                 message_count=updated_session["message_count"],
-                session_summary=updated_session.get("session_summary", "")
+                session_summary=updated_session.get("session_summary", ""),
+                tools=tools  # Add tools if present
             )
         
         # Check if this is a new session and user is asking for greeting
@@ -1646,8 +1693,65 @@ async def chat_with_session(request: ChatWithSessionRequest):
                 print(f"🎭 Character found: {character is not None}")
                 if character:
                     print(f"🎭 Character greetings: {character.get('greetings', 'NOT FOUND')}")
+                    print(f"🎭 Greeting suggestions enabled: {character.get('greeting_suggestions_enabled', False)}")
                 
-                if character and 'greetings' in character and character['greetings']:
+                # Special handling for quiz character with greeting suggestions
+                if request.character_id == "seol_min_seok_quiz" and character and character.get('greeting_suggestions_enabled', False):
+                    from services.greeting_suggestion_generator import GreetingSuggestionGenerator
+                    
+                    greeting_generator = GreetingSuggestionGenerator()
+                    greeting_context = {
+                        "character_id": request.character_id,
+                        "greeting_message": "안녕하세요! 한국사 퀴즈를 함께 풀어볼까요?",
+                        "character_personality": "교육적이고 친근한 역사 튜터",
+                        "suggestions_enabled": True
+                    }
+                    
+                    suggestions = greeting_generator.generate_greeting_suggestions(greeting_context)
+                    
+                    # Create new session
+                    session_data = conversation_service.create_session(
+                        request.user_id, 
+                        request.character_id, 
+                        request.persona_id
+                    )
+                    session_id = session_data["session_id"]
+                    
+                    greeting_text = "안녕하세요! 한국사 퀴즈를 함께 풀어볼까요? 어떤 주제로 시작하고 싶으신가요?"
+                    
+                    # Save messages to session
+                    conversation_service.add_message_to_session(
+                        session_id, "user", request.message, request.user_id
+                    )
+                    conversation_service.add_message_to_session(
+                        session_id, "assistant", greeting_text, request.user_id
+                    )
+                    
+                    # Load updated session
+                    updated_session = conversation_service.load_session_messages(session_id, request.user_id)
+                    
+                    # Return response with tools
+                    return ChatWithSessionResponse(
+                        character=character.get('name', request.character_id),
+                        dialogue=greeting_text,
+                        emotion="happy",
+                        speed=1.0,
+                        audio=None,  # Let frontend handle TTS
+                        session_id=session_id,
+                        message_count=updated_session["message_count"],
+                        session_summary=updated_session.get("session_summary", ""),
+                        tools=[
+                            {
+                                "type": "show_selection",
+                                "data": {
+                                    "items": suggestions,
+                                    "question": "어떤 퀴즈로 시작할까요?"
+                                }
+                            }
+                        ]
+                    )
+                
+                elif character and 'greetings' in character and character['greetings']:
                     # Randomly select a greeting
                     selected_greeting = random.choice(character['greetings'])
                     print(f"✅ Using direct greeting: '{selected_greeting}'")
@@ -1745,7 +1849,8 @@ async def chat_with_session(request: ChatWithSessionRequest):
                 character_prompt=request.character_prompt,
                 cached_knowledge=cached_knowledge,
                 conversation_history=conversation_history,
-                current_user_input=request.message
+                current_user_input=request.message,
+                character_id=request.character_id
             )
             
             print(f"🔧 Using optimized prompt with {len(cached_knowledge)} cached knowledge items")
@@ -1780,12 +1885,14 @@ async def chat_with_session(request: ChatWithSessionRequest):
                     dialogue: str
                     emotion: str
                     speed: float
+                    audio: Optional[str] = None  # Add audio attribute
                 
                 response = ChatResponse(
                     character=response_data.get('character', request.character_id),
                     dialogue=response_data.get('dialogue', '응답을 생성할 수 없습니다.'),
                     emotion=response_data.get('emotion', 'normal'),
-                    speed=response_data.get('speed', 1.0)
+                    speed=response_data.get('speed', 1.0),
+                    audio=None  # Initialize with None
                 )
                 
             except (json.JSONDecodeError, KeyError) as e:
@@ -1794,10 +1901,11 @@ async def chat_with_session(request: ChatWithSessionRequest):
                     character=request.character_id,
                     dialogue="응답을 생성하는 중 오류가 발생했습니다.",
                     emotion="normal",
-                    speed=1.0
+                    speed=1.0,
+                    audio=None  # Add audio attribute
                 )
         else:
-            response = generate_mock_response()
+            response = generate_mock_response(request.character_id, request.message)
         
         # Save AI response to session
         conversation_service.add_message_to_session(
@@ -1814,9 +1922,9 @@ async def chat_with_session(request: ChatWithSessionRequest):
             # Special handling for specific characters
             tts_emotion = response.emotion
             
-            # 설민석 character - use dedicated TTS service
-            if request.character_id == 'seol_min_seok':
-                print(f"🎭 설민석 character detected - using dedicated TTS service")
+            # 설민석 characters (both regular and quiz) - use dedicated TTS service
+            if request.character_id in ['seol_min_seok', 'seol_min_seok_quiz']:
+                print(f"🎭 설민석 character detected ({request.character_id}) - using dedicated TTS service")
                 audio_data = await seolminseok_tts_service.generate_tts(
                     text=response.dialogue,
                     use_hd=True,
@@ -1846,12 +1954,67 @@ async def chat_with_session(request: ChatWithSessionRequest):
             
             if audio_data:
                 response.audio = audio_data
+                print(f"✅ TTS SUCCESS: Audio generated for dialogue")
+            else:
+                print(f"❌ TTS generation failed, no audio will be provided")
+                response.audio = None
                 
         except Exception as tts_error:
-            print(f"TTS Error: {tts_error}")
-            # Continue without audio if TTS fails
+            print(f"❌ TTS Error: {tts_error}")
+            response.audio = None
         
-        # Return session-aware response
+        print(f"📝 TTS section completed, moving to ContentIntelligence...")
+        
+        # 🔍 DEBUG: Check if we reach the ContentIntelligence section
+        print(f"🔍 DEBUG: About to start ContentIntelligence analysis...")
+        print(f"🔍 DEBUG: Response dialogue: '{response.dialogue}'")
+        
+        # 🧠 INTELLIGENT TOOL DETECTION: Analyze LLM response for tool opportunities
+        print(f"🧠 Starting ContentIntelligence analysis for dialogue: '{response.dialogue[:100]}'...")
+        tools = None
+        try:
+            from services.platform_content_classifier import PlatformContentClassifier
+            intelligence = PlatformContentClassifier()
+            print(f"🧠 Platform-grade ContentClassifier initialized successfully")
+            
+            # Context for intelligent analysis
+            intelligence_context = {
+                "character_id": request.character_id,
+                "conversation_phase": "post_greeting",
+                "user_message": request.message
+            }
+            
+            # Analyze the LLM response for tool opportunities
+            print(f"🧠 Analyzing response for tools...")
+            detected_tools = await intelligence.analyze_for_tools(response.dialogue, intelligence_context)
+            
+            if detected_tools:
+                print(f"🧠 Platform-grade Classifier detected {len(detected_tools)} tools in response")
+                print(f"🧠 First tool: {detected_tools[0]['type']}")
+                print(f"🧠 Platform detection method: {detected_tools[0].get('data', {}).get('metadata', {}).get('detection_method', 'unknown')}")
+                tools = detected_tools
+                
+                # 🎯 CONTENT SEPARATION: Extract clean question for quiz tools
+                if detected_tools[0]['type'] == 'show_selection':
+                    quiz_data = detected_tools[0].get('data', {})
+                    clean_question = quiz_data.get('question', '')
+                    
+                    if clean_question and clean_question != response.dialogue:
+                        print(f"🎯 CONTENT SEPARATION: Extracting clean question from dialogue")
+                        print(f"🎯 Original dialogue: '{response.dialogue[:100]}...'")
+                        print(f"🎯 Clean question: '{clean_question}'")
+                        response.dialogue = clean_question
+                        print(f"🎯 SUCCESS: Dialogue content separated from quiz options")
+            else:
+                print("🧠 Platform-grade Classifier: No tools detected in response")
+                
+        except Exception as intelligence_error:
+            print(f"🧠 Platform-grade Classifier error: {intelligence_error}")
+            import traceback
+            traceback.print_exc()
+            # Continue without tools if intelligence fails
+        
+        # Return session-aware response with intelligent tools
         return ChatWithSessionResponse(
             character=response.character,
             dialogue=response.dialogue,
@@ -1860,7 +2023,8 @@ async def chat_with_session(request: ChatWithSessionRequest):
             audio=response.audio,
             session_id=session_id,
             message_count=updated_session["message_count"],
-            session_summary=updated_session.get("session_summary", "")
+            session_summary=updated_session.get("session_summary", ""),
+            tools=tools  # 🆕 Add intelligent tools
         )
         
     except Exception as e:
@@ -1905,6 +2069,39 @@ async def interactive_chat(request: InteractiveChatRequest):
         from services.tool_processor import ToolProcessor
         from services.continuous_output_manager import ContinuousOutputManager
         from services.suggestion_chip_generator import SuggestionChipGenerator
+        from services.greeting_suggestion_generator import GreetingSuggestionGenerator
+        
+        # Check for greeting messages first
+        greeting_messages = ["안녕하세요", "안녕", "hello", "hi"]
+        if any(greeting in request.message.lower() for greeting in greeting_messages):
+            # Handle greeting with suggestions for quiz-focused character
+            if request.character_id == "seol_min_seok_quiz":
+                greeting_generator = GreetingSuggestionGenerator()
+                greeting_context = {
+                    "character_id": request.character_id,
+                    "greeting_message": "안녕하세요! 한국사 퀴즈를 함께 풀어볼까요?",
+                    "character_personality": "교육적이고 친근한 역사 튜터",
+                    "suggestions_enabled": True
+                }
+                
+                suggestions = greeting_generator.generate_greeting_suggestions(greeting_context)
+                
+                response_data = {
+                    "character": request.character_id,
+                    "dialogue": "안녕하세요! 한국사 퀴즈를 함께 풀어볼까요? 어떤 주제로 시작하고 싶으신가요?",
+                    "emotion": "friendly",
+                    "speed": 1.0,
+                    "tools": [
+                        {
+                            "type": "show_selection",
+                            "data": {
+                                "items": suggestions,
+                                "question": "어떤 퀴즈로 시작할까요?"
+                            }
+                        }
+                    ]
+                }
+                return response_data
         
         # Check if this is an answer to a quiz question
         if request.message in ["1919년", "1920년", "1921년", "1922년"]:
@@ -1989,6 +2186,129 @@ async def handle_continuation(request: ContinuationRequest):
     except Exception as e:
         print(f"Error in continuation: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# Continuous Answer Tool API Models
+class ContinuousFlowTriggerRequest(BaseModel):
+    session_id: str
+    character_id: str
+    tool_type: str
+    data: Dict[str, Any]
+
+class ContinuousFlowProgressRequest(BaseModel):
+    session_id: str
+    trigger_type: str
+    data: Optional[Dict[str, Any]] = None
+
+
+@app.post("/api/continuous-flow/trigger")
+async def trigger_continuous_flow(request: ContinuousFlowTriggerRequest):
+    """
+    Trigger a continuous flow when user interacts with tools
+    Called when user selects quiz answer to start proactive feedback flow
+    """
+    try:
+        print(f"🚀 Triggering continuous flow: {request.session_id}, {request.character_id}")
+        
+        # Create trigger event
+        trigger_event = ToolTriggerEvent(
+            session_id=request.session_id,
+            character_id=request.character_id,
+            tool_type=request.tool_type,
+            data=request.data
+        )
+        
+        # Trigger the flow
+        flow_execution = await continuous_answer_tool.trigger_flow(trigger_event)
+        
+        if not flow_execution:
+            return {"error": "No flow configuration found for this tool/character"}
+        
+        return {
+            "status": "flow_triggered",
+            "session_id": flow_execution.session_id,
+            "step_result": {
+                "step_id": flow_execution.step_result.step_id,
+                "step_type": flow_execution.step_result.step_type,
+                "response": flow_execution.step_result.response,
+                "audio": flow_execution.step_result.audio,
+                "error": flow_execution.step_result.error,
+                "metadata": flow_execution.step_result.metadata
+            },
+            "flow_continues": flow_execution.flow_continues,
+            "next_step_index": flow_execution.next_step_index
+        }
+        
+    except Exception as e:
+        print(f"❌ Error triggering continuous flow: {e}")
+        raise HTTPException(status_code=500, detail=f"Flow trigger failed: {str(e)}")
+
+
+@app.post("/api/continuous-flow/progress")
+async def progress_continuous_flow(request: ContinuousFlowProgressRequest):
+    """
+    Progress a continuous flow to next step
+    Called when conditions are met (e.g., audio completion)
+    """
+    try:
+        print(f"⏭️  Progressing continuous flow: {request.session_id}, {request.trigger_type}")
+        
+        # Progress the flow
+        flow_execution = await continuous_answer_tool.progress_flow(
+            session_id=request.session_id,
+            trigger_type=request.trigger_type,
+            data=request.data
+        )
+        
+        if not flow_execution:
+            return {"error": "No active flow found or invalid trigger"}
+        
+        return {
+            "status": "step_executed" if flow_execution.flow_continues else "flow_completed",
+            "session_id": flow_execution.session_id,
+            "step_result": {
+                "step_id": flow_execution.step_result.step_id,
+                "step_type": flow_execution.step_result.step_type,
+                "response": flow_execution.step_result.response,
+                "audio": flow_execution.step_result.audio,
+                "error": flow_execution.step_result.error,
+                "metadata": flow_execution.step_result.metadata
+            } if flow_execution.step_result else None,
+            "flow_continues": flow_execution.flow_continues,
+            "next_step_index": flow_execution.next_step_index
+        }
+        
+    except Exception as e:
+        print(f"❌ Error progressing continuous flow: {e}")
+        raise HTTPException(status_code=500, detail=f"Flow progression failed: {str(e)}")
+
+
+@app.get("/api/continuous-flow/status/{session_id}")
+async def get_continuous_flow_status(session_id: str):
+    """
+    Get status of active continuous flow for a session
+    """
+    try:
+        flow_state = continuous_answer_tool.get_active_flow(session_id)
+        
+        if not flow_state:
+            return {"active": False}
+        
+        return {
+            "active": True,
+            "session_id": flow_state.session_id,
+            "character_id": flow_state.character_id,
+            "flow_id": flow_state.flow_config.get("flow_id"),
+            "current_step": flow_state.current_step,
+            "total_steps": len(flow_state.flow_config.get("steps", [])),
+            "step_results_count": len(flow_state.step_results),
+            "created_at": flow_state.created_at.isoformat()
+        }
+        
+    except Exception as e:
+        print(f"❌ Error getting flow status: {e}")
+        raise HTTPException(status_code=500, detail=f"Status check failed: {str(e)}")
+
 
 if __name__ == "__main__":
     import uvicorn

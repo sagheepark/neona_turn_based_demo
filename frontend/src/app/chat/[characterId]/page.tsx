@@ -14,6 +14,7 @@ import { TypewriterText } from '@/components/chat/TypewriterText'
 import { AudioPlayer } from '@/components/chat/AudioPlayer'
 import { SessionContinuationModal } from '@/components/chat/SessionContinuationModal'
 import { SessionStartResponse } from '@/lib/api-client'
+import { UnifiedSelection } from '@/components/ui/UnifiedSelection'
 
 export default function ChatPage() {
   const params = useParams()
@@ -37,6 +38,17 @@ export default function ChatPage() {
   const [shouldStartTyping, setShouldStartTyping] = useState(false)
   const [userHasInteracted, setUserHasInteracted] = useState(false)
   const [isAudioPlaying, setIsAudioPlaying] = useState(false)
+  
+  // Tool-based interactions state
+  const [currentTools, setCurrentTools] = useState<any[]>([])
+
+  // Continuous flow state
+  const [activeContinuousFlow, setActiveContinuousFlow] = useState<{
+    sessionId: string
+    flowId: string
+    stepId: string
+    nextStepTrigger?: string
+  } | null>(null)
 
   // Session state for enhanced memory
   const [sessionId, setSessionId] = useState<string | null>(null)
@@ -172,6 +184,14 @@ export default function ChatPage() {
           // Set response data using predefined greeting
           setCurrentResponse(welcomeMessage)
           setCharacterEmotion('happy')
+          
+          // Handle tools from backend response
+          if (response.tools && response.tools.length > 0) {
+            console.log('Welcome tools received:', response.tools)
+            setCurrentTools(response.tools)
+          } else {
+            setCurrentTools([])
+          }
           
           if (ttsResponse.audio) {
             console.log('Setting welcome TTS audio, length:', ttsResponse.audio.length)
@@ -365,10 +385,19 @@ export default function ChatPage() {
       setCurrentResponse(response.dialogue)
       setCharacterEmotion(response.emotion)
       
+      // Handle tools if present
+      if (response.tools && response.tools.length > 0) {
+        console.log('Tools received:', response.tools)
+        setCurrentTools(response.tools)
+      } else {
+        setCurrentTools([])
+      }
+      
       console.log('Chat response:', { 
         dialogue: response.dialogue, 
         emotion: response.emotion, 
-        audioLength: response.audio?.length 
+        audioLength: response.audio?.length,
+        tools: response.tools 
       })
       
       if (response.audio) {
@@ -410,6 +439,243 @@ export default function ChatPage() {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSend()
+    }
+  }
+  
+  const handleToolSelection = (selection: string) => {
+    console.log('🔍 Tool selection debug:', {
+      selection,
+      characterId,
+      currentTools: currentTools,
+      currentToolsLength: currentTools.length,
+      firstTool: currentTools[0],
+      firstToolType: currentTools[0]?.type
+    })
+    
+    // Check if tool supports continuous flow (quiz with seol_min_seok_quiz character)
+    const currentTool = currentTools[0]
+    
+    console.log('🔍 Continuous flow check:', {
+      hasCurrentTool: !!currentTool,
+      toolType: currentTool?.type,
+      isShowSelection: currentTool?.type === 'show_selection',
+      characterId,
+      isSeolMinSeok: characterId === 'seol_min_seok_quiz',
+      shouldTriggerFlow: currentTool?.type === 'show_selection' && characterId === 'seol_min_seok_quiz'
+    })
+    
+    if (currentTool?.type === 'show_selection' && characterId === 'seol_min_seok_quiz') {
+      console.log('🚀 Triggering continuous flow for quiz selection')
+      // IMPORTANT: Clear tools IMMEDIATELY to prevent race conditions
+      setCurrentTools([])
+      triggerContinuousFlow({
+        toolType: currentTool.type,
+        selection,
+        correctAnswer: currentTool.data.correctAnswer,
+        question: currentTool.data.question,
+        items: currentTool.data.items
+      })
+    } else {
+      console.log('❌ Falling back to legacy behavior:', {
+        reason: !currentTool ? 'No current tool' : 
+                currentTool.type !== 'show_selection' ? `Wrong tool type: ${currentTool.type}` :
+                characterId !== 'seol_min_seok_quiz' ? `Wrong character: ${characterId}` : 'Unknown'
+      })
+      // Legacy behavior for non-continuous flow tools
+      setCurrentTools([])
+      handleSend(selection)
+    }
+  }
+
+  const triggerContinuousFlow = async (flowData: {
+    toolType: string
+    selection: string
+    correctAnswer: string
+    question: string
+    items: string[]
+  }) => {
+    try {
+      if (!sessionId) {
+        console.error('❌ No session ID for continuous flow')
+        return
+      }
+
+      console.log('🔄 Triggering continuous flow:', flowData)
+      
+      const response = await fetch('/api/continuous-flow/trigger', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          session_id: sessionId,
+          character_id: characterId,
+          tool_type: flowData.toolType,
+          data: {
+            selection: flowData.selection,
+            correct_answer: flowData.correctAnswer,
+            question: flowData.question,
+            items: flowData.items
+          }
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+      console.log('✅ Continuous flow triggered:', result)
+
+      if (result.step_result) {
+        // Display first step (feedback) with audio
+        handleFlowStepResult(result)
+      }
+
+      // Tools already cleared before calling this function
+      
+    } catch (error) {
+      console.error('❌ Error triggering continuous flow:', error)
+      // Fallback to normal behavior 
+      handleSend(flowData.selection)
+    }
+  }
+
+  const handleFlowStepResult = (result: any) => {
+    console.log('🎯 Handling flow step result:', result)
+    
+    const stepResult = result.step_result
+    if (!stepResult) return
+
+    // Add the response as a character message
+    if (stepResult.response) {
+      const dialogue = stepResult.response.dialogue
+      
+      // Check if this response contains a new quiz question
+      const quizPattern = /([A-D])\)\s*([^A-D]+?)(?=[A-D]\)|$)/g
+      const hasQuizOptions = quizPattern.test(dialogue)
+      
+      let cleanDialogue = dialogue
+      let newTools = []
+      
+      if (hasQuizOptions) {
+        // Extract the question part (before first option)
+        const questionMatch = dialogue.match(/^(.*?)A\)/s)
+        if (questionMatch) {
+          cleanDialogue = questionMatch[1].trim()
+        }
+        
+        // Extract options
+        const options = []
+        const optionMatches = [...dialogue.matchAll(/([A-D])\)\s*([^A-D]+?)(?=[A-D]\)|$)/g)]
+        
+        optionMatches.forEach(match => {
+          options.push(match[2].trim())
+        })
+        
+        if (options.length > 0) {
+          // Create new quiz tool for the next question
+          newTools = [{
+            type: 'show_selection',
+            data: {
+              question: cleanDialogue,
+              items: options,
+              correctAnswer: options[0], // For demo, assume first option is correct
+              metadata: {
+                type: 'quiz',
+                topic: '조선시대',
+                difficulty: 'medium'
+              }
+            }
+          }]
+          
+          console.log('🎯 Generated new quiz tools from flow response:', newTools)
+        }
+      }
+
+      const newMessage = {
+        role: 'assistant',
+        content: cleanDialogue,
+        character: stepResult.response.character,
+        emotion: stepResult.response.emotion || 'normal',
+        timestamp: Date.now(),
+        audio: stepResult.audio
+      }
+
+      setMessages(prev => [...prev, newMessage])
+      
+      // Set character emotion
+      setCharacterEmotion(stepResult.response.emotion || 'normal')
+      
+      // Set new quiz tools if found
+      if (newTools.length > 0) {
+        setCurrentTools(newTools)
+      }
+      
+      // Set audio with flow context if available
+      if (stepResult.audio) {
+        console.log('🎵 Setting flow step audio')
+        setCurrentAudio(stepResult.audio)
+        
+        // Set up continuous flow context for audio completion
+        if (result.flow_continues && stepResult.next_trigger === 'audio_completion') {
+          setActiveContinuousFlow({
+            sessionId: result.session_id,
+            flowId: 'quiz_continuous_v1', // TODO: Get from result
+            stepId: stepResult.step_id,
+            nextStepTrigger: stepResult.next_trigger
+          })
+        }
+      }
+    }
+  }
+
+  const handleFlowStepComplete = async (stepId: string) => {
+    console.log('🏁 Flow step completed:', stepId)
+    
+    if (!activeContinuousFlow || !sessionId) {
+      console.log('❌ No active flow to progress')
+      return
+    }
+
+    try {
+      console.log('⏭️  Progressing continuous flow')
+      
+      const response = await fetch('/api/continuous-flow/progress', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          session_id: sessionId,
+          trigger_type: 'audio_completion',
+          data: {
+            completed_step_id: stepId
+          }
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+      console.log('✅ Flow progressed:', result)
+
+      if (result.step_result) {
+        // Handle next step result
+        handleFlowStepResult(result)
+      }
+
+      if (!result.flow_continues) {
+        // Flow completed
+        console.log('🏆 Continuous flow completed')
+        setActiveContinuousFlow(null)
+      }
+
+    } catch (error) {
+      console.error('❌ Error progressing continuous flow:', error)
+      setActiveContinuousFlow(null)
     }
   }
 
@@ -881,9 +1147,17 @@ export default function ChatPage() {
                         onPlayStart={handleAudioPlayStart}
                         onPlayEnd={handleAudioPlayEnd}
                         onError={(error) => console.error('Audio error:', error)}
+                        onFlowStepComplete={handleFlowStepComplete}
+                        flowContext={activeContinuousFlow ? {
+                          sessionId: activeContinuousFlow.sessionId,
+                          stepId: activeContinuousFlow.stepId,
+                          nextStepTrigger: activeContinuousFlow.nextStepTrigger
+                        } : undefined}
                       />
                     </motion.div>
                   )}
+                  
+                  {/* Quiz UI moved to bottom-right above input - see line 1008 */}
                 </motion.div>
               ) : (
                 <motion.div
@@ -900,9 +1174,9 @@ export default function ChatPage() {
         </div>
       </div>
 
-      {/* Last user message display (appears when typing/recording/processing) */}
+      {/* Last user message display (appears when typing/recording/processing) - Hidden during quiz */}
       <AnimatePresence>
-        {(lastUserMessage && (!isTyping || lastUserMessage.includes('처리하고'))) && (
+        {(lastUserMessage && (!isTyping || lastUserMessage.includes('처리하고')) && !(currentTools.length > 0 && currentTools[0].type === 'show_selection')) && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -957,6 +1231,25 @@ export default function ChatPage() {
                 </div>
               </div>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Quiz UI - Positioned horizontally centered above input */}
+      <AnimatePresence>
+        {currentTools.length > 0 && currentTools[0].type === 'show_selection' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-24 left-1/2 transform -translate-x-1/2 max-w-md z-50"
+          >
+            <UnifiedSelection
+              items={currentTools[0].data.items}
+              onSelect={handleToolSelection}
+              question={currentTools[0].data.question}
+              correctAnswer={currentTools[0].data.correctAnswer}
+            />
           </motion.div>
         )}
       </AnimatePresence>

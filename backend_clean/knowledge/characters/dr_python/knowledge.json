@@ -592,6 +592,19 @@
       "category": "fundamentals",
       "id": "kb_095b3959",
       "created_at": "2025-08-27T20:22:11.895149"
+    },
+    {
+      "title": "Python Functions",
+      "content": "Functions are reusable blocks of code",
+      "keywords": [
+        "functions",
+        "def",
+        "return",
+        "parameters"
+      ],
+      "category": "fundamentals",
+      "id": "kb_1966a5a3",
+      "created_at": "2025-09-01T17:03:25.304856"
     }
   ],
   "knowledge_stats": {

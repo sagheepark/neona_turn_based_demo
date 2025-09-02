@@ -12,6 +12,12 @@ interface AudioPlayerProps {
   onPlayStart?: () => void
   onPlayEnd?: () => void
   onError?: (error: string) => void
+  onFlowStepComplete?: (stepId: string) => void  // NEW: Flow callback
+  flowContext?: {  // NEW: Flow context
+    sessionId: string
+    stepId: string
+    nextStepTrigger?: string
+  }
 }
 
 export function AudioPlayer({ 
@@ -20,7 +26,9 @@ export function AudioPlayer({
   userHasInteracted = false,
   onPlayStart, 
   onPlayEnd, 
-  onError 
+  onError,
+  onFlowStepComplete,
+  flowContext
 }: AudioPlayerProps) {
   // Reduced logging - only log important events
   
@@ -117,6 +125,12 @@ export function AudioPlayer({
         setIsPlaying(false)
         setCurrentTime(0)
         onPlayEnd?.()
+        
+        // Trigger next step in continuous flow if configured
+        if (flowContext?.nextStepTrigger === 'audio_completion') {
+          console.log(`🎵 Audio completed, triggering flow step: ${flowContext.stepId}`)
+          onFlowStepComplete?.(flowContext.stepId)
+        }
       }
 
       const handleTimeUpdate = () => {

@@ -18,4 +18,13 @@ export interface ChatResponse {
   emotion: string;
   speed: number;
   audio?: string;  // base64 encoded audio data
+  // Session-related fields
+  session_id?: string;
+  message_count?: number;
+  session_summary?: string;
+  // Tool-based interactions
+  tools?: Array<{
+    type: string;
+    data: any;
+  }>;
 }

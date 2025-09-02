@@ -61,18 +61,16 @@ export function UnifiedSelection({
   if (!isVisible || items.length === 0) return null
   
   const handleSelect = (item: string) => {
+    console.log('📱 UnifiedSelection: handleSelect called', { 
+      item, 
+      question, 
+      correctAnswer,
+      onSelectFunction: !!onSelect 
+    })
     setSelected(item)
-    if (correctAnswer) {
-      setShowResult(true)
-      setTimeout(() => {
-        onSelect(item)
-        setSelected(null)
-        setShowResult(false)
-      }, QUIZ_RESULT_DELAY_MS)
-    } else {
-      onSelect(item)
-      setSelected(null)
-    }
+    // No feedback UI - directly call onSelect and let character provide feedback
+    onSelect(item)
+    setSelected(null)
   }
   
   // Chip mode for quick suggestions (minimal implementation)
@@ -110,19 +108,14 @@ export function UnifiedSelection({
     )
   }
   
-  // Option mode for quizzes and multiple choices
+  // Option mode for quizzes and multiple choices - COMPACT MODE (no white container)
   const optionContainerClasses = [
-    "p-4 bg-card rounded-lg",
-    "border border-border shadow-enhanced"
+    "p-2"
   ].join(" ")
   
   return (
     <div className={optionContainerClasses}>
-      {question && (
-        <h3 className="text-lg font-semibold mb-4 text-card-foreground">
-          {question}
-        </h3>
-      )}
+      {/* Question display removed to prevent duplication with chat bubble */}
       <div className="grid gap-2 md:grid-cols-2">
         {items.map((item, index) => {
           const letter = String.fromCharCode(65 + index) // A, B, C, D...
@@ -153,15 +146,7 @@ export function UnifiedSelection({
           )
         })}
       </div>
-      {showResult && correctAnswer && (
-        <div className="mt-4 p-3 rounded-lg bg-accent animate-fade-in">
-          <p className="text-sm text-accent-foreground">
-            {selected === correctAnswer 
-              ? '🎉 정답입니다!' 
-              : `정답: ${correctAnswer}`}
-          </p>
-        </div>
-      )}
+      {/* Quiz feedback UI removed per user request - character will provide feedback */}
     </div>
   )
 }
