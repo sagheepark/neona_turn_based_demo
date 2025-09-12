@@ -8,6 +8,9 @@ import { Input } from '@/components/ui/input'
 import { CharacterStorage } from '@/lib/storage'
 import { ApiClient } from '@/lib/api-client'
 import { Character } from '@/types/character'
+
+// API Base URL for consistent backend calls
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
 import { ChatMessage, ChatResponse } from '@/types/chat'
 import { ArrowLeft, Send, Mic, MicOff, Loader2, X } from 'lucide-react'
 import { TypewriterText } from '@/components/chat/TypewriterText'
@@ -19,6 +22,7 @@ import { UnifiedSelection } from '@/components/ui/UnifiedSelection'
 export default function ChatPage() {
   const params = useParams()
   const router = useRouter()
+  const characterId = params.characterId as string  // Extract characterId at component level
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   
@@ -42,12 +46,16 @@ export default function ChatPage() {
   // Tool-based interactions state
   const [currentTools, setCurrentTools] = useState<any[]>([])
 
+  // Continuous response handling state
+  const [pendingContinuousResponse, setPendingContinuousResponse] = useState<any>(null)
+
   // Continuous flow state
   const [activeContinuousFlow, setActiveContinuousFlow] = useState<{
     sessionId: string
     flowId: string
     stepId: string
     nextStepTrigger?: string
+    nextStepIndex?: number | null
   } | null>(null)
 
   // Session state for enhanced memory
@@ -61,8 +69,6 @@ export default function ChatPage() {
 
   useEffect(() => {
     const loadCharacter = async () => {
-      const characterId = params.characterId as string
-      
       // Force refresh demo characters to get latest data
       await CharacterStorage.initializeDemo(true)
       
@@ -443,45 +449,45 @@ export default function ChatPage() {
   }
   
   const handleToolSelection = (selection: string) => {
-    console.log('🔍 Tool selection debug:', {
-      selection,
-      characterId,
-      currentTools: currentTools,
-      currentToolsLength: currentTools.length,
-      firstTool: currentTools[0],
-      firstToolType: currentTools[0]?.type
-    })
+    console.log('🔧 UNIVERSAL TOOL HANDLER - handleToolSelection called with:', selection)
     
-    // Check if tool supports continuous flow (quiz with seol_min_seok_quiz character)
     const currentTool = currentTools[0]
+    if (!currentTool) {
+      console.log('📝 No current tool - using regular message send')
+      handleSend(selection)
+      return
+    }
     
-    console.log('🔍 Continuous flow check:', {
-      hasCurrentTool: !!currentTool,
-      toolType: currentTool?.type,
-      isShowSelection: currentTool?.type === 'show_selection',
-      characterId,
-      isSeolMinSeok: characterId === 'seol_min_seok_quiz',
-      shouldTriggerFlow: currentTool?.type === 'show_selection' && characterId === 'seol_min_seok_quiz'
+    console.log('🔍 Tool analysis:', {
+      toolType: currentTool.type,
+      toolData: currentTool.data,
+      hasCorrectAnswer: currentTool.data?.correct_answer !== undefined,
+      hasContinuousFlow: currentTool.data?.continuous_flow_enabled || false
     })
     
-    if (currentTool?.type === 'show_selection' && characterId === 'seol_min_seok_quiz') {
-      console.log('🚀 Triggering continuous flow for quiz selection')
-      // IMPORTANT: Clear tools IMMEDIATELY to prevent race conditions
+    // Universal logic: Check if tool indicates it should trigger continuous flow
+    // This replaces all character-specific hardcoded logic
+    const shouldTriggerFlow = 
+      currentTool.type === 'show_selection' && 
+      currentTool.data?.correct_answer !== undefined &&
+      currentTool.data?.selection_mode === 'quiz_question'
+    
+    console.log('🚀 Flow decision:', { shouldTriggerFlow })
+    
+    if (shouldTriggerFlow) {
+      console.log('✅ Triggering continuous flow based on tool configuration')
+      // Clear tools IMMEDIATELY to prevent race conditions
       setCurrentTools([])
+      
       triggerContinuousFlow({
-        toolType: currentTool.type,
+        toolType: 'continuous_answer', // Fixed: Use continuous_answer flow for quiz feedback
         selection,
-        correctAnswer: currentTool.data.correctAnswer,
-        question: currentTool.data.question,
-        items: currentTool.data.items
+        correctAnswer: currentTool.data?.correct_answer,
+        question: currentTool.data?.question || 'Question',
+        items: currentTool.data?.items || [selection]
       })
     } else {
-      console.log('❌ Falling back to legacy behavior:', {
-        reason: !currentTool ? 'No current tool' : 
-                currentTool.type !== 'show_selection' ? `Wrong tool type: ${currentTool.type}` :
-                characterId !== 'seol_min_seok_quiz' ? `Wrong character: ${characterId}` : 'Unknown'
-      })
-      // Legacy behavior for non-continuous flow tools
+      console.log('📝 Using regular message send - no continuous flow needed')
       setCurrentTools([])
       handleSend(selection)
     }
@@ -500,9 +506,16 @@ export default function ChatPage() {
         return
       }
 
+      // ISSUE 1 FIX: Show thinking state during flow processing
+      console.log('🔄 Triggering continuous flow - showing thinking state')
+      setIsThinking(true)
+      setCurrentResponse('')
+      setCurrentAudio(null)
+      setShouldStartTyping(false)
+
       console.log('🔄 Triggering continuous flow:', flowData)
       
-      const response = await fetch('/api/continuous-flow/trigger', {
+      const response = await fetch(`${API_BASE_URL}/api/continuous-flow/trigger`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -527,154 +540,226 @@ export default function ChatPage() {
       const result = await response.json()
       console.log('✅ Continuous flow triggered:', result)
 
-      if (result.step_result) {
-        // Display first step (feedback) with audio
-        handleFlowStepResult(result)
+      // ISSUE 1 FIX: Hide thinking state now that we have response
+      setIsThinking(false)
+
+      // Handle continuous quiz response - check all possible locations
+      let continuousResponseTool = null;
+      if (result.tools && result.tools[0]?.type === 'continuous_quiz_response') {
+        continuousResponseTool = result.tools[0];
+      } else if (result.step_result && result.step_result.tools && result.step_result.tools[0]?.type === 'continuous_quiz_response') {
+        continuousResponseTool = result.step_result.tools[0];
+      } else if (result.step_result && result.step_result.response && result.step_result.response.tools && result.step_result.response.tools[0]?.type === 'continuous_quiz_response') {
+        continuousResponseTool = result.step_result.response.tools[0];
+      }
+      
+      if (continuousResponseTool) {
+        console.log('🎯 Processing continuous quiz response tool:', continuousResponseTool);
+        handleContinuousQuizResponse(result, continuousResponseTool);
+      } else {
+        console.log('❌ No continuous_quiz_response tool found in result:', result);
+        console.log('🔍 Debugging step_result structure:');
+        if (result.step_result) {
+          console.log('  step_result keys:', Object.keys(result.step_result));
+          console.log('  step_result:', result.step_result);
+          if (result.step_result.tools) {
+            console.log('  step_result.tools:', result.step_result.tools);
+          }
+          if (result.step_result.dialogue) {
+            console.log('  step_result.dialogue exists');
+          }
+          if (result.step_result.response) {
+            console.log('  step_result.response:', result.step_result.response);
+          }
+        }
       }
 
       // Tools already cleared before calling this function
       
     } catch (error) {
       console.error('❌ Error triggering continuous flow:', error)
+      // ISSUE 1 FIX: Hide thinking state on error too
+      setIsThinking(false)
       // Fallback to normal behavior 
       handleSend(flowData.selection)
     }
   }
 
-  const handleFlowStepResult = (result: any) => {
-    console.log('🎯 Handling flow step result:', result)
+  const handleContinuousQuizResponse = (response: any, tool: any) => {
+    console.log('🎯 Handling continuous quiz response:', tool)
     
-    const stepResult = result.step_result
-    if (!stepResult) return
-
-    // Add the response as a character message
-    if (stepResult.response) {
-      const dialogue = stepResult.response.dialogue
+    const toolData = tool.data
+    
+    // Phase 1: Show feedback with audio
+    if (toolData.phase1) {
+      setCurrentResponse(toolData.phase1.text)
+      setShouldStartTyping(true)
       
-      // Check if this response contains a new quiz question
-      const quizPattern = /([A-D])\)\s*([^A-D]+?)(?=[A-D]\)|$)/g
-      const hasQuizOptions = quizPattern.test(dialogue)
-      
-      let cleanDialogue = dialogue
-      let newTools = []
-      
-      if (hasQuizOptions) {
-        // Extract the question part (before first option)
-        const questionMatch = dialogue.match(/^(.*?)A\)/s)
-        if (questionMatch) {
-          cleanDialogue = questionMatch[1].trim()
-        }
+      if (toolData.phase1.audio_url) {
+        setCurrentAudio(toolData.phase1.audio_url)
         
-        // Extract options
-        const options = []
-        const optionMatches = [...dialogue.matchAll(/([A-D])\)\s*([^A-D]+?)(?=[A-D]\)|$)/g)]
-        
-        optionMatches.forEach(match => {
-          options.push(match[2].trim())
+        // Store phase 2 data for later
+        setPendingContinuousResponse({
+          phase2: toolData.phase2,
+          delay: toolData.phase1.delay_ms || 3000
         })
-        
-        if (options.length > 0) {
-          // Create new quiz tool for the next question
-          newTools = [{
-            type: 'show_selection',
-            data: {
-              question: cleanDialogue,
-              items: options,
-              correctAnswer: options[0], // For demo, assume first option is correct
-              metadata: {
-                type: 'quiz',
-                topic: '조선시대',
-                difficulty: 'medium'
-              }
-            }
-          }]
-          
-          console.log('🎯 Generated new quiz tools from flow response:', newTools)
-        }
+      } else {
+        // Process phase 2 immediately if no audio
+        setTimeout(() => processPhase2(toolData.phase2), toolData.phase1.delay_ms || 3000)
       }
 
-      const newMessage = {
-        role: 'assistant',
-        content: cleanDialogue,
-        character: stepResult.response.character,
-        emotion: stepResult.response.emotion || 'normal',
-        timestamp: Date.now(),
-        audio: stepResult.audio
+      // Add phase 1 to message history
+      const phase1Message = {
+        role: 'assistant' as const,
+        content: toolData.phase1.text,
+        timestamp: Date.now().toString(),
+        audio_url: toolData.phase1.audio_url
+      }
+      setMessages(prev => [...prev, phase1Message])
+    }
+  }
+  
+  const processPhase2 = (phase2Data: any) => {
+    console.log('⏭️ Processing phase 2:', phase2Data)
+    
+    if (phase2Data) {
+      // Combine phase 2 text with quiz question if available
+      let combinedText = phase2Data.text
+      if (phase2Data.tool && phase2Data.tool.data && phase2Data.tool.data.question) {
+        combinedText += ' ' + phase2Data.tool.data.question
+      }
+      
+      // Display combined text
+      setCurrentResponse(combinedText)
+      setShouldStartTyping(true)
+      
+      if (phase2Data.audio_url) {
+        setCurrentAudio(phase2Data.audio_url)
       }
 
-      setMessages(prev => [...prev, newMessage])
-      
-      // Set character emotion
-      setCharacterEmotion(stepResult.response.emotion || 'normal')
-      
-      // Set new quiz tools if found
-      if (newTools.length > 0) {
-        setCurrentTools(newTools)
+      // Show tools after phase 2 audio or immediately if no audio
+      if (phase2Data.tool) {
+        console.log('🔍 Phase 2 tool data:', phase2Data.tool)
+        console.log('🔍 Phase 2 tool data.options:', phase2Data.tool.data?.options)
+        console.log('🔍 Phase 2 tool data.items:', phase2Data.tool.data?.items)
+        setTimeout(() => {
+          setCurrentTools([phase2Data.tool])
+          console.log('🎯 Phase 2 quiz tools displayed:', [phase2Data.tool])
+          console.log('🎯 currentTools[0].data.options:', phase2Data.tool.data?.options)
+        }, phase2Data.audio_url ? 1000 : 0)
       }
-      
-      // Set audio with flow context if available
-      if (stepResult.audio) {
-        console.log('🎵 Setting flow step audio')
-        setCurrentAudio(stepResult.audio)
-        
-        // Set up continuous flow context for audio completion
-        if (result.flow_continues && stepResult.next_trigger === 'audio_completion') {
-          setActiveContinuousFlow({
-            sessionId: result.session_id,
-            flowId: 'quiz_continuous_v1', // TODO: Get from result
-            stepId: stepResult.step_id,
-            nextStepTrigger: stepResult.next_trigger
-          })
-        }
+
+      // Add phase 2 to message history
+      const phase2Message = {
+        role: 'assistant' as const,
+        content: phase2Data.text,
+        timestamp: Date.now().toString(),
+        audio_url: phase2Data.audio_url
       }
+      setMessages(prev => [...prev, phase2Message])
     }
   }
 
   const handleFlowStepComplete = async (stepId: string) => {
-    console.log('🏁 Flow step completed:', stepId)
+    console.log('🏁 First audio completed, checking for flow continuation')
+    console.log('🔧 DEBUG: handleFlowStepComplete called with stepId:', stepId)
+    console.log('🔧 DEBUG: activeContinuousFlow:', activeContinuousFlow)
+    console.log('🔧 DEBUG: secondPhaseContent exists:', !!(window as any).secondPhaseContent)
     
-    if (!activeContinuousFlow || !sessionId) {
-      console.log('❌ No active flow to progress')
-      return
-    }
-
-    try {
-      console.log('⏭️  Progressing continuous flow')
+    // Check if we have stored second phase content (legacy approach)
+    if ((window as any).secondPhaseContent) {
+      console.log('✅ Using stored second phase content (legacy)')
       
-      const response = await fetch('/api/continuous-flow/progress', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          session_id: sessionId,
-          trigger_type: 'audio_completion',
-          data: {
-            completed_step_id: stepId
-          }
+      const { dialogue, tools } = (window as any).secondPhaseContent
+      
+      // Display second phase dialogue text
+      setCurrentResponse(dialogue)
+      setShouldStartTyping(true)
+      
+      // Add second dialogue to messages for conversation history
+      const secondMessage = {
+        role: 'assistant' as const,
+        content: dialogue,
+        character: 'Assistant',
+        emotion: 'encouraging',
+        timestamp: Date.now().toString()
+      }
+      setMessages(prev => [...prev, secondMessage])
+      
+      // Generate TTS audio for second phase dialogue
+      try {
+        if (character) {
+          const ttsResponse = await ApiClient.textToSpeech(dialogue, character.voice_id, 'encouraging', character.id)
+          setCurrentAudio(ttsResponse.audio_base64 || null)
+        }
+        console.log('🎵 Second phase audio generated')
+      } catch (error) {
+        console.error('Failed to generate second phase TTS:', error)
+      }
+      
+      // Display quiz tools after slight delay to allow text to start
+      setTimeout(() => {
+        try {
+          setCurrentTools(tools)
+          console.log('🎯 Second phase quiz tools displayed:', tools)
+        } catch (error) {
+          console.error('❌ Error setting current tools in handleFlowStepComplete:', error)
+        }
+      }, 1000)
+      
+      // Clean up stored content
+      ;(window as any).secondPhaseContent = null
+      
+      // Clear continuous flow state
+      setActiveContinuousFlow(null)
+      
+    } else if (activeContinuousFlow && activeContinuousFlow.nextStepIndex !== null) {
+      // NEW: Multi-step flow approach - trigger next step
+      console.log('🔄 Triggering next step in continuous flow:', activeContinuousFlow.nextStepIndex)
+      
+      try {
+        setIsThinking(true)
+        
+        const progressResponse = await fetch(`${API_BASE_URL}/api/continuous-flow/progress`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            session_id: activeContinuousFlow.sessionId,
+            trigger_type: 'audio_completion',
+            step_index: activeContinuousFlow.nextStepIndex
+          })
         })
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const result = await response.json()
-      console.log('✅ Flow progressed:', result)
-
-      if (result.step_result) {
-        // Handle next step result
-        handleFlowStepResult(result)
-      }
-
-      if (!result.flow_continues) {
-        // Flow completed
-        console.log('🏆 Continuous flow completed')
+        
+        if (!progressResponse.ok) {
+          throw new Error(`HTTP error! status: ${progressResponse.status}`)
+        }
+        
+        const progressResult = await progressResponse.json()
+        console.log('✅ Next step triggered:', progressResult)
+        
+        setIsThinking(false)
+        
+        if (progressResult.step_result) {
+          // Handle the next step result (should contain retry quiz with tools)
+          // Handle continuous quiz response
+          if (progressResult.tools && progressResult.tools[0]?.type === 'continuous_quiz_response') {
+            handleContinuousQuizResponse(progressResult, progressResult.tools[0])
+          }
+          
+          // Clear continuous flow state to prevent infinite loop
+          setActiveContinuousFlow(null)
+        }
+        
+      } catch (error) {
+        console.error('❌ Error progressing continuous flow:', error)
+        setIsThinking(false)
         setActiveContinuousFlow(null)
       }
-
-    } catch (error) {
-      console.error('❌ Error progressing continuous flow:', error)
+      
+    } else {
+      console.log('❌ No second phase content or flow continuation available')
       setActiveContinuousFlow(null)
     }
   }
@@ -917,9 +1002,10 @@ export default function ChatPage() {
       console.error('Error accessing microphone:', error)
       setRecordingState('idle')
       
-      if (error.name === 'NotAllowedError') {
+      const mediaError = error as any
+      if (mediaError.name === 'NotAllowedError') {
         alert('마이크 권한이 거부되었습니다. 브라우저 설정에서 마이크 접근을 허용해주세요.')
-      } else if (error.name === 'NotFoundError') {
+      } else if (mediaError.name === 'NotFoundError') {
         alert('마이크를 찾을 수 없습니다. 마이크가 연결되어 있는지 확인해주세요.')
       } else {
         alert('마이크 접근 중 오류가 발생했습니다.')
@@ -995,13 +1081,23 @@ export default function ChatPage() {
   }
   
   const handleAudioPlayStart = () => {
+    console.log('🎵 Audio play started - setting isAudioPlaying to true')
     setShouldStartTyping(true)
     setIsAudioPlaying(true)
   }
   
   const handleAudioPlayEnd = () => {
+    console.log('🎵 Audio play ended - setting isAudioPlaying to false')
     setIsAudioPlaying(false)
-    // Don't clear currentAudio so player UI stays visible for replay
+    
+    // Process pending continuous response if any
+    if (pendingContinuousResponse) {
+      console.log('🔄 Processing pending continuous response after audio completion')
+      setTimeout(() => {
+        processPhase2(pendingContinuousResponse.phase2)
+        setPendingContinuousResponse(null)
+      }, pendingContinuousResponse.delay || 3000)
+    }
   }
   
   if (characterLoading) {
@@ -1029,94 +1125,120 @@ export default function ChatPage() {
   }
   
   return (
-    <div className="h-screen h-dvh flex flex-col relative bg-gradient-to-b from-background to-muted/5 max-w-md mx-auto">
-      {/* Header with back button */}
-      <div className="flex items-center justify-between p-4 border-b bg-background/80 backdrop-blur-sm">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => router.push('/characters')}
-          className="rounded-full"
-        >
-          <ArrowLeft className="w-4 h-4" />
-        </Button>
-        
-        <div className="text-center">
-          <h2 className="font-semibold">{character.name}</h2>
-          <p className="text-xs text-muted-foreground">{character.description}</p>
-          {sessionId && (
-            <p className="text-xs text-gray-400">Session: {sessionId.slice(0, 12)}...</p>
-          )}
-        </div>
-        
-        <div className="w-10" /> {/* Spacer for centering */}
-      </div>
-
-      {/* Main content area - Character response */}
-      <div className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-sm text-center">
+    <div className="flex h-screen h-dvh flex-col bg-gradient-to-b from-slate-50 to-slate-100/40">
+      {/* Header - Improved with shadcn/ui patterns */}
+      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-slate-50/95 backdrop-blur supports-[backdrop-filter]:bg-slate-50/60">
+        <div className="container flex h-16 max-w-2xl mx-auto items-center justify-between px-6">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push('/characters')}
+            className="h-9 w-9 rounded-full p-0"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="sr-only">뒤로 가기</span>
+          </Button>
           
-          {/* Character avatar */}
-          <div className="relative w-24 h-24 mx-auto mb-6">
-            {/* Thinking wave pulse rings */}
+          <div className="flex flex-1 flex-col items-center text-center">
+            <h1 className="text-lg font-semibold leading-tight">{character.name}</h1>
+            <p className="text-sm text-muted-foreground">{character.description}</p>
+          </div>
+          
+          {/* Logo for 설민석 AI 퀴즈 튜터 - Improved styling */}
+          <div className="flex h-9 w-12 items-center justify-end">
+            {character?.id === 'seol_min_seok_quiz' && (
+              <div className="group relative">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg border bg-card p-1 shadow-sm transition-all hover:shadow-md">
+                  <img 
+                    src="/images/seol_logo.png" 
+                    alt="설민석 AI 퀴즈 튜터 로고"
+                    className="h-full w-full object-contain transition-transform hover:scale-105"
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      target.style.display = 'none';
+                      const parent = target.parentElement!;
+                      parent.innerHTML = '<div class="flex h-full w-full items-center justify-center rounded bg-gradient-to-r from-orange-500 to-orange-600 text-sm font-bold text-white">설</div>';
+                    }}
+                  />
+                </div>
+                {/* Tooltip */}
+                <div className="absolute -bottom-8 right-0 rounded bg-popover px-2 py-1 text-xs text-popover-foreground opacity-0 shadow-md transition-opacity group-hover:opacity-100">
+                  퀴즈 튜터
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Main content area - Enhanced with shadcn/ui patterns */}
+      <main className="flex flex-1 flex-col items-center justify-center space-y-8 px-6 py-8">
+        <div className="flex w-full max-w-2xl flex-col items-center space-y-6 text-center">
+          
+          {/* Character avatar - Enlarged and improved */}
+          <div className="relative">
+            {/* Extra Large Thinking wave pulse rings - Reduced shadow */}
             {isThinking && (
-              <div className="absolute inset-0">
+              <div className="absolute inset-0 -m-10">
                 {[...Array(3)].map((_, i) => (
                   <motion.div
                     key={i}
-                    className="absolute inset-0 rounded-full border-2 border-gray-400"
-                    initial={{ scale: 1, opacity: 0.6 }}
+                    className="absolute inset-0 rounded-full border-2 border-primary/20"
+                    initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ 
-                      scale: [1, 2.5], 
-                      opacity: [0.6, 0.3, 0] 
+                      scale: [0.8, 2.0], 
+                      opacity: [0, 0.2, 0.1, 0] 
                     }}
                     transition={{
-                      duration: 2,
-                      delay: i * 0.6,
+                      duration: 2.5,
+                      delay: i * 0.5,
                       repeat: Infinity,
-                      ease: "easeOut"
+                      ease: [0.25, 0.46, 0.45, 0.94]
                     }}
                   />
                 ))}
               </div>
             )}
             
-            <div 
-              className={`w-full h-full rounded-full overflow-hidden bg-muted flex items-center justify-center transition-all duration-300 ${
-                isAudioPlaying 
-                  ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-background' 
-                  : ''
-              }`}
-            >
-              {character.image ? (
-                <img 
-                  src={character.image} 
-                  alt={character.name}
-                  className="w-full h-full object-cover object-top"
-                  style={{ aspectRatio: 'auto' }}
-                />
-              ) : (
-                <span className="text-3xl font-bold text-muted-foreground">
-                  {character.name[0]?.toUpperCase()}
-                </span>
-              )}
+            {/* Extra Large character avatar container */}
+            <div className="relative">
+              <div 
+                className={`h-40 w-40 overflow-hidden rounded-full border-4 border-border bg-white shadow-lg ${
+                  isAudioPlaying && !isThinking ? 'animate-pulse-scale' : ''
+                }`}
+              >
+                {character.image ? (
+                  <img 
+                    src={character.image} 
+                    alt={character.name}
+                    className="h-full w-full object-cover object-top transition-transform hover:scale-105"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center">
+                    <span className="text-4xl font-bold text-muted-foreground">
+                      {character.name[0]?.toUpperCase()}
+                    </span>
+                  </div>
+                )}
+              </div>
+              
             </div>
           </div>
 
           {/* Response area */}
-          <div className="min-h-[120px] flex items-center justify-center">
+          <div className="min-h-[120px] w-full max-w-xl flex items-center justify-center">
             <AnimatePresence mode="wait">
-              {isThinking ? (
-                <motion.div
-                  key="thinking"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  className="flex items-center gap-3 text-muted-foreground"
-                >
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  <span className="text-lg">Thinking...</span>
-                </motion.div>
+                  {isThinking ? (
+                    <motion.div
+                      key="thinking"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      className="flex items-center gap-3 text-muted-foreground"
+                    >
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      <span className="text-lg">Thinking...</span>
+                    </motion.div>
               ) : currentResponse ? (
                 <motion.div
                   key="response"
@@ -1159,44 +1281,20 @@ export default function ChatPage() {
                   
                   {/* Quiz UI moved to bottom-right above input - see line 1008 */}
                 </motion.div>
-              ) : (
-                <motion.div
-                  key="waiting"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-muted-foreground text-lg"
-                >
-                  대화를 시작해보세요...
-                </motion.div>
-              )}
+                  ) : (
+                    <motion.div
+                      key="waiting"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="text-lg text-muted-foreground"
+                    >
+                      대화를 시작해보세요...
+                    </motion.div>
+                  )}
             </AnimatePresence>
           </div>
         </div>
-      </div>
-
-      {/* Last user message display (appears when typing/recording/processing) - Hidden during quiz */}
-      <AnimatePresence>
-        {(lastUserMessage && (!isTyping || lastUserMessage.includes('처리하고')) && !(currentTools.length > 0 && currentTools[0].type === 'show_selection')) && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="px-4 pb-2"
-          >
-            <div className={`rounded-lg px-4 py-2 text-sm ${
-              lastUserMessage.includes('처리하고') 
-                ? 'bg-blue-100 text-blue-800 animate-pulse' 
-                : 'bg-secondary/50 text-muted-foreground'
-            }`}>
-              {lastUserMessage.includes('처리하고') && (
-                <span className="mr-2">⏳</span>
-              )}
-              {lastUserMessage}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
+      </main>
 
       {/* Recording Level Indicator (appears above input) */}
       <AnimatePresence>
@@ -1237,7 +1335,7 @@ export default function ChatPage() {
 
       {/* Quiz UI - Positioned horizontally centered above input */}
       <AnimatePresence>
-        {currentTools.length > 0 && currentTools[0].type === 'show_selection' && (
+        {currentTools.length > 0 && currentTools[0].type === 'show_selection' && currentTools[0].data && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1245,95 +1343,100 @@ export default function ChatPage() {
             className="fixed bottom-24 left-1/2 transform -translate-x-1/2 max-w-md z-50"
           >
             <UnifiedSelection
-              items={currentTools[0].data.items}
+              items={currentTools[0].data.options || currentTools[0].data.items || []}
               onSelect={handleToolSelection}
               question={currentTools[0].data.question}
-              correctAnswer={currentTools[0].data.correctAnswer}
+              correctAnswer={currentTools[0].data.correct_answer || currentTools[0].data.correctAnswer}
             />
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Input area */}
-      <div className="border-t bg-background/90 backdrop-blur-sm p-4"
-           style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
-        <div className="flex gap-3 items-end">
-          
-          {/* Text input */}
-          <div className="flex-1">
-            <Input
-              value={inputText}
-              onChange={handleInputChange}
-              onKeyPress={handleKeyPress}
-              placeholder={
-                recordingState === 'requesting' ? "마이크 권한 요청 중..." :
-                recordingState === 'recording' ? "🎤 녹음 중..." :
-                "메시지 입력..."
-              }
-              className="rounded-full bg-background border-2 transition-colors focus:border-primary h-12"
-              disabled={isThinking || recordingState !== 'idle'}
-            />
+      {/* Input area - Enhanced with shadcn/ui patterns */}
+      <footer className="sticky bottom-0 border-t border-border/40 bg-slate-50/95 backdrop-blur supports-[backdrop-filter]:bg-slate-50/60">
+        <div className="container max-w-2xl mx-auto px-6 py-4" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+          <div className="flex items-end gap-3">
+            
+            {/* Text input - Enhanced */}
+            <div className="flex-1">
+              <Input
+                value={inputText}
+                onChange={handleInputChange}
+                onKeyPress={handleKeyPress}
+                placeholder={
+                  recordingState === 'requesting' ? "마이크 권한 요청 중..." :
+                  recordingState === 'recording' ? "🎤 녹음 중..." :
+                  "메시지 입력..."
+                }
+                className="h-12 rounded-full border-2 bg-background transition-colors focus:border-primary"
+                disabled={isThinking || recordingState !== 'idle'}
+              />
+            </div>
+            
+            {/* Mic button - Enhanced */}
+            {recordingState === 'idle' ? (
+              <Button
+                size="icon"
+                variant="outline"
+                className="h-12 w-12 shrink-0 rounded-full border-2 transition-all hover:border-primary"
+                onClick={handleMicClick}
+                disabled={isThinking}
+                title="음성 입력 시작"
+              >
+                <Mic className="h-5 w-5" />
+                <span className="sr-only">음성 입력 시작</span>
+              </Button>
+            ) : recordingState === 'requesting' ? (
+              <Button
+                size="icon"
+                variant="outline"
+                className="h-12 w-12 shrink-0 rounded-full border-2 opacity-50"
+                disabled={true}
+                title="마이크 권한 요청 중..."
+              >
+                <Mic className="h-5 w-5" />
+                <span className="sr-only">마이크 권한 요청 중</span>
+              </Button>
+            ) : recordingState === 'recording' ? (
+              <Button
+                size="icon"
+                className="h-12 w-12 shrink-0 rounded-full border-2 border-primary"
+                onClick={stopRecording}
+                title="녹음 완료 및 전송"
+              >
+                <Send className="h-5 w-5" />
+                <span className="sr-only">녹음 완료 및 전송</span>
+              </Button>
+            ) : null}
+            
+            {/* Send/Cancel button - Enhanced */}
+            {recordingState === 'recording' ? (
+              <Button
+                size="icon"
+                variant="destructive"
+                className="h-12 w-12 shrink-0 rounded-full border-2"
+                onClick={cancelRecording}
+                title="녹음 취소"
+              >
+                <X className="h-5 w-5" />
+                <span className="sr-only">녹음 취소</span>
+              </Button>
+            ) : (
+              <Button
+                size="icon"
+                onClick={() => handleSend()}
+                disabled={!inputText.trim() || isThinking || recordingState !== 'idle'}
+                className="h-12 w-12 shrink-0 rounded-full border-2 transition-all disabled:opacity-50"
+                variant={inputText.trim() && recordingState === 'idle' ? "default" : "outline"}
+                title="메시지 전송"
+              >
+                <Send className="h-5 w-5" />
+                <span className="sr-only">메시지 전송</span>
+              </Button>
+            )}
           </div>
-          
-          {/* Left button - Mic/Send during recording */}
-          {recordingState === 'idle' ? (
-            <Button
-              size="icon"
-              variant="outline"
-              className="rounded-full h-12 w-12 border-2 transition-all"
-              onClick={handleMicClick}
-              disabled={isThinking}
-              title="음성 입력 시작"
-            >
-              <Mic className="w-5 h-5" />
-            </Button>
-          ) : recordingState === 'requesting' ? (
-            <Button
-              size="icon"
-              variant="outline"
-              className="rounded-full h-12 w-12 border-2 opacity-50"
-              disabled={true}
-              title="마이크 권한 요청 중..."
-            >
-              <Mic className="w-5 h-5" />
-            </Button>
-          ) : recordingState === 'recording' ? (
-            <Button
-              size="icon"
-              variant="default"
-              className="rounded-full h-12 w-12 border-2 bg-black hover:bg-gray-800 text-white"
-              onClick={stopRecording}
-              title="녹음 완료 및 전송"
-            >
-              <Send className="w-5 h-5" />
-            </Button>
-          ) : null}
-          
-          {/* Right button - Send/Cancel during recording */}
-          {recordingState === 'recording' ? (
-            <Button
-              size="icon"
-              variant="destructive"
-              className="rounded-full h-12 w-12 border-2 bg-red-500 hover:bg-red-600"
-              onClick={cancelRecording}
-              title="녹음 취소"
-            >
-              <X className="w-5 h-5" />
-            </Button>
-          ) : (
-            <Button
-              size="icon"
-              onClick={() => handleSend()}
-              disabled={!inputText.trim() || isThinking || recordingState !== 'idle'}
-              className="rounded-full h-12 w-12 border-2"
-              variant={inputText.trim() && recordingState === 'idle' ? "default" : "outline"}
-              title="메시지 전송"
-            >
-              <Send className="w-5 h-5" />
-            </Button>
-          )}
         </div>
-      </div>
+      </footer>
 
       {/* Session Continuation Modal */}
       {sessionData && (
