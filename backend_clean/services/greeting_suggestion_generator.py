@@ -27,13 +27,13 @@ class GreetingSuggestionGenerator:
         
         # Character-specific suggestions for quiz-focused 설민석
         if character_id == 'seol_min_seok_quiz':
-            if '퀴즈' in greeting_message:
-                return [
-                    '조선시대 퀴즈',
-                    '근현대사 문제', 
-                    '난이도 선택하기',
-                    '랜덤 퀴즈 시작'
-                ]
+            # Always provide quiz topic suggestions for quiz character
+            return [
+                '조선시대 퀴즈',
+                '근현대사 퀴즈', 
+                '일제강점기 퀴즈',
+                '랜덤 퀴즈 시작'
+            ]
         
         # Default suggestions for enabled characters
         if suggestions_enabled:
@@ -44,3 +44,28 @@ class GreetingSuggestionGenerator:
             ]
         
         return []
+    
+    def generate_for_character(self, character: Dict[str, Any]) -> List[str]:
+        """
+        Generate suggestions for a character, respecting the greeting_suggestions_enabled flag
+        
+        Args:
+            character: Character dictionary with id, name, greeting_suggestions_enabled, etc.
+            
+        Returns:
+            List of suggestion strings, or empty list if disabled
+        """
+        # Check if suggestions are enabled for this character
+        suggestions_enabled = character.get('greeting_suggestions_enabled', False)
+        
+        if not suggestions_enabled:
+            return []
+        
+        # Build context for existing generator method
+        greeting_context = {
+            'suggestions_enabled': True,
+            'character_id': character.get('id', ''),
+            'greeting_message': character.get('greetings', [''])[0] if character.get('greetings') else ''
+        }
+        
+        return self.generate_greeting_suggestions(greeting_context)

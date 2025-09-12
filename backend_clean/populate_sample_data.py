@@ -62,6 +62,17 @@ def create_sample_data():
             "personality": "밝고 활발한 성격",
             "created_at": datetime.now(),
             "updated_at": datetime.now()
+        },
+        {
+            "_id": ObjectId(),
+            "character_id": "kim_daehyun_history",
+            "name": "김대현",
+            "description": "한국사 전문가이자 학술적 접근법을 가진 역사학자",
+            "avatar": "/images/김대현.png",
+            "voice": "seolminseok_tts",
+            "personality": "학문적이고 분석적인 역사 전문가",
+            "created_at": datetime.now(),
+            "updated_at": datetime.now()
         }
     ]
     

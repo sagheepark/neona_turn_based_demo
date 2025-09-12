@@ -52,6 +52,14 @@ export function UnifiedSelection({
   correctAnswer,
   isVisible = true
 }: UnifiedSelectionProps) {
+  // Add defensive checks
+  console.log('UnifiedSelection received:', { items, question, correctAnswer });
+  
+  if (!items || !Array.isArray(items)) {
+    console.warn('UnifiedSelection: items is not an array or is undefined', items);
+    return null;
+  }
+  
   // Auto-detect mode: if there's a question OR correctAnswer, use option mode (for quizzes)
   // Otherwise use chip mode for ≤4 items, option mode for >4 items
   const resolvedMode = mode ?? ((question || correctAnswer) ? 'option' : (items.length <= 4 ? 'chip' : 'option'))
@@ -67,9 +75,15 @@ export function UnifiedSelection({
       correctAnswer,
       onSelectFunction: !!onSelect 
     })
+    
+    // Add explicit logging to track the flow
+    console.log('📱 About to call onSelect with:', item)
+    
     setSelected(item)
     // No feedback UI - directly call onSelect and let character provide feedback
     onSelect(item)
+    
+    console.log('📱 onSelect called successfully')
     setSelected(null)
   }
   

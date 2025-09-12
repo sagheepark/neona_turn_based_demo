@@ -181,11 +181,25 @@
     }
     50% {
       opacity: 1;
-      transform: scale(1.05);
+      transform: scale(1.10);
     }
   }
   
   .ring-pulse {
     animation: ring-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  /* Profile pulse animation for speaking state */
+  @keyframes pulse-scale {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.03);
+    }
+  }
+  
+  .animate-pulse-scale {
+    animation: pulse-scale 0.8s ease-in-out infinite;
   }
 }

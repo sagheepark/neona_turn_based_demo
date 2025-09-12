@@ -1,6 +1,6 @@
 import { ChatRequest, ChatResponse } from '@/types/chat';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
 
 // New types for session and persona management
 export interface SessionStartRequest {
@@ -122,6 +122,28 @@ export interface ChatWithSessionResponse {
   session_summary?: string;
 }
 
+// NEW PLATFORM CHAT TYPES
+export interface PlatformChatRequest {
+  user_input: string;
+  character_id: string;
+  session_id?: string;
+  user_id: string;
+}
+
+export interface PlatformTool {
+  type: string;
+  data: any;
+}
+
+export interface PlatformChatResponse {
+  character: string;
+  dialogue: string;
+  tools: PlatformTool[];
+  audio_url?: string;
+  session_id: string;
+  timestamp: string;
+}
+
 export class ApiClient {
   static async chat(request: ChatRequest): Promise<ChatResponse> {
     try {
@@ -153,20 +175,29 @@ export class ApiClient {
 
   static async chatWithSession(request: ChatWithSessionRequest): Promise<ChatWithSessionResponse> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/chat-with-session`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request),
-        mode: 'cors',
-      });
+      // Convert old request format to new platform-chat format
+      const platformRequest: PlatformChatRequest = {
+        user_input: request.message,
+        character_id: request.character_id,
+        session_id: request.session_id,
+        user_id: request.user_id
+      };
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      // Use the new platform-chat endpoint
+      const platformResponse = await this.platformChat(platformRequest);
       
-      return response.json();
+      // Convert platform response to expected ChatResponse format
+      const convertedResponse: ChatWithSessionResponse = {
+        character: platformResponse.character,
+        dialogue: platformResponse.dialogue,
+        emotion: "neutral", // Default emotion since platform-chat doesn't provide it
+        speed: 1.0, // Default speed
+        audio: platformResponse.audio_url || null, // Map audio_url to audio field
+        session_id: platformResponse.session_id,
+        tools: platformResponse.tools || []
+      };
+      
+      return convertedResponse;
     } catch (error) {
       console.error('Chat with session API call failed:', error);
       // Fallback response for demo
@@ -210,7 +241,7 @@ export class ApiClient {
     }
   }
 
-  static async textToSpeech(text: string, voice_id?: string, emotion?: string, character_id?: string): Promise<{ audio?: string; status: string; message?: string }> {
+  static async textToSpeech(text: string, voice_id?: string, emotion?: string, character_id?: string): Promise<{ audio?: string; audio_base64?: string; status: string; message?: string }> {
     try {
       const response = await fetch(`${API_BASE_URL}/api/tts`, {
         method: 'POST',
@@ -236,6 +267,75 @@ export class ApiClient {
       return {
         status: "error",
         message: "Text-to-speech generation failed"
+      };
+    }
+  }
+
+  // ============================================
+  // NEW PLATFORM CHAT METHOD
+  // ============================================
+
+  static async platformChat(request: PlatformChatRequest): Promise<PlatformChatResponse> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/platform-chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+        mode: 'cors',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return response.json();
+    } catch (error) {
+      console.error('Platform chat API call failed:', error);
+      // Fallback response for demo
+      return {
+        character: request.character_id,
+        dialogue: "죄송해요, 서버에 연결할 수 없어요. 잠시 후 다시 시도해주세요.",
+        tools: [],
+        session_id: "fallback_session",
+        timestamp: new Date().toISOString()
+      };
+    }
+  }
+
+  // Create new session using platform orchestrator
+  static async createPlatformSession(characterId: string, userId: string): Promise<PlatformChatResponse> {
+    try {
+      // Use the existing platform-chat endpoint with empty user_input to trigger greeting
+      const response = await fetch(`${API_BASE_URL}/api/platform-chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          user_input: '', // Empty input triggers greeting
+          character_id: characterId, 
+          user_id: userId 
+          // No session_id - will create new session
+        }),
+        mode: 'cors',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return response.json();
+    } catch (error) {
+      console.error('Create platform session failed:', error);
+      // Fallback response
+      return {
+        character: characterId,
+        dialogue: "안녕하세요! 서버 연결에 문제가 있어요. 잠시 후 다시 시도해주세요.",
+        tools: [],
+        session_id: "fallback_session",
+        timestamp: new Date().toISOString()
       };
     }
   }

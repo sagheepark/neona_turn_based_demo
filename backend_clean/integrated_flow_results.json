@@ -1,0 +1,126 @@
+{
+  "step1_greeting": {
+    "character": "seolminseok_korean_history_chat",
+    "dialogue": "안녕하세요! 저는 설민석입니다. 한국 역사를 더욱 재미있고 흥미롭게 배울 수 있도록 도와드릴게요. 어떤 주제에 대해 이야기해보고 싶으신가요?",
+    "tools": [
+      {
+        "type": "show_selection",
+        "data": {
+          "question": "어떤 주제에 대해 이야기해보고 싶으신가요?",
+          "options": [
+            "조선시대",
+            "고려시대",
+            "삼국시대",
+            "현대사"
+          ],
+          "selection_mode": "topic"
+        }
+      }
+    ],
+    "audio_url": null,
+    "session_id": "sess_20250911_230458_476c0a",
+    "timestamp": "2025-09-11T14:05:01.002866"
+  },
+  "step2_topic_selection": {
+    "character": "seolminseok_korean_history_chat",
+    "dialogue": "좋은 선택이에요! 조선시대는 정말 흥미진진한 시대죠. 자, 그럼 첫 번째 문제를 시작해볼까요? 조선을 건국한 왕은 누구일까요?",
+    "tools": [
+      {
+        "type": "show_selection",
+        "data": {
+          "question": "조선을 건국한 왕은 누구일까요?",
+          "options": [
+            "태조 이성계",
+            "세종대왕",
+            "정조",
+            "광해군"
+          ],
+          "correct_answer": "태조 이성계",
+          "selection_mode": "quiz_question"
+        }
+      }
+    ],
+    "audio_url": null,
+    "session_id": "sess_20250911_230458_476c0a",
+    "timestamp": "2025-09-11T14:05:02.881172"
+  },
+  "step4_wrong_answer": {
+    "character": "seolminseok_korean_history_chat",
+    "dialogue": "세종대왕도 훌륭한 왕이지만 조선을 건국한 왕은 아닙니다. 다시 한번 생각해 보세요. 조선을 건국한 왕은 누구일까요?",
+    "tools": [
+      {
+        "type": "continuous_quiz_response",
+        "data": {
+          "phase1": {
+            "text": "세종대왕도 훌륭한 왕이지만 조선을 건국한 왕은 아닙니다. 다시 한번 생각해 보세요.",
+            "delay_ms": 3000
+          },
+          "phase2": {
+            "text": "조선을 건국한 왕은 누구일까요?",
+            "tool": {
+              "type": "show_selection",
+              "data": {
+                "question": "조선을 건국한 왕은 누구일까요?",
+                "options": [
+                  "태조 이성계",
+                  "세종대왕",
+                  "광해군",
+                  "숙종"
+                ],
+                "selection_mode": "quiz_question"
+              }
+            }
+          }
+        }
+      }
+    ],
+    "audio_url": null,
+    "session_id": "sess_20250911_230458_476c0a",
+    "timestamp": "2025-09-11T14:05:05.881026"
+  },
+  "step5_correct_answer": {
+    "character": "seolminseok_korean_history_chat",
+    "dialogue": "맞아요! 조선을 건국한 왕은 바로 태조 이성계입니다. 이성계는 고려 말기에 새 왕조를 세우고 조선을 건국하여 새로운 시대를 열었죠. 정말 잘하셨어요! 자, 다음 문제로 넘어가 볼까요? 조선의 두 번째 왕은 누구일까요?",
+    "tools": [
+      {
+        "type": "continuous_quiz_response",
+        "data": {
+          "phase1": {
+            "text": "맞아요! 조선을 건국한 왕은 바로 태조 이성계입니다. 이성계는 고려 말기에 새 왕조를 세우고 조선을 건국하여 새로운 시대를 열었죠. 정말 잘하셨어요!",
+            "delay_ms": 3000
+          },
+          "phase2": {
+            "text": "자, 다음 문제로 넘어가 볼까요? 조선의 두 번째 왕은 누구일까요?",
+            "tool": {
+              "type": "show_selection",
+              "data": {
+                "question": "조선의 두 번째 왕은 누구일까요?",
+                "options": [
+                  "정종",
+                  "태종",
+                  "세종",
+                  "성종"
+                ],
+                "correct_answer": "정종",
+                "selection_mode": "quiz_question"
+              }
+            }
+          }
+        }
+      }
+    ],
+    "audio_url": null,
+    "session_id": "sess_20250911_230458_476c0a",
+    "timestamp": "2025-09-11T14:05:09.159567"
+  },
+  "step6_second_quiz": {
+    "question": "조선의 두 번째 왕은 누구일까요?",
+    "options": [
+      "정종",
+      "태종",
+      "세종",
+      "성종"
+    ],
+    "different_from_first": true
+  }
+}

@@ -31,7 +31,8 @@ export default function EditCharacterPage() {
     temperature: 0.7,
     prompt: '',
     greetings: [''],
-    conversation_examples: ['']
+    conversation_examples: [''],
+    greeting_suggestions_enabled: false
   })
   
   useEffect(() => {
@@ -54,7 +55,8 @@ export default function EditCharacterPage() {
       temperature: char.temperature ?? 0.7, // Use character temperature or default
       prompt: char.prompt,
       greetings: char.greetings && char.greetings.length > 0 ? char.greetings : [''],
-      conversation_examples: char.conversation_examples && char.conversation_examples.length > 0 ? char.conversation_examples : ['']
+      conversation_examples: char.conversation_examples && char.conversation_examples.length > 0 ? char.conversation_examples : [''],
+      greeting_suggestions_enabled: char.greeting_suggestions_enabled ?? false
     })
   }, [params.id, router])
   
@@ -85,6 +87,8 @@ export default function EditCharacterPage() {
         greetings: formData.greetings.filter(g => g.trim() !== ''),
         conversation_examples: formData.conversation_examples.filter(ex => ex.trim() !== ''),
         voice_id: formData.voice_id,
+        temperature: formData.temperature,
+        greeting_suggestions_enabled: formData.greeting_suggestions_enabled,
         updated_at: new Date()
       }
       
@@ -226,6 +230,29 @@ export default function EditCharacterPage() {
                       Controls response variety. Lower = more consistent, Higher = more creative
                     </p>
                   </div>
+                </div>
+
+                <div data-testid="character-settings-section" className="space-y-4 border-t pt-4">
+                  <h3 className="text-sm font-medium">Settings</h3>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="greeting-suggestions"
+                      checked={formData.greeting_suggestions_enabled}
+                      onChange={(e) => setFormData(prev => ({ ...prev, greeting_suggestions_enabled: e.target.checked }))}
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                      aria-label="Enable greeting suggestions"
+                    />
+                    <Label 
+                      htmlFor="greeting-suggestions" 
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      Enable greeting suggestions
+                    </Label>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    When enabled, this character will show suggested responses after greeting the user
+                  </p>
                 </div>
                 
                 <div>
@@ -391,7 +418,7 @@ export default function EditCharacterPage() {
         
         <div className="flex gap-4 pt-6 border-t">
           <Button type="submit" disabled={loading}>
-            {loading ? 'Updating...' : 'Update Character'}
+            {loading ? 'Saving...' : 'Save Character'}
           </Button>
           <Button 
             type="button" 

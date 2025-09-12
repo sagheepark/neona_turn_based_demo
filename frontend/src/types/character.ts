@@ -8,6 +8,7 @@ export interface Character {
   conversation_examples?: string[];  // 대화 예시들
   voice_id: string;
   temperature?: number;  // LLM temperature (0.0 - 1.0)
+  greeting_suggestions_enabled?: boolean;  // Enable greeting suggestions for this character
   created_at: Date;
   updated_at: Date;
 }

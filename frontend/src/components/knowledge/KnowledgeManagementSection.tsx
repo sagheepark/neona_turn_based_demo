@@ -93,8 +93,14 @@ export function KnowledgeManagementSection({
     if (characterId) {
       try {
         const item = items.find(i => i.id === id);
-        if (item) {
-          await ApiClient.saveCharacterKnowledge(characterId, [item]);
+        if (item && item.id) {
+          if (item.id.startsWith('temp_')) {
+            // Create new item
+            await ApiClient.createKnowledgeItem(characterId, item);
+          } else {
+            // Update existing item
+            await ApiClient.updateKnowledgeItem(item.id, characterId, item);
+          }
         }
       } catch (error) {
         console.error('Failed to save knowledge item:', error);

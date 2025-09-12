@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Frontend Continuous Flow Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { border: 1px solid #ccc; padding: 15px; margin: 10px 0; }
+        .log { background: #f5f5f5; padding: 10px; margin: 5px 0; font-family: monospace; }
+        button { padding: 10px 20px; margin: 5px; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        .current-step { background: yellow; padding: 10px; margin: 10px 0; font-weight: bold; }
+        #audioPlayer { margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>Frontend Continuous Flow Test</h1>
+    
+    <div class="current-step" id="currentStep">Step: Ready to test</div>
+    
+    <div class="test-section">
+        <h3>Test Complete Continuous Flow</h3>
+        <p>This test simulates the exact frontend behavior with wrong answers</p>
+        <button onclick="testCompleteContinuousFlow()">Test Wrong Answer Flow</button>
+        <button onclick="testCorrectAnswerFlow()">Test Correct Answer Flow</button>
+        <button onclick="clearLogs()">Clear Logs</button>
+        <div id="test-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Audio Playback Simulation</h3>
+        <audio id="audioPlayer" controls style="display: none;"></audio>
+        <div id="audioStatus"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8001';
+        let testSession = null;
+        
+        function updateStep(step) {
+            document.getElementById('currentStep').textContent = `Step: ${step}`;
+        }
+        
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `log ${type}`;
+            div.innerHTML = `${new Date().toLocaleTimeString()} - ${message}`;
+            document.getElementById('test-results').appendChild(div);
+            console.log(message);
+        }
+        
+        function audioLog(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `log ${type}`;
+            div.innerHTML = `${new Date().toLocaleTimeString()} - ${message}`;
+            document.getElementById('audioStatus').appendChild(div);
+        }
+        
+        function clearLogs() {
+            document.getElementById('test-results').innerHTML = '';
+            document.getElementById('audioStatus').innerHTML = '';
+        }
+        
+        async function simulateAudioCompletion(audioData, flowContext) {
+            return new Promise((resolve) => {
+                if (!audioData) {
+                    log('❌ No audio data to simulate', 'error');
+                    resolve();
+                    return;
+                }
+                
+                audioLog('🎵 Simulating audio playback...');
+                updateStep('Playing first phase audio');
+                
+                // Simulate audio playback time
+                const audioElement = document.getElementById('audioPlayer');
+                audioElement.src = audioData;
+                audioElement.style.display = 'block';
+                
+                // Auto-play and handle completion
+                audioElement.play().then(() => {
+                    audioLog('✅ Audio playing');
+                }).catch(e => {
+                    audioLog('ℹ️ Audio autoplay blocked, continuing simulation');
+                });
+                
+                // Simulate completion after 2 seconds
+                setTimeout(() => {
+                    audioLog('🏁 Audio completed, triggering flow continuation...');
+                    updateStep('Audio completed, triggering next step');
+                    
+                    if (flowContext && flowContext.nextStepIndex !== null && flowContext.nextStepIndex !== undefined) {
+                        log(`✅ Triggering next step with index: ${flowContext.nextStepIndex}`, 'success');
+                        handleAudioCompletion(flowContext).then(resolve);
+                    } else {
+                        log('❌ No next step index found in flow context', 'error');
+                        resolve();
+                    }
+                }, 2000);
+            });
+        }
+        
+        async function handleAudioCompletion(flowContext) {
+            try {
+                updateStep('Calling progress API');
+                log('🔄 Calling progress API for next step...');
+                
+                const progressResponse = await fetch(`${API_BASE_URL}/api/continuous-flow/progress`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: flowContext.sessionId,
+                        trigger_type: 'audio_completion',
+                        step_index: flowContext.nextStepIndex
+                    })
+                });
+                
+                const progressResult = await progressResponse.json();
+                log(`✅ Progress API response: ${JSON.stringify(progressResult, null, 2)}`, 'success');
+                
+                if (progressResult.step_result) {
+                    updateStep('Processing second phase result');
+                    
+                    if (progressResult.step_result.response) {
+                        log(`✅ Second phase dialogue: "${progressResult.step_result.response.dialogue?.substring(0, 80)}..."`, 'success');
+                    }
+                    
+                    if (progressResult.step_result.tools && progressResult.step_result.tools.length > 0) {
+                        const tool = progressResult.step_result.tools[0];
+                        log(`✅ Second phase tool: ${tool.type}`, 'success');
+                        log(`✅ Tool retry mode: ${tool.data?.retry_mode}`, 'success');
+                        log(`✅ Tool question: "${tool.data?.question?.substring(0, 50)}..."`, 'success');
+                        log(`✅ Tool options: ${tool.data?.options?.length} options`, 'success');
+                        updateStep('SUCCESS: Second phase tools ready for display');
+                    } else {
+                        log('❌ No tools in second phase result', 'error');
+                        updateStep('ERROR: No second phase tools');
+                    }
+                } else {
+                    log('❌ No step result in progress response', 'error');
+                    updateStep('ERROR: No second phase content');
+                }
+                
+            } catch (error) {
+                log(`❌ Error in audio completion handler: ${error.message}`, 'error');
+                updateStep('ERROR: Audio completion failed');
+            }
+        }
+        
+        async function testCompleteContinuousFlow() {
+            clearLogs();
+            testSession = `frontend_test_${Date.now()}`;
+            updateStep('Starting wrong answer test');
+            
+            log('🧪 Testing Complete Continuous Flow (Wrong Answer)...');
+            
+            try {
+                // Step 1: Trigger continuous flow
+                log('📤 Step 1: Triggering continuous flow with wrong answer...');
+                
+                const response = await fetch(`${API_BASE_URL}/api/continuous-flow/trigger`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: testSession,
+                        character_id: 'seol_min_seok_quiz',
+                        tool_type: 'continuous_answer',
+                        data: {
+                            selection: '고국천왕',  // Wrong answer
+                            correct_answer: '주몽',
+                            question: '고구려의 창건자는 누구일까요?',
+                            items: ['주몽', '고국천왕', '광개토대왕', '동명성왕']
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                log(`✅ Trigger response: ${JSON.stringify(data, null, 2)}`, 'success');
+                
+                // Step 2: Verify first phase
+                if (data.status === 'flow_triggered' && data.flow_continues && data.next_step_index !== null) {
+                    log('✅ First phase successful - flow continues', 'success');
+                    log(`✅ Next step index: ${data.next_step_index}`, 'success');
+                    
+                    if (data.step_result?.response?.dialogue) {
+                        log(`✅ First phase dialogue: "${data.step_result.response.dialogue.substring(0, 100)}..."`, 'success');
+                    }
+                    
+                    // Step 3: Simulate audio completion and trigger second phase
+                    const flowContext = {
+                        sessionId: testSession,
+                        nextStepIndex: data.next_step_index
+                    };
+                    
+                    await simulateAudioCompletion(data.step_result?.audio, flowContext);
+                    
+                } else {
+                    log('❌ First phase failed - flow does not continue', 'error');
+                    updateStep('ERROR: First phase failed');
+                }
+                
+            } catch (error) {
+                log(`❌ Test failed: ${error.message}`, 'error');
+                updateStep('ERROR: Test failed');
+            }
+        }
+        
+        async function testCorrectAnswerFlow() {
+            clearLogs();
+            testSession = `frontend_correct_${Date.now()}`;
+            updateStep('Starting correct answer test');
+            
+            log('🧪 Testing Correct Answer Flow...');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/continuous-flow/trigger`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: testSession,
+                        character_id: 'seol_min_seok_quiz',
+                        tool_type: 'continuous_answer',
+                        data: {
+                            selection: '주몽',  // Correct answer
+                            correct_answer: '주몽',
+                            question: '고구려의 창건자는 누구일까요?',
+                            items: ['주몽', '고국천왕', '광개토대왕', '동명성왕']
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                log(`✅ Correct answer response: ${JSON.stringify(data, null, 2)}`, 'success');
+                
+                if (data.step_result?.response?.dialogue) {
+                    log(`✅ Correct answer dialogue: "${data.step_result.response.dialogue.substring(0, 100)}..."`, 'success');
+                }
+                
+                if (data.flow_continues) {
+                    log('✅ Correct answer also continues flow (should lead to new question)', 'success');
+                    updateStep('Correct answer - flow continues to new question');
+                } else {
+                    log('ℹ️ Correct answer completes flow (no continuation)', 'info');
+                    updateStep('Correct answer - flow completed');
+                }
+                
+            } catch (error) {
+                log(`❌ Correct answer test failed: ${error.message}`, 'error');
+                updateStep('ERROR: Correct answer test failed');
+            }
+        }
+    </script>
+</body>
+</html>

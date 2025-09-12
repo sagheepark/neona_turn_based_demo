@@ -7,15 +7,596 @@ import random
 import os
 from dotenv import load_dotenv
 import re
+from datetime import datetime
 from typing import List, Dict, Any, Optional, Union
 
 load_dotenv()
+
+# Session-Aware Chat Models - Moved to top to avoid forward reference issues
+class ChatWithSessionRequest(BaseModel):
+    message: str
+    character_prompt: str
+    character_id: str
+    user_id: str                    # NEW: User identification
+    session_id: Optional[str] = None       # NEW: Session continuation
+    voice_id: Optional[str] = None
+    persona_id: Optional[str] = None
+
+class ChatWithSessionResponse(BaseModel):
+    character: str
+    dialogue: str
+    emotion: str = "neutral"
+    speed: float = 1.0
+    audio: Optional[str] = None
+    session_id: str                 # NEW: Session identification
+    message_count: int              # NEW: Conversation progress
+    session_summary: Optional[str] = None    # NEW: Story progression context
+    tools: Optional[List[Dict[str, Any]]] = None  # NEW: Tool-based interactions
 
 # Import services after loading environment
 from services.tts_service import tts_service
 from services.stt_service import stt_service
 from services.voice_recommend_service import voice_recommend_service
 from services.seolminseok_tts_service import seolminseok_tts_service
+
+# 🚀 PLATFORM-GRADE HELPER FUNCTIONS
+async def create_session_with_auto_greeting(request: ChatWithSessionRequest):
+    """Smart session creation with automatic character greeting"""
+    # Create session
+    session_data = conversation_service.create_session(
+        request.user_id, 
+        request.character_id, 
+        request.persona_id
+    )
+    session_id = session_data["session_id"]
+    
+    # Get character for greeting
+    character = await character_service.get_character(request.character_id)
+    
+    # Auto-generate greeting based on character
+    if character and character.get('greetings'):
+        greeting = character['greetings'][0]  # Use first greeting
+        
+        # Store greeting in session
+        conversation_service.add_message_to_session(session_id, "user", "안녕하세요", request.user_id)
+        conversation_service.add_message_to_session(session_id, "assistant", greeting, request.user_id)
+        
+        # Generate greeting tools if needed (for quiz characters)
+        tools = None
+        if request.character_id == "seol_min_seok_quiz":
+            from services.greeting_suggestion_generator import GreetingSuggestionGenerator
+            greeting_generator = GreetingSuggestionGenerator()
+            suggestions = greeting_generator.generate_greeting_suggestions({
+                "character_id": request.character_id,
+                "greeting_message": greeting,
+                "character_personality": "교육적이고 친근한 역사 튜터",
+                "suggestions_enabled": True
+            })
+            tools = [{
+                "type": "show_selection",
+                "data": {
+                    "items": suggestions,
+                    "question": "어떤 퀴즈로 시작할까요?"
+                }
+            }]
+        
+        # Generate TTS for greeting
+        audio_base64 = None
+        try:
+            if request.character_id in ['seol_min_seok', 'seol_min_seok_quiz']:
+                print(f"🎵 Generating TTS for quiz character greeting (helper)")
+                audio_base64 = await seolminseok_tts_service.generate_tts(greeting)
+                
+                # No fallback - keep 설민석's unique voice
+                if audio_base64 is None:
+                    print(f"⚠️ Seolminseok TTS failed, continuing without audio")
+            else:
+                audio_response = await tts_service.generate_speech(greeting, request.voice_id or "duke")
+                audio_base64 = audio_response.get("audio")
+        except Exception as e:
+            print(f"TTS generation failed in helper: {e}")
+            audio_base64 = None
+        
+        return ChatWithSessionResponse(
+            character=request.character_id,
+            dialogue=greeting,
+            emotion="happy",
+            speed=1.0,
+            audio=audio_base64,
+            session_id=session_id,
+            message_count=1,
+            session_summary="",
+            tools=tools
+        )
+    
+    # Fallback to basic greeting
+    return ChatWithSessionResponse(
+        character=request.character_id,
+        dialogue="안녕하세요! 무엇을 도와드릴까요?",
+        emotion="happy",
+        speed=1.0,
+        audio=None,
+        session_id=session_id,
+        message_count=1,
+        session_summary=""
+    )
+
+def parse_quiz_answer(user_message: str, question_text: str) -> Dict[str, Any]:
+    """Parse user's quiz choice and map to question options"""
+    import re
+    
+    # Extract user choice (A, B, C, D, 1, 2, 3, 4)
+    user_choice = None
+    choice_patterns = [
+        r'([A-D])\)',  # A), B), C), D)
+        r'([1-4])\.',  # 1., 2., 3., 4.
+        r'([1-4])\)',  # 1), 2), 3), 4)
+        r'([A-D])',    # A, B, C, D
+        r'([1-4])'     # 1, 2, 3, 4
+    ]
+    
+    for pattern in choice_patterns:
+        match = re.search(pattern, user_message)
+        if match:
+            user_choice = match.group(1)
+            break
+    
+    if not user_choice:
+        return {"error": "Could not parse user choice"}
+    
+    # Extract all options from question
+    options = []
+    option_patterns = [
+        r'([1-4])\.\s*(\S+)',  # 1. option text (simple word capture)
+        r'([1-4])\)\s*(\S+)',  # 1) option text (simple word capture) 
+        r'([A-D])\)\s*(\S+)'   # A) option text (simple word capture)
+    ]
+    
+    for pattern in option_patterns:
+        matches = re.findall(pattern, question_text)
+        if matches:
+            options = matches
+            break
+    
+    if not options:
+        return {"error": "Could not parse question options"}
+    
+    # Map user choice to option content
+    choice_mapping = {}
+    for i, (choice_key, option_text) in enumerate(options):
+        choice_mapping[choice_key] = option_text.strip()
+        # Also map numeric/letter equivalents
+        if choice_key.isdigit():
+            letter = chr(ord('A') + int(choice_key) - 1)
+            choice_mapping[letter] = option_text.strip()
+        else:
+            number = str(ord(choice_key) - ord('A') + 1)
+            choice_mapping[number] = option_text.strip()
+    
+    user_option_text = choice_mapping.get(user_choice)
+    if not user_option_text:
+        return {"error": f"Invalid choice {user_choice}"}
+    
+    return {
+        "user_choice": user_choice,
+        "user_option_text": user_option_text,
+        "all_options": choice_mapping,
+        "question_text": question_text
+    }
+
+def build_educational_quiz_prompt(character_name: str, conversation_history: list, user_message: str) -> str:
+    """
+    Build educational quiz prompt using structured logic and EducationalQuizFlow
+    """
+    
+    # Analyze conversation to detect quiz context
+    last_assistant_msg = None
+    last_question = None
+    
+    for msg in reversed(conversation_history):
+        if msg.startswith("assistant:") and not last_assistant_msg:
+            last_assistant_msg = msg.replace("assistant:", "").strip()
+            # Check if this message contains a quiz question
+            if any(marker in last_assistant_msg for marker in ["1.", "2.", "3.", "4.", "1)", "2)", "3)", "4)", "A)", "B)", "C)", "D)"]):
+                last_question = last_assistant_msg
+                break
+    
+    # Check if user is answering a quiz question
+    is_quiz_answer = any(marker in user_message for marker in ["1.", "2.", "3.", "4.", "1)", "2)", "3)", "4)", "A)", "B)", "C)", "D)"])
+    
+    print(f"🔍 DEBUG: is_quiz_answer={is_quiz_answer}, last_question={last_question is not None}")
+    print(f"🔍 DEBUG: user_message='{user_message}'")
+    
+    if is_quiz_answer and last_question:
+        # Parse the user's answer choice
+        parsed_answer = parse_quiz_answer(user_message, last_question)
+        
+        if "error" in parsed_answer:
+            # Handle parsing error
+            return f"""당신은 {character_name} 역사 선생님입니다. 
+            
+사용자가 "{user_message}"라고 답했지만, 선택지 형식이 명확하지 않습니다. 
+"1", "2", "3", "4" 또는 "A", "B", "C", "D" 형태로 답변해주세요.
+
+{last_question}"""
+        
+        # Use EducationalQuizFlow for structured processing
+        try:
+            from services.educational_quiz_flow import EducationalQuizFlow
+            quiz_flow = EducationalQuizFlow()
+            
+            # Create question data structure for educational flow
+            question_data = {
+                "question": parsed_answer["question_text"],
+                "correct_answer": "A) 한글 창제",  # This should be determined dynamically
+                "topic": "조선시대",
+                "educational_context": {
+                    "why_correct": "세종대왕은 1443년 한글(훈민정음)을 창제하여 백성들이 쉽게 글을 배울 수 있도록 했습니다.",
+                    "why_wrong": {
+                        "B": "불교 장려는 고려시대의 특징입니다.",
+                        "C": "몽골 침입은 고려시대 사건입니다.", 
+                        "D": "일제강점은 1910-1945년 시기입니다."
+                    },
+                    "hint": "세종대왕 하면 가장 먼저 떠오르는 문화적 업적을 생각해보세요."
+                }
+            }
+            
+            # For now, use simple correct answer detection
+            # TODO: Implement proper answer validation logic
+            user_full_answer = f"{parsed_answer['user_choice']}) {parsed_answer['user_option_text']}"
+            
+            # Simple correctness check (this should be improved with proper answer key)
+            is_correct = "이성계" in parsed_answer['user_option_text'] or "한글" in parsed_answer['user_option_text']
+            
+            if is_correct:
+                return f"""당신은 {character_name} 역사 선생님입니다.
+
+정답입니다! 훌륭해요! 
+
+{parsed_answer['user_option_text']}이(가) 맞습니다. 
+
+[교육적 설명 제공 후 새로운 문제 출제]
+
+다음 문제입니다:
+세종대왕이 한글을 창제한 연도는?
+1. 1443년
+2. 1453년  
+3. 1463년
+4. 1473년
+
+정답을 골라보세요!"""
+            
+            else:
+                return f"""당신은 {character_name} 역사 선생님입니다.
+
+아쉽지만 틀렸어요! 하지만 괜찮습니다. 
+
+선택하신 "{parsed_answer['user_option_text']}"은(는) 정답이 아닙니다.
+[교육적 힌트와 설명]
+
+다시 한 번 도전해보세요!
+
+{last_question}"""
+                
+        except ImportError:
+            # Fallback if EducationalQuizFlow is not available
+            return f"""당신은 {character_name} 역사 선생님입니다. 
+            
+사용자가 "{parsed_answer['user_choice']}번 {parsed_answer['user_option_text']}"을(를) 선택했습니다.
+
+교육적 피드백을 제공하고 적절히 응답하세요."""
+    
+    else:
+        # Normal conversation or quiz start
+        return f"""당신은 {character_name} 역사 선생님입니다. 열정적이고 재미있게 한국사를 가르치는 교육자입니다.
+
+사용자와 재미있는 한국사 퀴즈를 진행하세요:
+- 친근하고 열정적인 말투 사용
+- 퀴즈를 시작하려면 4지선다 문제 제시
+- 교육적이면서도 재미있게 설명
+
+IMPORTANT - Tool Output Format:
+When providing quiz questions or interactive content, you MUST output a JSON response in this exact format:
+{{
+    "character": "seol_min_seok_quiz",
+    "dialogue": "Your speaking dialogue here",
+    "emotion": "enthusiastic",
+    "speed": 1.0,
+    "tool": "show_selection",
+    "tool_data": {{
+        "type": "quiz_question",
+        "question": "다음 중 세종대왕의 업적은?",
+        "items": ["한글 창제", "불교 장려", "몽골 침입", "일제강점"],
+        "correct_answer": "한글 창제"
+    }}
+}}
+
+For topic selection, use:
+{{
+    "character": "seol_min_seok_quiz",
+    "dialogue": "어떤 주제로 퀴즈를 할까요?",
+    "emotion": "curious",
+    "tool": "quiz",
+    "tool_data": {{
+        "type": "topic_selection",
+        "items": ["조선시대", "근현대사", "일제강점기"]
+    }}
+}}
+
+최근 대화:
+{chr(10).join(conversation_history[-6:])}
+
+현재 사용자 메시지: {user_message}
+
+자연스럽게 응답하되, 퀴즈 관련 상황에서는 반드시 위의 JSON 형식으로 응답하세요."""
+
+async def process_unified_conversation(request: ChatWithSessionRequest):
+    """Unified conversation processing with intelligent context awareness"""
+    
+    # Load session and build enhanced character context
+    session_data = conversation_service.load_session_messages(request.session_id, request.user_id)
+    
+    # Check if session data was loaded successfully
+    if session_data is None:
+        print(f"❌ ERROR: Session {request.session_id} not found for user {request.user_id}")
+        raise HTTPException(status_code=404, detail=f"Session {request.session_id} not found")
+    
+    character = await character_service.get_character(request.character_id)
+    
+    # Check if character was found
+    if character is None:
+        print(f"⚠️  WARNING: Character '{request.character_id}' not found, using default settings")
+        character = {
+            "name": request.character_id,
+            "personality": "Friendly and helpful",
+            "temperature": 0.7
+        }
+    
+    # 🧠 ENHANCED CHARACTER CONTEXT: Let character handle flow naturally
+    conversation_history = []
+    for msg in session_data.get('messages', []):
+        conversation_history.append(f"{msg['role']}: {msg['content']}")
+    
+    # Special handling for quiz characters with educational logic - DISABLED FOR LLM INTEGRATION TESTING
+    if False and request.character_id == "seol_min_seok_quiz":
+        print(f"🔍 DEBUG: Building educational quiz prompt for message: '{request.message}'")
+        character_name = character.get('name', '설민석') if character else '설민석'
+        enhanced_prompt = build_educational_quiz_prompt(
+            character_name=character_name,
+            conversation_history=conversation_history,
+            user_message=request.message
+        )
+        print(f"🔍 DEBUG: Enhanced prompt length: {len(enhanced_prompt)} chars")
+    else:
+        # Build standard character prompt
+        character_name = character.get('name', request.character_id) if character else request.character_id
+        enhanced_prompt = f"""당신은 {character_name}입니다.
+    
+대화 맥락을 파악하고 자연스럽게 응답하세요:
+- 사용자가 "정답", "맞습니다", "훌륭해요" 등의 피드백을 주면, 격려하고 다음 질문을 제공하세요
+- 퀴즈나 질문 상황에서는 교육적이고 친근하게 응답하세요  
+- 대화 흐름을 자연스럽게 이어가세요
+
+최근 대화:
+{chr(10).join(conversation_history[-6:])}
+
+현재 사용자 메시지: {request.message}
+
+위 맥락에 맞춰 적절히 응답해주세요."""
+
+    # Process with enhanced context
+    return await process_llm_conversation(request, enhanced_prompt, session_data)
+
+async def process_llm_conversation(request: ChatWithSessionRequest, enhanced_prompt: str, session_data: Dict) -> ChatWithSessionResponse:
+    """Process LLM conversation with enhanced prompt and session management"""
+    
+    # Add user message to session
+    conversation_service.add_message_to_session(
+        request.session_id, 
+        "user", 
+        request.message, 
+        request.user_id
+    )
+    
+    # Get character for temperature
+    character = await character_service.get_character(request.character_id)
+    temperature = character.get('temperature', 0.7) if character else 0.7
+    
+    # Generate AI response using enhanced prompt
+    response = azure_client.chat.completions.create(
+        model=AZURE_OPENAI_DEPLOYMENT,
+        messages=[
+            {"role": "system", "content": enhanced_prompt}
+        ],
+        max_tokens=300,
+        temperature=temperature,
+        top_p=0.95,
+        frequency_penalty=0,
+        presence_penalty=0
+    )
+    
+    response_text = response.choices[0].message.content.strip()
+    
+    # Extract dialogue for conversation history storage
+    try:
+        # Try to parse as JSON (tool-based response)
+        parsed_response = tool_orchestrator.parse_llm_response(response_text)
+        dialogue_for_history = parsed_response["dialogue"]
+        print(f"🔧 Storing clean dialogue in history: {dialogue_for_history[:50]}...")
+    except (ValueError, json.JSONDecodeError):
+        # Not JSON, use raw response (normal chat)
+        dialogue_for_history = response_text
+        print(f"🔧 Storing normal chat response: {dialogue_for_history[:50]}...")
+    
+    # Add AI response to session (clean dialogue only)
+    conversation_service.add_message_to_session(
+        request.session_id,
+        "assistant", 
+        dialogue_for_history, 
+        request.user_id
+    )
+    
+    # 🎯 LLM AGENT ENGINE INTEGRATION: Check if this is a quiz request that needs tools
+    tools = None
+    
+    # 🧠 QUIZ DETECTION: Check if this is a quiz request that needs LLM Agent Engine
+    is_quiz_request = (
+        '퀴즈' in request.message or 
+        'quiz' in request.message.lower() or
+        '문제' in request.message or
+        '시작' in request.message or
+        request.character_id == "seol_min_seok_quiz"
+    ) and (
+        'seolminseok' in request.character_id or 
+        'quiz' in request.character_id or
+        'seol_min_seok' in request.character_id
+    )
+    
+    if is_quiz_request:
+        print(f"🎯 QUIZ REQUEST DETECTED in process_unified_conversation: '{request.message}' for character '{request.character_id}'")
+        
+        # Use LLM Agent Engine for quiz processing
+        try:
+            from services.llm_agent_engine import LLMAgentEngine, InteractionContext
+            from services.character_prompt_manager import CharacterPromptManager
+            
+            # Initialize components
+            llm_agent_engine = LLMAgentEngine()
+            character_prompt_manager = CharacterPromptManager()
+            
+            # Create interaction context for the current message
+            interaction_context = InteractionContext(
+                question="",  # Will be populated by LLM Agent Engine
+                user_answer=request.message,  # User's current input
+                correct_answer="",  # Will be populated by LLM Agent Engine
+                options=[],  # Will be populated by LLM Agent Engine
+                session_id=request.session_id,
+                character_id=request.character_id
+            )
+            
+            # Get character prompt
+            character_prompt = await character_prompt_manager.get_prompt(request.character_id)
+            print(f"🎯 Using LLM Agent Engine with character prompt for quiz processing")
+            
+            # Process with LLM Agent Engine
+            # Get chat history for context
+            chat_history = await get_chat_history(request.session_id) if hasattr(request, 'session_id') else []
+            
+            # Define available tools
+            available_tools = {
+                "show_selection": {
+                    "description": "Display quiz question with multiple choice options",
+                    "parameters": ["question", "options", "correct_answer", "selection_mode"]
+                },
+                "continuous_quiz_response": {
+                    "description": "Provide two-phase continuous quiz response",
+                    "parameters": ["phase1", "phase2"]
+                }
+            }
+            
+            agent_response = await llm_agent_engine.process_with_tools(
+                user_input=request.message,
+                character_prompt=character_prompt,
+                chat_history=chat_history,
+                available_tools=available_tools
+            )
+            
+            # Use agent response instead of regular LLM response
+            response_text = agent_response.get('dialogue', '')
+            tool = agent_response.get('tool', {})
+            tools = [tool] if tool else []
+            print(f"✅ Generated {len(tools)} quiz tools from LLM Agent Engine")
+            print(f"🎯 LLM Agent Engine dialogue: '{response_text[:100]}...'")
+            print(f"🎯 Tool type: {tool.get('type', 'none')}")
+            
+        except Exception as e:
+            print(f"❌ LLM Agent Engine failed for quiz in process_unified_conversation: {e}")
+            import traceback
+            traceback.print_exc()
+            # Continue with regular processing as fallback
+    
+    # 🔧 FALLBACK TOOL-ORCHESTRATED PROCESSING: Parse LLM response for tool commands if LLM Agent Engine didn't run
+    if tools is None:
+        print(f"🔧 EDUCATIONAL QUIZ: Analyzing response for tool commands...")
+        try:
+            from services.tool_orchestrator import ToolOrchestrator
+            from services.platform_tool_handler import PlatformToolHandler
+            
+            orchestrator = ToolOrchestrator()
+            handler = PlatformToolHandler()
+            
+            # Check if LLM response contains JSON tool commands
+            if response_text.strip().startswith('{') and response_text.strip().endswith('}'):
+                print(f"🔧 EDUCATIONAL: Detected JSON tool response, parsing...")
+                print(f"🔍 RAW LLM RESPONSE: {response_text[:200]}...")
+                parsed_response = orchestrator.parse_llm_response(response_text)
+                
+                # Extract dialogue and tool information
+                response_text = parsed_response["dialogue"]
+                print(f"🔍 EXTRACTED DIALOGUE: {response_text}")
+                
+                if "tool" in parsed_response:
+                    print(f"🔧 EDUCATIONAL: Tool detected: {parsed_response['tool']}")
+                    
+                    # Execute the tool using PlatformToolHandler
+                    tool_result = await handler.execute_tool(
+                        parsed_response["tool"], 
+                        parsed_response["tool_data"]
+                    )
+                    
+                    # Convert tool result to legacy format for compatibility
+                    tools = [{
+                        "type": parsed_response["tool"],
+                        "data": tool_result
+                    }]
+                    
+                    print(f"🔧 EDUCATIONAL: Tool executed successfully: {parsed_response['tool']}")
+                    print(f"🔧 EDUCATIONAL: Generated UI: {tool_result.get('ui_type', 'unknown')}")
+                    
+            else:
+                print(f"🔧 EDUCATIONAL: Normal dialogue response, no tools detected")
+                
+        except Exception as tool_error:
+            print(f"🔧 EDUCATIONAL: ToolOrchestrator error: {tool_error}")
+            import traceback
+            traceback.print_exc()
+    
+    # Generate TTS audio AFTER tool parsing (using clean dialogue text)
+    audio_base64 = None
+    try:
+        if request.character_id == "seol_min_seok_quiz":
+            print(f"🎵 Generating TTS for educational quiz dialogue: '{response_text[:50]}...'")
+            audio_base64 = await seolminseok_tts_service.generate_tts(response_text)
+            print(f"🔍 TTS DEBUG: audio_base64={'✅ Present' if audio_base64 else '❌ None'}")
+            
+            # No fallback - keep 설민석's unique voice
+            if audio_base64 is None:
+                print(f"⚠️ Seolminseok TTS failed, continuing without audio")
+            else:
+                print(f"✅ Seolminseok TTS success: {len(audio_base64)} chars")
+        else:
+            # Use regular TTS for other characters
+            audio_response = await tts_service.generate_speech(response_text, request.voice_id or "duke")
+            audio_base64 = audio_response.get("audio")
+    except Exception as e:
+        print(f"TTS generation failed: {e}")
+        audio_base64 = None
+        
+    # Update session metadata
+    updated_session = conversation_service.load_session_messages(request.session_id, request.user_id)
+    
+    return ChatWithSessionResponse(
+        character=character.get('name', request.character_id) if character else request.character_id,
+        dialogue=response_text,
+        emotion="neutral",
+        speed=1.0,
+        audio=audio_base64,
+        session_id=request.session_id,
+        message_count=len(updated_session.get('messages', [])),
+        session_summary=updated_session.get("session_summary", ""),
+        tools=tools
+    )
+
 from services.chat_orchestrator import ChatOrchestrator
 from services.knowledge_service import KnowledgeService
 from services.character_mood_service import CharacterMoodService
@@ -28,11 +609,13 @@ from services.incremental_knowledge_cache import IncrementalKnowledgeCache
 from services.optimized_prompt_builder import OptimizedPromptBuilder
 from services.fallback_tts_service import FallbackTTSService
 from services.continuous_answer_tool import continuous_answer_tool, ToolTriggerEvent
+from services.tool_orchestrator import ToolOrchestrator
 
 # Initialize selective memory system
 database_service = DatabaseService()
 selective_memory_service = SelectiveMemoryService(database_service)
 config_parser_service = ConfigParserService()
+tool_orchestrator = ToolOrchestrator()
 
 # Initialize character service
 character_service = CharacterService(database_service)
@@ -94,27 +677,11 @@ class ChatResponse(BaseModel):
     emotion: str = "neutral"
     speed: float = 1.0
     audio: Optional[str] = None  # base64 encoded audio data
+    tools: Optional[List[Dict]] = None  # Quiz tools for frontend
+    session_id: Optional[str] = None  # Session ID for frontend state management
 
 # Session-Aware Chat Models
-class ChatWithSessionRequest(BaseModel):
-    message: str
-    character_prompt: str
-    character_id: str
-    user_id: str                    # NEW: User identification
-    session_id: Optional[str] = None       # NEW: Session continuation
-    voice_id: Optional[str] = None
-    persona_id: Optional[str] = None
-
-class ChatWithSessionResponse(BaseModel):
-    character: str
-    dialogue: str
-    emotion: str = "neutral"
-    speed: float = 1.0
-    audio: Optional[str] = None
-    session_id: str                 # NEW: Session identification
-    message_count: int              # NEW: Conversation progress
-    session_summary: Optional[str] = None    # NEW: Story progression context
-    tools: Optional[List[Dict[str, Any]]] = None  # NEW: Tool-based interactions
+# Classes moved to top of file
 
 # Knowledge Management Models
 from pydantic import Field, validator
@@ -194,14 +761,7 @@ def format_conversation_history(history: list) -> str:
 
 def create_system_prompt(character_prompt: str, history: list, user_message: str) -> str:
     """Create a system prompt for the character (legacy version)"""
-    character_data = parse_character_prompt(character_prompt)
-    history_text = format_conversation_history(history)
-    
-    # Check if this is a first greeting (empty history + greeting message)
-    is_first_greeting = (
-        len(history) == 0 and 
-        user_message.strip().lower() in ['안녕하세요', '안녕', 'hello', 'hi', '반가워요', '처음 뵙겠습니다']
-    )
+    return create_system_prompt_original(character_prompt, history, user_message)
 
 def create_enhanced_system_prompt_with_memory(character_prompt: str, ai_context: dict, user_message: str, character_id: str = None) -> str:
     """Create a system prompt using enhanced AI context with compressed history and character-specific instructions"""
@@ -415,6 +975,34 @@ Rules:
 4. speed must be a number between 0.8 and 1.2
 5. Do not include any text outside the JSON format
 6. Do not use markdown, asterisks, or action descriptions"""
+    else:
+        # Normal conversation
+        prompt = f"""You are {character_data.get('name', 'a helpful assistant')}.
+
+Character Information:
+- Personality: {character_data.get('personality', 'Friendly and helpful')}
+- Speaking Style: {character_data.get('speaking_style', 'Natural conversational Korean')}
+- Age: {character_data.get('age', 'Not specified')}
+- Gender: {character_data.get('gender', 'Not specified')}
+- Role: {character_data.get('role', 'Assistant')}
+- Background: {character_data.get('backstory', 'Not specified')}
+- Scenario: {character_data.get('scenario', 'General conversation')}
+
+Conversation History:
+{history_text}
+
+Current User Message: {user_message}
+
+IMPORTANT: You must respond ONLY with a valid JSON object in exactly this format:
+{{"character": "character_name", "dialogue": "your_response_in_korean", "emotion": "emotion", "speed": speed_value}}
+
+Rules:
+1. Use only Korean language for dialogue
+2. Stay in character based on the personality and speaking style
+3. emotion must be one of: normal, happy, sad, angry, surprised, fearful, disgusted, excited
+4. speed must be a number between 0.8 and 1.2
+5. Do not include any text outside the JSON format
+6. Do not use markdown, asterisks, or action descriptions"""
 
     return prompt
 
@@ -574,17 +1162,10 @@ async def generate_ai_response_enhanced(system_prompt: str, character_temperatur
         )
 
 def generate_mock_response(character_id: str = None, user_message: str = "") -> ChatResponse:
-    """Generate mock response when AI is not available"""
+    """Generate mock response when AI is not available - DISABLED TO FORCE REAL LLM USAGE"""
     
-    # Special handling for 설민석 quiz character
-    if character_id in ['seol_min_seok_quiz'] and '퀴즈' in user_message:
-        # Generate a proper quiz response
-        return ChatResponse(
-            character="설민석",
-            dialogue="좋습니다! 조선시대 퀴즈를 시작해볼까요? 첫 번째 문제입니다. 다음 중 세종대왕의 업적은? A) 한글 창제 B) 불교 장려 C) 몽골 침입 D) 일제강점",
-            emotion="excited",
-            speed=1.0
-        )
+    # FORCE FAILURE TO EXPOSE REAL LLM ISSUES
+    raise Exception("Mock responses disabled - must use actual LLM integration. This error exposes that the system is falling back to mocks instead of using real LLM responses.")
     
     # Default responses for other cases
     responses = [
@@ -677,12 +1258,99 @@ async def list_available_models():
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     try:
-        if llm_available:
-            response = await generate_ai_response(request.character_prompt, request.history, request.message, request.character_temperature)
+        tools = None  # Default: no tools
+        session_id = None  # No session creation by default
+        
+        # 🧠 QUIZ DETECTION: Check if this is a quiz request that needs tools
+        is_quiz_request = (
+            '퀴즈' in request.message or 
+            'quiz' in request.message.lower() or
+            '문제' in request.message or
+            '시작' in request.message
+        ) and (
+            'seolminseok' in request.character_id or 
+            'quiz' in request.character_id
+        )
+        
+        if is_quiz_request and llm_available:
+            print(f"🎯 QUIZ REQUEST DETECTED: Generating tools for '{request.message}'")
+            
+            # Use LLM Agent Engine to generate both dialogue and tools
+            try:
+                from services.llm_agent_engine import LLMAgentEngine, InteractionContext
+                from services.character_prompt_manager import CharacterPromptManager
+                
+                # Initialize components
+                llm_agent_engine = LLMAgentEngine()
+                character_prompt_manager = CharacterPromptManager()
+                
+                # Create interaction context for quiz start (no previous question/answer)
+                interaction_context = InteractionContext(
+                    question="",  # Empty for initial quiz request
+                    user_answer="",  # Empty for initial quiz request  
+                    correct_answer="",  # Empty for initial quiz request
+                    options=[],  # Empty for initial quiz request
+                    session_id="",
+                    character_id=request.character_id
+                )
+                
+                # Get character prompt
+                character_prompt = await character_prompt_manager.get_prompt(request.character_id)
+                print(f"🎯 Using character prompt for quiz generation")
+                
+                # Process with LLM Agent Engine
+                # Get chat history for context
+                chat_history = await get_chat_history(request.session_id) if hasattr(request, 'session_id') else []
+                
+                # Define available tools
+                available_tools = {
+                    "show_selection": {
+                        "description": "Display quiz question with multiple choice options",
+                        "parameters": ["question", "options", "correct_answer", "selection_mode"]
+                    },
+                    "continuous_quiz_response": {
+                        "description": "Provide two-phase continuous quiz response",
+                        "parameters": ["phase1", "phase2"]
+                    }
+                }
+                
+                agent_response = await llm_agent_engine.process_with_tools(
+                    user_input=request.message,
+                    character_prompt=character_prompt,
+                    chat_history=chat_history,
+                    available_tools=available_tools
+                )
+                
+                # Use agent response
+                response = type('obj', (object,), {
+                    'character': request.character_id or "설민석",
+                    'dialogue': agent_response.get('dialogue', ''),
+                    'emotion': 'excited',
+                    'speed': 1.0
+                })()
+                
+                tools = agent_response.tools
+                print(f"✅ Generated {len(tools)} quiz tools from LLM Agent Engine")
+                
+            except Exception as e:
+                print(f"❌ LLM Agent Engine failed for quiz: {e}")
+                import traceback
+                traceback.print_exc()  # Print full stack trace
+                print(f"🔍 DEBUG: Exception type: {type(e)}")
+                print(f"🔍 DEBUG: Exception args: {e.args}")
+                # Fallback to regular LLM response
+                if llm_available:
+                    response = await generate_ai_response(request.character_prompt, request.history, request.message, request.character_temperature)
+                else:
+                    response = generate_mock_response(request.character_id, request.message)
         else:
-            # Fallback to mock response
-            print("⚠️ Using mock response - Azure OpenAI not available")
-            response = generate_mock_response(request.character_id, request.message)
+            # Regular chat (non-quiz) processing
+            if llm_available:
+                response = await generate_ai_response(request.character_prompt, request.history, request.message, request.character_temperature)
+            else:
+                # Fallback to mock response
+                print("⚠️ Using mock response - Azure OpenAI not available")
+                response = generate_mock_response(request.character_id, request.message)
         
         # Generate TTS audio for the response
         try:
@@ -739,6 +1407,28 @@ async def chat(request: ChatRequest):
         except Exception as tts_error:
             print(f"❌ TTS Error: {tts_error}")
             response.audio = None
+        
+        # 🎯 QUIZ TOOLS: Generate session ID for quiz requests and add tools/session to response
+        if tools:
+            import uuid
+            session_id = f"sess_{str(uuid.uuid4())[:8]}"
+            print(f"🆔 Generated session ID for quiz: {session_id}")
+        
+        # Add tools and session_id to response for quiz requests
+        if hasattr(response, 'tools'):
+            response.tools = tools
+            response.session_id = session_id
+        else:
+            # Create new ChatResponse with tools if original doesn't support it
+            response = ChatResponse(
+                character=response.character,
+                dialogue=response.dialogue,
+                emotion=response.emotion,
+                speed=response.speed,
+                audio=getattr(response, 'audio', None),
+                tools=tools,
+                session_id=session_id
+            )
         
         return response
             
@@ -1602,9 +2292,16 @@ async def get_sessions(user_id: str, character_id: str):
 
 @app.post("/api/chat-with-session", response_model=ChatWithSessionResponse)
 async def chat_with_session(request: ChatWithSessionRequest):
-    """Chat with session persistence for character memory"""
+    """Platform-grade chat with intelligent session management"""
     try:
-        # Check for predefined greeting message from frontend
+        # 🎯 SMART SESSION HANDLING: Auto-create with greeting if new session
+        if not request.session_id:
+            return await create_session_with_auto_greeting(request)
+        
+        # 🚀 UNIFIED CONVERSATION PROCESSING: All existing sessions use single flow
+        return await process_unified_conversation(request)
+        
+        # Check for predefined greeting message from frontend  
         if request.message.startswith("__PREDEFINED_GREETING__:"):
             predefined_greeting = request.message[len("__PREDEFINED_GREETING__:"):]
             print(f"🎭 Received predefined greeting from frontend: '{predefined_greeting}'")
@@ -1676,6 +2373,9 @@ async def chat_with_session(request: ChatWithSessionRequest):
                 tools=tools  # Add tools if present
             )
         
+        # 🎯 STREAMLINED: Removed incorrect user input pattern detection
+        # Continuous flow detection now happens after LLM response generation
+        
         # Check if this is a new session and user is asking for greeting
         is_new_session = not request.session_id
         is_greeting_request = (
@@ -1684,6 +2384,11 @@ async def chat_with_session(request: ChatWithSessionRequest):
         )
         
         print(f"🔍 Greeting check - New session: {is_new_session}, Message: '{request.message}', Is greeting: {is_greeting_request}")
+        print(f"🔍 Character ID: {request.character_id}")
+        
+        # 🎯 CONTINUOUS FLOW DETECTION: Check user input for feedback patterns BEFORE greeting check
+        print(f"🔍 Checking user input for continuous flow patterns...")
+        # Removed erroneous user input pattern detection - continuous flow now happens after LLM response
         
         # If it's a greeting request, try to use direct greeting from character data
         if is_greeting_request:
@@ -1696,7 +2401,12 @@ async def chat_with_session(request: ChatWithSessionRequest):
                     print(f"🎭 Greeting suggestions enabled: {character.get('greeting_suggestions_enabled', False)}")
                 
                 # Special handling for quiz character with greeting suggestions
+                print(f"🎭 Quiz character check: {request.character_id == 'seol_min_seok_quiz'}")
+                print(f"🎭 Character exists: {character is not None}")
+                print(f"🎭 Suggestions enabled: {character.get('greeting_suggestions_enabled', False) if character else False}")
+                
                 if request.character_id == "seol_min_seok_quiz" and character and character.get('greeting_suggestions_enabled', False):
+                    print(f"🎭 ENTERING QUIZ CHARACTER GREETING PATH")
                     from services.greeting_suggestion_generator import GreetingSuggestionGenerator
                     
                     greeting_generator = GreetingSuggestionGenerator()
@@ -1730,13 +2440,26 @@ async def chat_with_session(request: ChatWithSessionRequest):
                     # Load updated session
                     updated_session = conversation_service.load_session_messages(session_id, request.user_id)
                     
+                    # Generate TTS for greeting
+                    audio_base64 = None
+                    try:
+                        print(f"🎵 Generating TTS for quiz character greeting")
+                        audio_base64 = await seolminseok_tts_service.generate_tts(greeting_text)
+                        
+                        # No fallback - keep 설민석's unique voice
+                        if audio_base64 is None:
+                            print(f"⚠️ Seolminseok TTS failed, continuing without audio")
+                    except Exception as e:
+                        print(f"TTS generation failed: {e}")
+                        audio_base64 = None
+                    
                     # Return response with tools
                     return ChatWithSessionResponse(
                         character=character.get('name', request.character_id),
                         dialogue=greeting_text,
                         emotion="happy",
                         speed=1.0,
-                        audio=None,  # Let frontend handle TTS
+                        audio=audio_base64,
                         session_id=session_id,
                         message_count=updated_session["message_count"],
                         session_summary=updated_session.get("session_summary", ""),
@@ -1786,10 +2509,9 @@ async def chat_with_session(request: ChatWithSessionRequest):
                         )
                     else:
                         # Use regular TTS service
-                        audio_data = await tts_service.generate_tts(
+                        audio_data = await tts_service.generate_speech(
                             selected_greeting, 
-                            voice_id, 
-                            "happy"  # Happy emotion for greetings
+                            voice_id
                         )
                     
                     # Load updated session for metadata
@@ -1840,6 +2562,12 @@ async def chat_with_session(request: ChatWithSessionRequest):
         
         # Get conversation history for prompt building
         session_data = conversation_service.load_session_messages(session_id, request.user_id)
+        
+        # Check if session data was loaded successfully
+        if session_data is None:
+            print(f"❌ ERROR: Session {session_id} not found for user {request.user_id}")
+            raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
+        
         conversation_history = session_data.get("messages", [])
         
         # Generate AI response using optimized prompt structure
@@ -1970,49 +2698,59 @@ async def chat_with_session(request: ChatWithSessionRequest):
         print(f"🔍 DEBUG: Response dialogue: '{response.dialogue}'")
         
         # 🧠 INTELLIGENT TOOL DETECTION: Analyze LLM response for tool opportunities
-        print(f"🧠 Starting ContentIntelligence analysis for dialogue: '{response.dialogue[:100]}'...")
+        print(f"🔧 TOOL-ORCHESTRATED SYSTEM: Analyzing LLM response for structured tool commands...")
         tools = None
         try:
-            from services.platform_content_classifier import PlatformContentClassifier
-            intelligence = PlatformContentClassifier()
-            print(f"🧠 Platform-grade ContentClassifier initialized successfully")
+            from services.tool_orchestrator import ToolOrchestrator
+            from services.platform_tool_handler import PlatformToolHandler
             
-            # Context for intelligent analysis
-            intelligence_context = {
-                "character_id": request.character_id,
-                "conversation_phase": "post_greeting",
-                "user_message": request.message
-            }
+            orchestrator = ToolOrchestrator()
+            handler = PlatformToolHandler()
+            print(f"🔧 ToolOrchestrator and PlatformToolHandler initialized successfully")
             
-            # Analyze the LLM response for tool opportunities
-            print(f"🧠 Analyzing response for tools...")
-            detected_tools = await intelligence.analyze_for_tools(response.dialogue, intelligence_context)
+            # Check if LLM response contains JSON tool commands
+            raw_response = response.dialogue.strip()
             
-            if detected_tools:
-                print(f"🧠 Platform-grade Classifier detected {len(detected_tools)} tools in response")
-                print(f"🧠 First tool: {detected_tools[0]['type']}")
-                print(f"🧠 Platform detection method: {detected_tools[0].get('data', {}).get('metadata', {}).get('detection_method', 'unknown')}")
-                tools = detected_tools
-                
-                # 🎯 CONTENT SEPARATION: Extract clean question for quiz tools
-                if detected_tools[0]['type'] == 'show_selection':
-                    quiz_data = detected_tools[0].get('data', {})
-                    clean_question = quiz_data.get('question', '')
+            # Try to parse the response as JSON (for tool-structured responses)
+            if raw_response.startswith('{') and raw_response.endswith('}'):
+                try:
+                    print(f"🔧 Detected JSON tool response, parsing with ToolOrchestrator...")
+                    parsed_response = orchestrator.parse_llm_response(raw_response)
                     
-                    if clean_question and clean_question != response.dialogue:
-                        print(f"🎯 CONTENT SEPARATION: Extracting clean question from dialogue")
-                        print(f"🎯 Original dialogue: '{response.dialogue[:100]}...'")
-                        print(f"🎯 Clean question: '{clean_question}'")
-                        response.dialogue = clean_question
-                        print(f"🎯 SUCCESS: Dialogue content separated from quiz options")
+                    # Extract dialogue and tool information
+                    response.dialogue = parsed_response["dialogue"]
+                    response.emotion = parsed_response.get("emotion", "neutral")
+                    response.speed = parsed_response.get("speed", 1.0)
+                    
+                    if "tool" in parsed_response:
+                        print(f"🔧 Tool detected: {parsed_response['tool']}")
+                        
+                        # Execute the tool using PlatformToolHandler
+                        tool_result = handler.execute_tool(
+                            parsed_response["tool"], 
+                            parsed_response["tool_data"]
+                        )
+                        
+                        # Convert tool result to legacy format for compatibility
+                        tools = [{
+                            "type": parsed_response["tool"],
+                            "data": tool_result
+                        }]
+                        
+                        print(f"🔧 Tool executed successfully: {parsed_response['tool']}")
+                        print(f"🔧 Generated UI: {tool_result.get('ui_type', 'unknown')}")
+                        
+                except Exception as parse_error:
+                    print(f"🔧 JSON parsing failed, treating as normal dialogue: {parse_error}")
+                    # Not a JSON response, treat as normal dialogue
             else:
-                print("🧠 Platform-grade Classifier: No tools detected in response")
+                print(f"🔧 Normal dialogue response, no tools detected")
                 
-        except Exception as intelligence_error:
-            print(f"🧠 Platform-grade Classifier error: {intelligence_error}")
+        except Exception as tool_orchestrator_error:
+            print(f"🔧 ToolOrchestrator error: {tool_orchestrator_error}")
             import traceback
             traceback.print_exc()
-            # Continue without tools if intelligence fails
+            # Continue without tools if orchestrator fails
         
         # Return session-aware response with intelligent tools
         return ChatWithSessionResponse(
@@ -2029,6 +2767,8 @@ async def chat_with_session(request: ChatWithSessionRequest):
         
     except Exception as e:
         print(f"Error in chat-with-session endpoint: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/sessions/{session_id}/messages")
@@ -2204,44 +2944,71 @@ class ContinuousFlowProgressRequest(BaseModel):
 @app.post("/api/continuous-flow/trigger")
 async def trigger_continuous_flow(request: ContinuousFlowTriggerRequest):
     """
-    Trigger a continuous flow when user interacts with tools
-    Called when user selects quiz answer to start proactive feedback flow
+    Trigger continuous quiz flow with single LLM call (Plan V2 Architecture)
+    Returns complete continuous_quiz_response tool in one response
     """
     try:
-        print(f"🚀 Triggering continuous flow: {request.session_id}, {request.character_id}")
+        print(f"🚀 CONTINUOUS FLOW V2: Single LLM call architecture")
+        print(f"   Session: {request.session_id}")
+        print(f"   Character: {request.character_id}")
+        print(f"   Tool Type: {request.tool_type}")
+        print(f"   Data: {request.data}")
         
-        # Create trigger event
-        trigger_event = ToolTriggerEvent(
+        # Import V2 implementation
+        from services.continuous_answer_tool_v2 import continuous_answer_tool_v2, ContinuousFlowContext
+        
+        # Build context for V2 processing
+        context = ContinuousFlowContext(
             session_id=request.session_id,
             character_id=request.character_id,
-            tool_type=request.tool_type,
-            data=request.data
+            user_selection=request.data.get("selection", ""),
+            quiz_context={
+                "question": request.data.get("question", ""),
+                "options": request.data.get("options", []),
+                "correct_answer": request.data.get("correct_answer", "")
+            }
         )
         
-        # Trigger the flow
-        flow_execution = await continuous_answer_tool.trigger_flow(trigger_event)
+        print(f"🤖 Triggering single LLM call for continuous_quiz_response...")
         
-        if not flow_execution:
-            return {"error": "No flow configuration found for this tool/character"}
+        # Single call to generate complete continuous response
+        continuous_response = await continuous_answer_tool_v2.trigger_continuous_flow(context)
         
+        print(f"✅ CONTINUOUS FLOW V2 COMPLETE")
+        print(f"   Response Type: {continuous_response.get('type', 'N/A')}")
+        print(f"   Has Phase1: {'phase1' in continuous_response.get('data', {})}")
+        print(f"   Has Phase2: {'phase2' in continuous_response.get('data', {})}")
+        
+        # Return in format expected by frontend
         return {
-            "status": "flow_triggered",
-            "session_id": flow_execution.session_id,
+            "status": "flow_completed",  # Single response, no multi-step
+            "session_id": request.session_id,
             "step_result": {
-                "step_id": flow_execution.step_result.step_id,
-                "step_type": flow_execution.step_result.step_type,
-                "response": flow_execution.step_result.response,
-                "audio": flow_execution.step_result.audio,
-                "error": flow_execution.step_result.error,
-                "metadata": flow_execution.step_result.metadata
+                "step_id": "continuous_quiz_response",
+                "step_type": "continuous_quiz_response", 
+                "response": {
+                    "dialogue": continuous_response.get("dialogue", ""),
+                    "tools": [{
+                        "type": continuous_response["type"],
+                        "data": continuous_response["data"]
+                    }]
+                },
+                "audio": None,  # Audio is embedded in phase data
+                "error": None,
+                "metadata": {
+                    "architecture": "single_llm_call",
+                    "phases": 2
+                }
             },
-            "flow_continues": flow_execution.flow_continues,
-            "next_step_index": flow_execution.next_step_index
+            "flow_continues": False,  # Complete response, no continuation needed
+            "next_step_index": None
         }
         
     except Exception as e:
-        print(f"❌ Error triggering continuous flow: {e}")
-        raise HTTPException(status_code=500, detail=f"Flow trigger failed: {str(e)}")
+        print(f"❌ Error in continuous flow V2: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Continuous flow V2 failed: {str(e)}")
 
 
 @app.post("/api/continuous-flow/progress")
@@ -2310,6 +3077,203 @@ async def get_continuous_flow_status(session_id: str):
         raise HTTPException(status_code=500, detail=f"Status check failed: {str(e)}")
 
 
+@app.get("/api/continuous-flow/second-phase/{session_id}")
+async def get_continuous_flow_second_phase(session_id: str, wait_timeout: int = 10, poll_interval: float = 0.5):
+    """
+    Get second phase data for a session after first phase completes
+    Returns the question dialogue, quiz tools, and audio for second phase
+    
+    Args:
+        session_id: Session identifier
+        wait_timeout: Maximum seconds to wait for data (default 10)
+        poll_interval: Seconds between polling attempts (default 0.5)
+    """
+    import asyncio
+    import time
+    
+    start_time = time.time()
+    
+    try:
+        # Always use polling mechanism to handle race condition correctly
+        print(f"⏳ Polling for second phase data for session {session_id}, timeout: {wait_timeout}s")
+        
+        while (time.time() - start_time) < wait_timeout:
+            # Check without removing data first
+            second_phase_data = await continuous_answer_tool.check_second_phase_data(session_id)
+            
+            if second_phase_data:
+                wait_time = round(time.time() - start_time, 2)
+                print(f"✅ Second phase data available after {wait_time}s wait for session {session_id}")
+                
+                # Now retrieve and remove the data
+                final_data = await continuous_answer_tool.get_second_phase_data(session_id)
+                
+                return {
+                    "available": True,
+                    "dialogue": final_data.get("dialogue", ""),
+                    "tools": final_data.get("tools", []),
+                    "audio_url": final_data.get("audio_url", ""),
+                    "session_id": session_id,
+                    "wait_time": wait_time
+                }
+        
+        # Timeout reached
+        wait_time = round(time.time() - start_time, 2)
+        print(f"⏰ Timeout after {wait_time}s waiting for second phase data for session {session_id}")
+        
+        return {
+            "available": False, 
+            "message": f"Second phase data not available after {wait_time}s timeout",
+            "wait_time": wait_time,
+            "session_id": session_id
+        }
+        
+    except Exception as e:
+        wait_time = round(time.time() - start_time, 2)
+        print(f"❌ Error getting second phase data after {wait_time}s: {e}")
+        raise HTTPException(status_code=500, detail=f"Second phase retrieval failed: {str(e)}")
+
+
+# Debug endpoint for tool selection debugging
+class DebugToolSelectionRequest(BaseModel):
+    session_id: str
+    character_id: str
+    selection: str
+    tool_data: Optional[Dict[str, Any]] = None
+
+@app.post("/api/debug-tool-selection")
+async def debug_tool_selection(request: DebugToolSelectionRequest):
+    """
+    Debug endpoint to track tool selection calls from frontend
+    Called by handleToolSelection function for debugging
+    """
+    try:
+        print(f"🐛 DEBUG: Tool selection called")
+        print(f"   Session: {request.session_id}")
+        print(f"   Character: {request.character_id}")
+        print(f"   Selection: {request.selection}")
+        print(f"   Tool Data: {request.tool_data}")
+        
+        # Log this for debugging the continuous flow integration
+        return {
+            "status": "debug_logged",
+            "message": f"Selection '{request.selection}' logged for session {request.session_id}",
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        print(f"❌ Error in debug tool selection: {e}")
+        raise HTTPException(status_code=500, detail=f"Debug logging failed: {str(e)}")
+
+
+def get_assistant_tools():
+    """
+    Get assistant-ui compatible tool function definitions
+    """
+    return {
+        "show_selection": {
+            "description": "Show selection options to user for quiz or choices",
+            "parameters": {
+                "question": {
+                    "type": "string",
+                    "description": "The question to display to the user"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Array of selection options"
+                },
+                "correctAnswer": {
+                    "type": "string", 
+                    "description": "The correct answer (if applicable)"
+                },
+                "metadata": {
+                    "type": "object",
+                    "description": "Additional metadata for the selection"
+                }
+            }
+        },
+        "continue_output": {
+            "description": "Continue multi-step conversation output", 
+            "parameters": {
+                "trigger_type": {
+                    "type": "string",
+                    "description": "Type of trigger for continuation"
+                },
+                "context": {
+                    "type": "object",
+                    "description": "Context information for continuation"
+                }
+            }
+        }
+    }
+
+# 🚀 NEW TOOL-DRIVEN ARCHITECTURE ENDPOINT
+class PlatformChatRequest(BaseModel):
+    user_input: str
+    character_id: str
+    session_id: Optional[str] = None
+    user_id: str = "default_user"
+
+class PlatformChatResponse(BaseModel):
+    character: str
+    dialogue: str
+    tools: List[Dict[str, Any]] = []
+    audio_url: Optional[str] = None
+    session_id: Optional[str] = None
+    timestamp: str
+
+@app.post("/api/platform-chat", response_model=PlatformChatResponse)
+async def platform_chat(request: PlatformChatRequest):
+    """
+    NEW: Platform-grade chat using tool orchestration
+    
+    This endpoint uses the new tool-driven architecture:
+    - LLM processes user input with character prompts
+    - Tools are generated based on context and character behavior
+    - No hardcoded logic - all behavior driven by prompts
+    """
+    try:
+        print(f"🚀 Platform chat: {request.user_input[:50]}... for character {request.character_id}")
+        
+        # Initialize orchestrator with services
+        orchestrator = ToolOrchestrator(
+            tts_service=tts_service,
+            session_service=conversation_service
+        )
+        
+        # Process interaction through orchestrator
+        if not request.session_id:
+            # Create new session and generate greeting
+            response = await orchestrator.create_session_and_greet(
+                character_id=request.character_id,
+                user_id=request.user_id
+            )
+        else:
+            # Continue existing conversation
+            response = await orchestrator.process_user_interaction(
+                user_input=request.user_input,
+                character_id=request.character_id,
+                session_id=request.session_id,
+                user_id=request.user_id
+            )
+        
+        print(f"✅ Platform response: {len(response.get('tools', []))} tools, audio={bool(response.get('audio_url'))}")
+        
+        return PlatformChatResponse(
+            character=response.get('character', request.character_id),
+            dialogue=response.get('dialogue', ''),
+            tools=response.get('tools', []),
+            audio_url=response.get('audio_url'),
+            session_id=response.get('session_id'),
+            timestamp=response.get('timestamp', datetime.utcnow().isoformat())
+        )
+        
+    except Exception as e:
+        print(f"❌ Platform chat failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Platform chat error: {str(e)}")
+
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8001)

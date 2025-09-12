@@ -46,6 +46,12 @@ class PlatformContentClassifier:
                 if result.confidence > 0.8:
                     self.learning_classifier.learn_from_success(llm_response, result)
             
+            # 🔥 NEW: Detect feedback responses that should trigger continuous flow
+            elif self._is_quiz_feedback(llm_response, character_id):
+                feedback_tool = self._create_feedback_continuous_tool(llm_response, context)
+                tools.append(feedback_tool)
+                print(f"🎯 CONTINUOUS FLOW: Detected feedback response - triggering multi-step flow")
+            
             # Future: Add more content type handlers (polls, forms, etc.)
                 
         except Exception as e:
@@ -131,4 +137,68 @@ class PlatformContentClassifier:
             "learning_enabled": True,
             "learning_stats": self.learning_classifier.get_learning_stats(),
             "configured_characters": self.config_manager.list_characters()
+        }
+    
+    def _is_quiz_feedback(self, response: str, character_id: str) -> bool:
+        """
+        Detect if response is quiz feedback that should trigger continuous flow
+        Based on 2025 research: pattern-based + context-aware detection
+        """
+        # Pattern-based detection for Korean quiz feedback
+        feedback_patterns = [
+            r"정답.*!.*",  # "정답입니다!", "정답이에요!"
+            r"맞.*습니다.*!",  # "맞습니다!", "맞아요!"
+            r"훌륭.*!",  # "훌륭해요!", "훌륭합니다!"
+            r".*정답.*다음.*문제.*준비.*",  # "정답입니다! 다음 문제 준비되셨나요?"
+            r".*맞.*다음.*",  # "맞아요! 다음으로 넘어가볼까요?"
+        ]
+        
+        # Check if character is quiz-enabled
+        is_quiz_character = character_id == "seol_min_seok_quiz" or "quiz" in character_id
+        
+        # Check patterns
+        import re
+        for pattern in feedback_patterns:
+            if re.search(pattern, response, re.IGNORECASE):
+                if is_quiz_character:
+                    print(f"🎯 FEEDBACK DETECTED: Pattern '{pattern}' matched in '{response[:50]}...'")
+                    return True
+        
+        return False
+    
+    def _create_feedback_continuous_tool(self, response: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Create continuous flow tool for feedback responses
+        Based on 2025 research: structured flow orchestration
+        """
+        return {
+            "type": "continue_feedback_flow", 
+            "data": {
+                "trigger_type": "quiz_feedback",
+                "character_id": context.get("character_id", ""),
+                "user_message": context.get("user_message", ""),
+                "feedback_response": response,
+                "flow_config": {
+                    "steps": [
+                        {
+                            "step_id": "feedback_generation",
+                            "action": "llm_generate_detailed_feedback",
+                            "audio_enabled": True,
+                            "next_trigger": "audio_completion"
+                        },
+                        {
+                            "step_id": "next_question_generation", 
+                            "condition": "audio_completion",
+                            "action": "llm_generate_next_question",
+                            "audio_enabled": True,
+                            "flow_end": True
+                        }
+                    ]
+                },
+                "metadata": {
+                    "detection_method": "feedback_pattern",
+                    "confidence": 0.95,
+                    "platform_grade": True
+                }
+            }
         }

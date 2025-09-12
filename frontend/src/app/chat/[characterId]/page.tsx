@@ -394,6 +394,16 @@ export default function ChatPage() {
       // Handle tools if present
       if (response.tools && response.tools.length > 0) {
         console.log('Tools received:', response.tools)
+        
+        // Check if we received a continuous_quiz_response tool
+        const continuousQuizTool = response.tools.find(tool => tool.type === 'continuous_quiz_response')
+        if (continuousQuizTool) {
+          console.log('🎯 Received continuous_quiz_response from regular chat - processing directly')
+          // Don't set currentTools, process continuous response directly
+          handleContinuousQuizResponse(response, continuousQuizTool)
+          return // Exit early, don't set currentTools
+        }
+        
         setCurrentTools(response.tools)
       } else {
         setCurrentTools([])
@@ -465,32 +475,12 @@ export default function ChatPage() {
       hasContinuousFlow: currentTool.data?.continuous_flow_enabled || false
     })
     
-    // Universal logic: Check if tool indicates it should trigger continuous flow
-    // This replaces all character-specific hardcoded logic
-    const shouldTriggerFlow = 
-      currentTool.type === 'show_selection' && 
-      currentTool.data?.correct_answer !== undefined &&
-      currentTool.data?.selection_mode === 'quiz_question'
-    
-    console.log('🚀 Flow decision:', { shouldTriggerFlow })
-    
-    if (shouldTriggerFlow) {
-      console.log('✅ Triggering continuous flow based on tool configuration')
-      // Clear tools IMMEDIATELY to prevent race conditions
-      setCurrentTools([])
-      
-      triggerContinuousFlow({
-        toolType: 'continuous_answer', // Fixed: Use continuous_answer flow for quiz feedback
-        selection,
-        correctAnswer: currentTool.data?.correct_answer,
-        question: currentTool.data?.question || 'Question',
-        items: currentTool.data?.items || [selection]
-      })
-    } else {
-      console.log('📝 Using regular message send - no continuous flow needed')
-      setCurrentTools([])
-      handleSend(selection)
-    }
+    // FIXED: Always use regular handleSend for ALL tools
+    // The handleSend function now has continuous_quiz_response detection built-in
+    // This eliminates the conflict between old and new continuous flow systems
+    console.log('📝 Using handleSend for all tool selections (continuous quiz response handled inside)')
+    setCurrentTools([])
+    handleSend(selection)
   }
 
   const triggerContinuousFlow = async (flowData: {

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Continuous Flow Frontend Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { border: 1px solid #ccc; padding: 15px; margin: 10px 0; }
+        .log { background: #f5f5f5; padding: 10px; margin: 5px 0; font-family: monospace; }
+        button { padding: 10px 20px; margin: 5px; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Frontend Continuous Flow Test</h1>
+    
+    <div class="test-section">
+        <h3>Test Continuous Flow Response Handling</h3>
+        <button onclick="testContinuousFlow()">Test Continuous Flow</button>
+        <button onclick="testWithWrongAnswer()">Test Wrong Answer</button>
+        <div id="test-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test Audio Playback</h3>
+        <button onclick="testAudioPlayback()">Play Test Audio</button>
+        <div id="audio-results"></div>
+        <audio id="test-audio" controls style="margin: 10px 0;"></audio>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8001';
+        
+        function log(message, isError = false) {
+            const div = document.createElement('div');
+            div.className = `log ${isError ? 'error' : 'success'}`;
+            div.innerHTML = message;
+            document.getElementById('test-results').appendChild(div);
+        }
+        
+        function audioLog(message, isError = false) {
+            const div = document.createElement('div');
+            div.className = `log ${isError ? 'error' : 'success'}`;
+            div.innerHTML = message;
+            document.getElementById('audio-results').appendChild(div);
+        }
+        
+        async function testContinuousFlow() {
+            document.getElementById('test-results').innerHTML = '';
+            log('🧪 Testing Continuous Flow (Correct Answer)...');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/continuous-flow/trigger`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: 'frontend_test_correct',
+                        character_id: 'seol_min_seok_quiz',
+                        tool_type: 'continuous_answer',
+                        data: {
+                            selection: '주몽',
+                            correct_answer: '주몽',
+                            question: '고구려의 창건자는 누구일까요?',
+                            items: ['주몽', '고국천왕', '광개토대왕', '동명성왕']
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                
+                log(`✅ Status: ${data.status}`);
+                log(`✅ Has step_result: ${!!data.step_result}`);
+                
+                if (data.step_result) {
+                    log(`✅ Response exists: ${!!data.step_result.response}`);
+                    log(`✅ Audio exists: ${!!data.step_result.audio}`);
+                    log(`✅ Error: ${data.step_result.error || 'None'}`);
+                    
+                    if (data.step_result.response) {
+                        log(`✅ Dialogue: "${data.step_result.response.dialogue?.substring(0, 100)}..."`);
+                        log(`✅ Character: ${data.step_result.response.character}`);
+                        log(`✅ Emotion: ${data.step_result.response.emotion}`);
+                        
+                        // Test how frontend would handle this data
+                        simulateHandleFlowStepResult(data);
+                    }
+                    
+                    if (data.step_result.audio) {
+                        log(`✅ Audio length: ${data.step_result.audio.length} chars`);
+                        log(`✅ Audio format: ${data.step_result.audio.substring(0, 30)}...`);
+                    }
+                } else {
+                    log('❌ No step_result in response', true);
+                }
+                
+            } catch (error) {
+                log(`❌ Test failed: ${error.message}`, true);
+            }
+        }
+        
+        async function testWithWrongAnswer() {
+            document.getElementById('test-results').innerHTML = '';
+            log('🧪 Testing Continuous Flow (Wrong Answer)...');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/continuous-flow/trigger`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: 'frontend_test_wrong',
+                        character_id: 'seol_min_seok_quiz',
+                        tool_type: 'continuous_answer',
+                        data: {
+                            selection: '고국천왕',  // Wrong answer
+                            correct_answer: '주몽',
+                            question: '고구려의 창건자는 누구일까요?',
+                            items: ['주몽', '고국천왕', '광개토대왕', '동명성왕']
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                
+                log(`✅ Status: ${data.status}`);
+                
+                if (data.step_result?.response) {
+                    log(`✅ Wrong Answer Dialogue: "${data.step_result.response.dialogue?.substring(0, 100)}..."`);
+                    log(`✅ Emotion: ${data.step_result.response.emotion}`);
+                }
+                
+            } catch (error) {
+                log(`❌ Test failed: ${error.message}`, true);
+            }
+        }
+        
+        function simulateHandleFlowStepResult(result) {
+            log('📋 Simulating handleFlowStepResult...');
+            
+            const stepResult = result.step_result;
+            if (!stepResult) {
+                log('❌ No step result found', true);
+                return;
+            }
+            
+            if (stepResult.response) {
+                const dialogue = stepResult.response.dialogue;
+                
+                if (!dialogue || dialogue.trim() === '') {
+                    log('❌ Dialogue content is empty or undefined!', true);
+                    return;
+                }
+                
+                log(`✅ Would set currentResponse: "${dialogue?.substring(0, 50)}..."`);
+                log(`✅ Would set shouldStartTyping: true`);
+                log(`✅ Would add message to conversation history`);
+                log(`✅ Would set character emotion: ${stepResult.response.emotion}`);
+                
+                if (stepResult.audio) {
+                    log(`✅ Would set currentAudio with ${stepResult.audio.length} chars`);
+                    log(`✅ Would set up flow context for audio completion`);
+                }
+            }
+        }
+        
+        async function testAudioPlayback() {
+            document.getElementById('audio-results').innerHTML = '';
+            audioLog('🎵 Testing Audio Playback...');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/continuous-flow/trigger`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: 'audio_test',
+                        character_id: 'seol_min_seok_quiz',
+                        tool_type: 'continuous_answer',
+                        data: {
+                            selection: '주몽',
+                            correct_answer: '주몽',
+                            question: '고구려의 창건자는 누구일까요?',
+                            items: ['주몽', '고국천왕', '광개토대왕', '동명성왕']
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.step_result?.audio) {
+                    audioLog('✅ Audio received from backend');
+                    
+                    const audioElement = document.getElementById('test-audio');
+                    audioElement.src = data.step_result.audio;
+                    audioElement.style.display = 'block';
+                    
+                    audioLog('✅ Audio element src set');
+                    audioLog(`✅ Audio URL length: ${data.step_result.audio.length}`);
+                    audioLog('🎵 You can now click play to test audio!');
+                    
+                } else {
+                    audioLog('❌ No audio in response', true);
+                }
+                
+            } catch (error) {
+                audioLog(`❌ Audio test failed: ${error.message}`, true);
+            }
+        }
+    </script>
+</body>
+</html>

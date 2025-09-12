@@ -29,7 +29,8 @@ export default function CreateCharacterPage() {
     temperature: 0.7,
     prompt: '',
     greetings: [''],
-    conversation_examples: ['']
+    conversation_examples: [''],
+    greeting_suggestions_enabled: false
   })
   
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,6 +64,8 @@ export default function CreateCharacterPage() {
         greetings: formData.greetings.filter(g => g.trim() !== ''),
         conversation_examples: formData.conversation_examples.filter(ex => ex.trim() !== ''),
         voice_id: formData.voice_id || 'default_voice_001',
+        temperature: formData.temperature,
+        greeting_suggestions_enabled: formData.greeting_suggestions_enabled,
         created_at: new Date(),
         updated_at: new Date()
       }
@@ -197,6 +200,29 @@ export default function CreateCharacterPage() {
                       Controls response variety. Lower = more consistent, Higher = more creative
                     </p>
                   </div>
+                </div>
+
+                <div data-testid="character-settings-section" className="space-y-4 border-t pt-4">
+                  <h3 className="text-sm font-medium">Settings</h3>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="greeting-suggestions"
+                      checked={formData.greeting_suggestions_enabled}
+                      onChange={(e) => setFormData(prev => ({ ...prev, greeting_suggestions_enabled: e.target.checked }))}
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                      aria-label="Enable greeting suggestions"
+                    />
+                    <Label 
+                      htmlFor="greeting-suggestions" 
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      Enable greeting suggestions
+                    </Label>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    When enabled, this character will show suggested responses after greeting the user
+                  </p>
                 </div>
                 
                 <div>

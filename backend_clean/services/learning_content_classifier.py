@@ -102,7 +102,7 @@ class LearningContentClassifier:
                 patterns.append(f"topic_{keyword}")
         
         # Extract question patterns
-        if content.endswith("?"):
+        if "?" in content:
             patterns.append("question_ending")
         
         return patterns

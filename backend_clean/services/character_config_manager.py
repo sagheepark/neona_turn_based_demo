@@ -138,3 +138,50 @@ class CharacterConfigManager:
         """Get all content types configured for a character"""
         config = self.get_character_config(character_id)
         return config.content_types
+    
+    def validate_content_type_schema(self, schema: Dict[str, Any]) -> bool:
+        """Validate that a content type schema is properly formatted"""
+        try:
+            for content_type_name, content_data in schema.items():
+                if not isinstance(content_type_name, str) or not content_type_name.strip():
+                    return False
+                
+                if not isinstance(content_data, dict):
+                    return False
+                
+                # Check required fields and types
+                if "confidence_threshold" in content_data:
+                    threshold = content_data["confidence_threshold"]
+                    if not isinstance(threshold, (int, float)) or not (0.0 <= threshold <= 1.0):
+                        return False
+                
+                if "required_tools" in content_data:
+                    tools = content_data["required_tools"]
+                    if not isinstance(tools, list):
+                        return False
+                    if not all(isinstance(tool, str) for tool in tools):
+                        return False
+                
+                # Validate with Pydantic model
+                ContentTypeDefinition(name=content_type_name, **content_data)
+            
+            return True
+        except Exception:
+            return False
+    
+    def meets_confidence_threshold(
+        self, 
+        character_id: str, 
+        classification: Dict[str, Any]
+    ) -> bool:
+        """Check if a classification result meets the confidence threshold for a character"""
+        config = self.get_character_config(character_id)
+        content_type = classification.get("content_type")
+        confidence = classification.get("confidence", 0.0)
+        
+        if content_type and content_type in config.content_types:
+            threshold = config.content_types[content_type].confidence_threshold
+        else:
+            threshold = config.global_confidence_threshold
+        
+        return confidence >= threshold

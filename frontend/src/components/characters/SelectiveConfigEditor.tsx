@@ -242,7 +242,7 @@ asks_question -> knowledge+2
                         <span className="font-medium">{key}:</span> "{value.description}"
                         {value.rewards && Object.keys(value.rewards).length > 0 && (
                           <span className="text-muted-foreground ml-2">
-                            → {Object.entries(value.rewards).map(([k, v]) => `${k}${v > 0 ? '+' : ''}${v}`).join(', ')}
+                            → {Object.entries(value.rewards).map(([k, v]) => `${k}${(v as number) > 0 ? '+' : ''}${v}`).join(', ')}
                           </span>
                         )}
                       </div>
@@ -259,7 +259,7 @@ asks_question -> knowledge+2
                         <span className="font-medium">{key}:</span>
                         <span className="text-muted-foreground ml-2">
                           → {Object.entries(value.impacts || {}).map(([k, v]) => 
-                            typeof v === 'string' ? `${k}="${v}"` : `${k}${v > 0 ? '+' : ''}${v}`
+                            typeof v === 'string' ? `${k}="${v}"` : `${k}${(v as number) > 0 ? '+' : ''}${v}`
                           ).join(', ')}
                         </span>
                       </div>
