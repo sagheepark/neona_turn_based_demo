@@ -171,12 +171,10 @@ Respond with JSON format:
             context.character_id
         )
         
-        # Combine Phase 2 text with quiz question for TTS
+        # Generate TTS for Phase 2 text (already contains question - don't duplicate)
         phase2_text = tool_data["data"]["phase2"]["text"]
-        if (tool_data["data"]["phase2"].get("tool") and 
-            tool_data["data"]["phase2"]["tool"].get("data") and 
-            tool_data["data"]["phase2"]["tool"]["data"].get("question")):
-            phase2_text += " " + tool_data["data"]["phase2"]["tool"]["data"]["question"]
+        # Note: phase2_text already includes the quiz question from LLM generation
+        # No need to append it again to avoid duplication
         
         phase2_audio = await self._generate_tts(phase2_text, context.character_id)
         
