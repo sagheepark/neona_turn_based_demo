@@ -83,7 +83,7 @@ async def create_session_with_auto_greeting(request: ChatWithSessionRequest):
         # Generate TTS for greeting
         audio_base64 = None
         try:
-            if request.character_id in ['seol_min_seok', 'seol_min_seok_quiz']:
+            if request.character_id in ['seol_min_seok', 'seol_min_seok_quiz', 'dr_genie_science_quiz']:
                 print(f"🎵 Generating TTS for quiz character greeting (helper)")
                 audio_base64 = await seolminseok_tts_service.generate_tts(greeting)
                 
@@ -1366,7 +1366,7 @@ async def chat(request: ChatRequest):
             tts_emotion = response.emotion
             
             # 설민석 characters (both regular and quiz) - use dedicated TTS service
-            if request.character_id in ['seol_min_seok', 'seol_min_seok_quiz']:
+            if request.character_id in ['seol_min_seok', 'seol_min_seok_quiz', 'dr_genie_science_quiz']:
                 print(f"🎭 설민석 character detected ({request.character_id}) - using dedicated TTS service")
                 audio_data = await seolminseok_tts_service.generate_tts(
                     text=response.dialogue,
@@ -2651,7 +2651,7 @@ async def chat_with_session(request: ChatWithSessionRequest):
             tts_emotion = response.emotion
             
             # 설민석 characters (both regular and quiz) - use dedicated TTS service
-            if request.character_id in ['seol_min_seok', 'seol_min_seok_quiz']:
+            if request.character_id in ['seol_min_seok', 'seol_min_seok_quiz', 'dr_genie_science_quiz']:
                 print(f"🎭 설민석 character detected ({request.character_id}) - using dedicated TTS service")
                 audio_data = await seolminseok_tts_service.generate_tts(
                     text=response.dialogue,

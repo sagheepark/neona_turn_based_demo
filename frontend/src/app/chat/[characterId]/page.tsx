@@ -613,14 +613,9 @@ export default function ChatPage() {
     console.log('⏭️ Processing phase 2:', phase2Data)
     
     if (phase2Data) {
-      // Combine phase 2 text with quiz question if available
-      let combinedText = phase2Data.text
-      if (phase2Data.tool && phase2Data.tool.data && phase2Data.tool.data.question) {
-        combinedText += ' ' + phase2Data.tool.data.question
-      }
-      
-      // Display combined text
-      setCurrentResponse(combinedText)
+      // Use phase2 text directly (already contains quiz question from backend)
+      // No need to combine with question again - causes duplication
+      setCurrentResponse(phase2Data.text)
       setShouldStartTyping(true)
       
       if (phase2Data.audio_url) {
@@ -1134,11 +1129,11 @@ export default function ChatPage() {
             <p className="text-sm text-muted-foreground">{character.description}</p>
           </div>
           
-          {/* Logo for 설민석 AI 퀴즈 튜터 - Improved styling */}
-          <div className="flex h-9 w-12 items-center justify-end">
+          {/* Logo for 설민석 AI 퀴즈 튜터 - Enlarged for better visibility */}
+          <div className="flex h-12 w-16 items-center justify-end">
             {character?.id === 'seol_min_seok_quiz' && (
               <div className="group relative">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg border bg-card p-1 shadow-sm transition-all hover:shadow-md">
+                <div className="flex h-14 w-14 items-center justify-center rounded-lg border bg-card p-1 shadow-sm transition-all hover:shadow-md">
                   <img 
                     src="/images/seol_logo.png" 
                     alt="설민석 AI 퀴즈 튜터 로고"

@@ -226,4 +226,115 @@ async function handleContinuousQuizResponse(toolData) {
 }
 ```
 
-**STATUS**: ❌ **CRITICAL BUG - REQUIRES IMMEDIATE FIX**
+**STATUS**: ✅ **FIXED - Wrong answer retry now works correctly**
+
+---
+
+## 🎯 NEW FEATURE REQUESTS & IMPROVEMENTS BACKLOG
+
+### **Date Updated**: September 12, 2025
+**Source**: User feedback after quiz flow fix
+
+#### **Priority 1: Performance & User Experience**
+
+**1. Speed Issues**
+- **Status**: 🔍 **Investigation Required**
+- **Description**: Application performance needs optimization
+- **Tasks**:
+  - Profile frontend rendering performance
+  - Optimize backend API response times
+  - Reduce TTS generation latency
+  - Implement response caching where appropriate
+  - Consider lazy loading for non-critical components
+
+**2. UI/UX Enhancements** 
+- **Status**: 🎨 **Design & Implementation**
+- **Description**: Visual and branding improvements
+- **Tasks**:
+  - Enlarge the 단꿈E logo for better visibility
+  - Review overall UI spacing and typography
+  - Ensure logo is properly sized across different screen sizes
+  - Consider brand consistency guidelines
+
+#### **Priority 2: Educational Quality**
+
+**3. Quiz Answer Feedback Improvements**
+- **Status**: 🔥 **High Priority - Educational Impact**
+- **Description**: Do not reveal answers immediately for wrong responses; provide hints instead
+- **Current Issue**: When answer is wrong, correct answer is revealed in first phase
+- **Required Behavior**:
+  - **Wrong Answer Phase 1**: Provide educational hints and context (no answer reveal)
+  - **Wrong Answer Phase 2**: Allow retry with same question
+  - **Correct Answer Phase 1**: Celebrate and provide additional educational context
+  - **Correct Answer Phase 2**: Progress to next question
+- **Implementation**:
+  - Update LLM prompts in `tool_orchestrator.py` to avoid revealing answers
+  - Focus on pedagogical hints that guide learning
+  - Maintain educational value while preserving challenge
+
+#### **Priority 3: Content Expansion**
+
+**4. Science Tutor Character**
+- **Status**: 🧪 **New Feature - Content Development**  
+- **Description**: Add science education character alongside Korean history
+- **Scope**:
+  - Create new character profile for science education
+  - Develop science question database (physics, chemistry, biology)
+  - Implement subject-specific TTS and educational prompts
+  - Design science-appropriate quiz formats
+  - Consider grade-level appropriate content
+- **Technical Requirements**:
+  - Extend character system to support science domain
+  - Create science-specific prompt templates
+  - Develop science content classification system
+
+#### **Priority 4: Accessibility & Themes**
+
+**5. Dark Mode Support**
+- **Status**: 🌙 **UX Enhancement - Accessibility**
+- **Description**: Implement dark/light theme toggle for better user experience
+- **Scope**:
+  - Design dark theme color palette
+  - Implement theme switching mechanism
+  - Ensure accessibility compliance (contrast ratios)
+  - Persist user theme preference
+  - Update all UI components for theme compatibility
+- **Technical Implementation**:
+  - Use CSS custom properties for theme variables
+  - Implement theme context in React
+  - Add theme toggle component to navigation
+  - Test all components in both themes
+
+---
+
+## 📋 IMPLEMENTATION PRIORITIES
+
+### **Immediate (Next Sprint)**
+1. ✅ Fix quiz wrong answer retry bug - **COMPLETED**
+2. 🔥 Fix answer revelation in wrong answer feedback - **High Impact**
+3. 🎨 Logo enlargement - **Quick Win**
+
+### **Short Term (1-2 Sprints)**  
+1. 🔍 Performance optimization investigation
+2. 🌙 Dark mode implementation
+3. 🧪 Science tutor character planning
+
+### **Medium Term (3-4 Sprints)**
+1. Complete science tutor implementation
+2. Advanced performance optimizations
+3. Enhanced educational feedback systems
+
+### **Long Term (Backlog)**
+1. Multi-language support
+2. Advanced analytics and learning tracking
+3. Mobile app development
+4. Integration with educational platforms
+
+---
+
+## 🔄 STATUS TRACKING
+
+- **Last Updated**: September 12, 2025
+- **Recent Fixes**: Quiz retry bug resolved
+- **Active Development**: Educational feedback improvements
+- **Next Review**: After current sprint completion

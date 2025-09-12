@@ -51,11 +51,37 @@ class ContinuousAnswerToolClean:
         Returns:
             Two-phase response with feedback and next question
         """
+        print(f"🔥🔥🔥 CONTINUOUS_ANSWER_TOOL_CLEAN.process_quiz_answer() CALLED! 🔥🔥🔥")
+        print(f"   User input: {context.user_input}")
+        print(f"   Quiz question: {context.quiz_context.get('question', 'MISSING')}")
+        print(f"   Correct answer: {context.quiz_context.get('correct_answer', 'MISSING')}")
+        print(f"   Is correct: {context.user_input == context.quiz_context.get('correct_answer', '')}")
         # Get character prompt
         character_prompt = await self.prompt_manager.get_prompt(context.character_id)
         
         # Build LLM prompt with tool definitions
         tool_definitions = self.tool_handler.get_tool_definitions_for_llm()
+        
+        # Determine if answer is correct
+        is_correct = context.user_input == context.quiz_context.get('correct_answer', '')
+        
+        # Prepare the exact values for the template
+        current_question = context.quiz_context.get('question', '')
+        current_options = context.quiz_context.get('options', [])
+        current_correct = context.quiz_context.get('correct_answer', '')
+        
+        if is_correct:
+            # For correct answers, LLM creates new question
+            template_question = "CREATE_NEW_QUESTION"
+            template_options = "CREATE_NEW_OPTIONS"
+            template_correct = "CREATE_NEW_CORRECT_ANSWER"
+            phase_text = "Introduction to next question"
+        else:
+            # For wrong answers, use EXACT same values
+            template_question = current_question
+            template_options = str(current_options)
+            template_correct = current_correct
+            phase_text = "Let's try again"
         
         full_prompt = f"""
 {character_prompt}
@@ -64,13 +90,21 @@ AVAILABLE TOOLS:
 {tool_definitions}
 
 CURRENT QUIZ CONTEXT:
-Question: {context.quiz_context.get('question', '')}
+Question: {current_question}
 User Answer: {context.user_input}
-Correct Answer: {context.quiz_context.get('correct_answer', '')}
+Correct Answer: {current_correct}
+Answer is: {"CORRECT" if is_correct else "WRONG"}
+
+CRITICAL INSTRUCTION FOR WRONG ANSWERS:
+If the user answer is WRONG, you MUST use the EXACT values provided in the JSON template below.
+Do NOT change the question, options, or correct_answer fields.
+
+CRITICAL INSTRUCTION FOR CORRECT ANSWERS:
+If the user answer is CORRECT, replace the template placeholders with new values.
 
 TASK: Generate a continuous_quiz_response tool with:
 1. Phase1: Feedback about the answer (correct/wrong)
-2. Phase2: Next quiz question (new if correct, same if wrong)
+2. Phase2: {"NEW question if correct" if is_correct else "EXACT SAME question for retry"}
 
 Respond with JSON format:
 {{
@@ -81,13 +115,13 @@ Respond with JSON format:
             "delay_ms": 3000
         }},
         "phase2": {{
-            "text": "Introduction to next question",
+            "text": "{phase_text}",
             "tool": {{
                 "type": "show_selection",
                 "data": {{
-                    "question": "Quiz question",
-                    "options": ["A", "B", "C", "D"],
-                    "correct_answer": "Correct option",
+                    "question": "{template_question}",
+                    "options": {template_options},
+                    "correct_answer": "{template_correct}",
                     "selection_mode": "quiz_question"
                 }}
             }}
@@ -124,20 +158,34 @@ Respond with JSON format:
         )
         
         # Parse LLM response to get tool data
+        print(f"🔍 DEBUG: LLM agent_response type: {type(agent_response)}")
+        print(f"🔍 DEBUG: LLM agent_response keys: {list(agent_response.keys()) if isinstance(agent_response, dict) else 'Not a dict'}")
+        print(f"🔍 DEBUG: LLM agent_response: {str(agent_response)[:200]}...")
+        
         try:
             # New format: agent_response is a dict with 'tool' key
             if agent_response.get('tool'):
                 tool_data = agent_response['tool']
+                print(f"✅ Using agent_response['tool'] format")
             else:
                 # Try parsing dialogue as JSON
-                tool_data = json.loads(agent_response.get('dialogue', '{}'))
+                dialogue_text = agent_response.get('dialogue', '{}')
+                print(f"🔍 Parsing dialogue as JSON: {dialogue_text[:100]}...")
+                tool_data = json.loads(dialogue_text)
+                print(f"✅ Parsed dialogue as JSON successfully")
                 
             # Validate that the parsed structure has the required tool in phase2
             if (not tool_data.get('data') or 
                 not tool_data['data'].get('phase2') or 
                 not tool_data['data']['phase2'].get('tool')):
-                print(f"LLM response missing required phase2 tool structure, using fallback")
+                print(f"❌ LLM response missing required phase2 tool structure:")
+                print(f"   has data: {bool(tool_data.get('data'))}")
+                print(f"   has phase2: {bool(tool_data.get('data', {}).get('phase2'))}")
+                print(f"   has phase2.tool: {bool(tool_data.get('data', {}).get('phase2', {}).get('tool'))}")
+                print(f"   using fallback structure instead")
                 raise ValueError("Missing phase2 tool structure")
+            else:
+                print(f"✅ LLM response has valid phase2 tool structure")
                 
         except Exception as e:
             print(f"Error parsing agent response or missing tool structure: {e}")

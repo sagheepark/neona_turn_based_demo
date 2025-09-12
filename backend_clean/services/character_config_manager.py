@@ -94,6 +94,49 @@ class CharacterConfigManager:
         )
         
         self._configs["seol_min_seok_quiz"] = seol_min_seok_quiz_config
+        
+        # Science character configuration (same quiz structure but for science topics)
+        science_content_type = ContentTypeDefinition(
+            name="science_quiz",
+            detection_patterns=[
+                r"(.+?)\?\s*([A-D]\)[^A-D]*)+",  # Korean quiz pattern
+                r"다음 중.*\?.*[A-D]\)",           # "다음 중" quiz indicators
+                r"(.+?무엇일까요\?)\s*([A-D]\)[^A-D]*)+"  # Science question patterns
+            ],
+            llm_classification_prompt="""
+            Analyze if this Korean content is a multiple-choice science quiz question.
+            Look for:
+            - A question ending with ?
+            - Multiple choice options labeled A), B), C), D)
+            - Educational Korean content about science
+            
+            If it's a quiz, extract:
+            - The main question
+            - All answer options
+            - The most likely correct answer
+            """,
+            required_tools=["show_selection"],
+            confidence_threshold=0.8,
+            metadata_schema={
+                "question": "str",
+                "options": "List[str]", 
+                "labels": "List[str]",
+                "correct_answer": "str",
+                "topic": "str",
+                "difficulty": "str"
+            }
+        )
+        
+        dr_genie_science_quiz_config = CharacterContentConfig(
+            character_id="dr_genie_science_quiz",
+            content_types={"science_quiz": science_content_type},
+            classification_strategy="hybrid",
+            global_confidence_threshold=0.7,
+            fallback_strategy="adaptive",
+            learning_enabled=True
+        )
+        
+        self._configs["dr_genie_science_quiz"] = dr_genie_science_quiz_config
     
     def get_character_config(self, character_id: str) -> CharacterContentConfig:
         """Get configuration for a specific character"""

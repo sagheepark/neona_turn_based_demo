@@ -127,12 +127,12 @@ class ToolOrchestrator:
                 try:
                     # Initialize character-specific TTS services
                     seol_tts = None
-                    if character_id == "seol_min_seok_quiz":
+                    if character_id in ["seol_min_seok_quiz", "dr_genie_science_quiz"]:
                         from services.seolminseok_tts_service import SeolMinSeokTTSService
                         seol_tts = SeolMinSeokTTSService()
                         
                     # Use character-aware TTS generation
-                    if character_id == "seol_min_seok_quiz" and seol_tts:
+                    if character_id in ["seol_min_seok_quiz", "dr_genie_science_quiz"] and seol_tts:
                         audio_url = await seol_tts.generate_tts(llm_response['dialogue'])
                         logger.info(f"🎭 Used SeolMinSeok TTS service for character: {character_id}")
                     else:
@@ -148,7 +148,7 @@ class ToolOrchestrator:
                         
                         # Phase 1 TTS (feedback with complete context)
                         if tool_data.get('phase1', {}).get('text'):
-                            if character_id == "seol_min_seok_quiz" and seol_tts:
+                            if character_id in ["seol_min_seok_quiz", "dr_genie_science_quiz"] and seol_tts:
                                 tool_data['phase1']['audio_url'] = await seol_tts.generate_tts(
                                     tool_data['phase1']['text']
                                 )
@@ -160,7 +160,7 @@ class ToolOrchestrator:
                         
                         # Phase 2 TTS (complete next question narrative)
                         if tool_data.get('phase2', {}).get('text'):
-                            if character_id == "seol_min_seok_quiz" and seol_tts:
+                            if character_id in ["seol_min_seok_quiz", "dr_genie_science_quiz"] and seol_tts:
                                 tool_data['phase2']['audio_url'] = await seol_tts.generate_tts(
                                     tool_data['phase2']['text']
                                 )
@@ -380,25 +380,54 @@ IMPORTANT: Generate a specific quiz question about {topic} with 4 options and co
         elif stage == 'quiz_active' and context == 'user_answered_quiz':
             user_answer = conversation_state.get('quiz_context', {}).get('user_answer', 'unknown')
             
+            # ANTI-CACHING FIX: Explicitly use the direct user_input to prevent any caching issues
+            current_user_input = user_input.strip()
+            
+            # Debug logging for caching investigation
+            logger.info(f"🐛 CACHING DEBUG - Direct user_input: '{current_user_input}'")
+            logger.info(f"🐛 CACHING DEBUG - Extracted user_answer: '{user_answer}'")
+            logger.info(f"🐛 CACHING DEBUG - Match: {current_user_input == user_answer}")
+            
             enhanced_prompt += f"""
 ⚠️  CRITICAL INSTRUCTION ⚠️
 QUIZ ANSWER EVALUATION:
+- CURRENT USER INPUT: "{current_user_input}"
 - USER ANSWERED: "{user_answer}"
+- CRITICAL: Use the CURRENT USER INPUT "{current_user_input}" for all feedback and analysis
 - ANALYZE: Look at recent conversation to understand the quiz question and determine if user's answer is CORRECT or WRONG
 - Based on Korean history knowledge, evaluate their answer
+- IMPORTANT: Your Phase1 feedback must reference the CURRENT answer "{current_user_input}", not any previous answers
 
 YOU MUST RESPOND WITH EXACTLY THIS TOOL: "continuous_quiz_response"
 
+CRITICAL RULE FOR WRONG ANSWERS:
+If the user answer is WRONG, you MUST use the EXACT SAME question text and options from the recent conversation.
+DO NOT create a new question. DO NOT change the question. USE THE IDENTICAL QUESTION AND OPTIONS.
+
+⚠️ EDUCATIONAL FEEDBACK FOR WRONG ANSWERS:
+- NEVER reveal the correct answer in Phase 1
+- NEVER say what the correct answer is
+- PROVIDE EDUCATIONAL HINTS that guide toward the correct answer
+- Focus on historical context, time periods, or characteristics
+- Use encouraging language that maintains student confidence
+- Example: "그 인물도 중요한 역할을 했지만, 이 질문은 '건국'에 대한 것이에요. 다시 생각해보세요!"
+
+CRITICAL RULE FOR CORRECT ANSWERS:
+If the user answer is CORRECT, create a completely NEW question on a different topic.
+
 DECISION LOGIC:
-- If user is CORRECT: Phase1 = celebrate, Phase2 = NEW different question
-- If user is WRONG: Phase1 = encourage (don't reveal answer), Phase2 = SAME question for retry
+- If user is CORRECT: Phase1 = celebrate + educational context, Phase2 = NEW different question  
+- If user is WRONG: Phase1 = encourage + educational hints (NO answer reveal), Phase2 = EXACT SAME question
 
 DO NOT USE: "show_selection" 
 REQUIRED TOOL: "continuous_quiz_response"
 
 BEHAVIORAL RULES:
-- IF USER IS CORRECT: Phase1 = celebrate, Phase2 = NEW different question
-- IF USER IS WRONG: Phase1 = encourage (don't reveal answer), Phase2 = SAME question for retry
+- IF USER IS CORRECT: Phase1 = celebrate + educational context, Phase2 = NEW different question
+- IF USER IS WRONG: Phase1 = encourage + educational hints (NEVER reveal correct answer), Phase2 = IDENTICAL question and options
+
+⚠️ CRITICAL: For wrong answers, your Phase1 feedback must be educational but NOT reveal the answer.
+Focus on guiding the student toward the right thinking, not giving them the solution.
 
 Example response format you MUST follow:
 {{

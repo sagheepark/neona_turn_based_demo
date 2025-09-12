@@ -90,7 +90,7 @@ class ContinuousAnswerTool:
         # Quiz continuous flow configuration
         quiz_flow = {
             "flow_id": "quiz_continuous_v1",
-            "character_types": ["seol_min_seok_quiz", "seolminseok_korean_history_chat", "kim_daehyun_history", "history_teacher"],
+            "character_types": ["seol_min_seok_quiz", "seolminseok_korean_history_chat", "kim_daehyun_history", "history_teacher", "dr_genie_science_quiz"],
             "trigger": {
                 "tool_type": "continuous_answer",
                 "event": "user_selection"
@@ -266,7 +266,7 @@ class ContinuousAnswerTool:
         # 🆕 Feedback-triggered continuous flow (for our corrected detection)
         feedback_flow = {
             "flow_id": "quiz_feedback_continuous_v1",
-            "character_types": ["seol_min_seok_quiz", "seolminseok_korean_history_chat", "kim_daehyun_history", "history_teacher"],
+            "character_types": ["seol_min_seok_quiz", "seolminseok_korean_history_chat", "kim_daehyun_history", "history_teacher", "dr_genie_science_quiz"],
             "trigger": {
                 "tool_type": "continue_feedback_flow",
                 "event": "quiz_feedback"
@@ -323,7 +323,7 @@ class ContinuousAnswerTool:
         # 🆕 Add flow configuration for show_selection tool (for greeting and initial quiz presentation)
         show_selection_flow = {
             "flow_id": "show_selection_v1",
-            "character_types": ["seol_min_seok_quiz", "seolminseok_korean_history_chat", "kim_daehyun_history", "history_teacher"],
+            "character_types": ["seol_min_seok_quiz", "seolminseok_korean_history_chat", "kim_daehyun_history", "history_teacher", "dr_genie_science_quiz"],
             "trigger": {
                 "tool_type": "show_selection",
                 "event": "quiz_presentation"
@@ -792,7 +792,7 @@ INSTRUCTIONS:
                 print(f"🎵 Generating TTS for step {step_config['step_id']}")
                 try:
                     # Use same character-specific TTS selection as regular chat
-                    if flow_state.character_id in ['seol_min_seok', 'seol_min_seok_quiz', 'kim_daehyun_history', 'seolminseok_korean_history_chat']:
+                    if flow_state.character_id in ['seol_min_seok', 'seol_min_seok_quiz', 'kim_daehyun_history', 'seolminseok_korean_history_chat', 'dr_genie_science_quiz']:
                         print(f"🎭 Korean history character detected ({flow_state.character_id}) - using dedicated TTS service")
                         audio_data = await seolminseok_tts_service.generate_tts(
                             text=response["dialogue"],
@@ -1026,7 +1026,7 @@ INSTRUCTIONS:
             if step_config.get("audio_enabled", False) and structured_response.get("dialogue"):
                 print(f"🎵 Generating TTS for step {step_config['step_id']}")
                 try:
-                    if flow_state.character_id in ['seol_min_seok', 'seol_min_seok_quiz', 'kim_daehyun_history', 'seolminseok_korean_history_chat']:
+                    if flow_state.character_id in ['seol_min_seok', 'seol_min_seok_quiz', 'kim_daehyun_history', 'seolminseok_korean_history_chat', 'dr_genie_science_quiz']:
                         print(f"🎭 Korean history character detected ({flow_state.character_id}) - using dedicated TTS service")
                         audio_data = await self.tts_service.generate_seolminseok_tts(
                             text=structured_response["dialogue"],
@@ -1110,7 +1110,7 @@ INSTRUCTIONS:
                 if step_config.get("audio_enabled", False) and structured_response.get("dialogue"):
                     print(f"🎵 Generating TTS for retry response")
                     try:
-                        if flow_state.character_id in ['seol_min_seok', 'seol_min_seok_quiz', 'kim_daehyun_history', 'seolminseok_korean_history_chat']:
+                        if flow_state.character_id in ['seol_min_seok', 'seol_min_seok_quiz', 'kim_daehyun_history', 'seolminseok_korean_history_chat', 'dr_genie_science_quiz']:
                             audio_data = await self.tts_service.generate_seolminseok_tts(
                                 text=structured_response["dialogue"],
                                 use_hd=True,
@@ -1294,7 +1294,8 @@ INSTRUCTIONS:
             "seol_min_seok_quiz": "설민석",
             "seolminseok_korean_history_chat": "설민석",
             "kim_daehyun_history": "김대현", 
-            "history_teacher": "역사 선생님"
+            "history_teacher": "역사 선생님",
+            "dr_genie_science_quiz": "닥터 지니"
         }
         # Force use of mapped character names only - no fallback allowed
         if character_id not in name_mapping:
