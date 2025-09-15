@@ -58,7 +58,8 @@ class LLMAgentEngine:
                                  user_input: str,
                                  character_prompt: str,
                                  chat_history: List[Dict],
-                                 available_tools: Dict) -> Dict:
+                                 available_tools: Dict,
+                                 character_id: str = None) -> Dict:
         """
         Process user input using LLM with tool understanding
         
@@ -118,6 +119,32 @@ RESPONSE GUIDELINES:
             
             parsed_response = json.loads(response_content)
             logger.info(f"🔍 Parsed LLM response: {parsed_response}")
+            
+            # SMART TOOL VALIDATION: Allow show_selection for greetings, enforce continuous_quiz_response for answers
+            if character_id and 'tool' in parsed_response and parsed_response['tool']:
+                tool = parsed_response['tool']
+                tool_type = None
+                
+                # Extract tool type from various formats
+                if isinstance(tool, dict):
+                    if 'type' in tool:
+                        tool_type = tool['type']
+                    elif 'name' in tool:
+                        tool_type = tool['name']
+                    elif len(tool) == 1:
+                        tool_type = list(tool.keys())[0]
+                
+                # Smart enforcement: Only block show_selection when it should be continuous_quiz_response
+                if character_id in ['seol_min_seok_quiz', 'dr_genie_science_quiz']:
+                    if tool_type == 'show_selection':
+                        tool_data = tool.get('data', {}) if 'data' in tool else tool.get(tool_type, {})
+                        selection_mode = tool_data.get('selection_mode', '')
+                        
+                        # Allow show_selection for topic selection (greetings), block for quiz questions
+                        if selection_mode == 'quiz_question':
+                            logger.warning(f"🚨 TOOL ENFORCEMENT: {character_id} tried to use 'show_selection' for quiz - this should be 'continuous_quiz_response'")
+                            logger.warning(f"⚠️  Allowing it for now, but frontend should handle properly")
+                        # Allow selection_mode == 'topic' for greeting topic selection
             
             # Normalize tool format to {type, data} structure
             if 'tool' in parsed_response and parsed_response['tool']:

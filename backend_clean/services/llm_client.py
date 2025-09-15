@@ -363,8 +363,13 @@ JSON 외의 다른 텍스트는 포함하지 마세요."""
                     raise ValueError("tools must be a list with exactly one item")
                 
                 tool = tools[0]
-                # Allow both show_selection and continuous_quiz_response tools
-                valid_tool_types = ['show_selection', 'continuous_quiz_response']
+                # Enforce quiz characters to use only continuous_quiz_response tool
+                # This prevents intermittent mixing of show_selection and continuous_quiz_response
+                if character_id in ['seol_min_seok_quiz', 'dr_genie_science_quiz']:
+                    valid_tool_types = ['continuous_quiz_response']  # Quiz characters: ONLY continuous flow
+                else:
+                    valid_tool_types = ['show_selection', 'continuous_quiz_response']  # Other characters: both allowed
+                    
                 if tool.get('type') not in valid_tool_types:
                     raise ValueError(f"tool type must be one of {valid_tool_types}, got {tool.get('type')}")
                     

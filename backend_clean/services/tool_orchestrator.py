@@ -87,7 +87,8 @@ class ToolOrchestrator:
                 user_input=user_input,
                 character_prompt=enhanced_prompt,
                 chat_history=chat_history,
-                available_tools=available_tools
+                available_tools=available_tools,
+                character_id=character_id  # Pass character_id for tool enforcement
             )
             
             logger.info(f"🧠 LLM response: dialogue={bool(llm_response.get('dialogue'))}, tool={bool(llm_response.get('tool'))}")
