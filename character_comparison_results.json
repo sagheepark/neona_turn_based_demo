@@ -1,0 +1,81 @@
+{
+  "timestamp": "2025-09-12 16:13:13",
+  "seol_min_seok_quiz": {
+    "character_id": "seol_min_seok_quiz",
+    "topic": "한국사",
+    "greeting": {
+      "status": "success",
+      "details": {
+        "has_dialogue": true,
+        "has_audio": true,
+        "has_tools": 1,
+        "tool_type": "show_selection",
+        "session_id": "sess_20250912_161254_d56048",
+        "dialogue_preview": "안녕하세요! 저는 한국 역사를 재미있고 흥미롭게 가르치는 설민석입니다. 오늘은 어떤 한국 역사에 대해 배우고 싶으신가요?..."
+      }
+    },
+    "topic_selection": {
+      "status": "success",
+      "details": {
+        "has_dialogue": true,
+        "has_audio": true,
+        "has_tools": 1,
+        "tool_type": "show_selection",
+        "has_question": true,
+        "has_options": 3,
+        "question_preview": "어떤 주제를 다루고 싶으신가요?...",
+        "dialogue_preview": "한국사를 선택하셨군요! 정말 멋진 선택이에요. 그럼 어떤 주제로 시작해볼까요?..."
+      }
+    },
+    "quiz_answer": {
+      "status": "success",
+      "details": {
+        "has_dialogue": true,
+        "has_audio": false,
+        "has_tools": 1,
+        "tool_type": "show_selection",
+        "answered_option": "삼국시대",
+        "dialogue_preview": "좋은 선택이에요! 삼국시대는 정말 흥미진진한 시대죠. 자, 그럼 첫 번째 문제를 시작해볼까요? 고구려의 건국자는 누구일까요?..."
+      }
+    }
+  },
+  "dr_genie_science_quiz": {
+    "character_id": "dr_genie_science_quiz",
+    "topic": "물리",
+    "greeting": {
+      "status": "success",
+      "details": {
+        "has_dialogue": true,
+        "has_audio": false,
+        "has_tools": 1,
+        "tool_type": "show_selection",
+        "session_id": "sess_20250912_161308_26f005",
+        "dialogue_preview": "안녕하세요! 저는 지니 선생님이에요. 과학에 대해 재미있게 배우고 싶다면 잘 오셨어요. 다양한 과학 주제 중에서 선택해보세요. 어떤 주제에 대해 알아보고 싶으신가요?..."
+      }
+    },
+    "topic_selection": {
+      "status": "success",
+      "details": {
+        "has_dialogue": true,
+        "has_audio": false,
+        "has_tools": 1,
+        "tool_type": "show_selection",
+        "has_question": true,
+        "has_options": 4,
+        "question_preview": "물이 0도 이하로 내려가면 무엇이 될까요?...",
+        "dialogue_preview": "물리학은 정말 흥미로운 주제죠! 다양한 물리 현상들을 알아보면서 재미있게 배워봅시다. 첫 번째 퀴즈를 시작해볼게요. 물이 0도 이하로 내려가면 무엇이 될까요?..."
+      }
+    },
+    "quiz_answer": {
+      "status": "success",
+      "details": {
+        "has_dialogue": true,
+        "has_audio": false,
+        "has_tools": 0,
+        "tool_type": null,
+        "answered_option": "액체",
+        "dialogue_preview": "죄송합니다. 잠시 문제가 있었습니다. 다시 시도해주세요...."
+      }
+    }
+  }
+}

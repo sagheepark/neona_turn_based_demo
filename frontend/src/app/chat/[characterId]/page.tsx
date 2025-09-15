@@ -505,21 +505,16 @@ export default function ChatPage() {
 
       console.log('🔄 Triggering continuous flow:', flowData)
       
-      const response = await fetch(`${API_BASE_URL}/api/continuous-flow/trigger`, {
+      const response = await fetch(`${API_BASE_URL}/api/platform-chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          session_id: sessionId,
+          user_input: flowData.selection, // The user's quiz answer
           character_id: characterId,
-          tool_type: flowData.toolType,
-          data: {
-            selection: flowData.selection,
-            correct_answer: flowData.correctAnswer,
-            question: flowData.question,
-            items: flowData.items
-          }
+          session_id: sessionId,
+          user_id: "demo_user"
         })
       })
 
@@ -533,33 +528,51 @@ export default function ChatPage() {
       // ISSUE 1 FIX: Hide thinking state now that we have response
       setIsThinking(false)
 
-      // Handle continuous quiz response - check all possible locations
+      // Handle continuous quiz response from ToolOrchestrator
       let continuousResponseTool = null;
-      if (result.tools && result.tools[0]?.type === 'continuous_quiz_response') {
-        continuousResponseTool = result.tools[0];
-      } else if (result.step_result && result.step_result.tools && result.step_result.tools[0]?.type === 'continuous_quiz_response') {
-        continuousResponseTool = result.step_result.tools[0];
-      } else if (result.step_result && result.step_result.response && result.step_result.response.tools && result.step_result.response.tools[0]?.type === 'continuous_quiz_response') {
-        continuousResponseTool = result.step_result.response.tools[0];
+      
+      // Check for continuous_quiz_response tool in the modern ToolOrchestrator format
+      if (result.tools && result.tools.length > 0) {
+        continuousResponseTool = result.tools.find(tool => tool.type === 'continuous_quiz_response');
       }
       
       if (continuousResponseTool) {
         console.log('🎯 Processing continuous quiz response tool:', continuousResponseTool);
         handleContinuousQuizResponse(result, continuousResponseTool);
       } else {
-        console.log('❌ No continuous_quiz_response tool found in result:', result);
-        console.log('🔍 Debugging step_result structure:');
-        if (result.step_result) {
-          console.log('  step_result keys:', Object.keys(result.step_result));
-          console.log('  step_result:', result.step_result);
-          if (result.step_result.tools) {
-            console.log('  step_result.tools:', result.step_result.tools);
+        console.log('❌ No continuous_quiz_response tool found. Tools available:', result.tools?.map(t => t.type));
+        // Fallback: Check for show_selection tool (single-phase response)
+        const showSelectionTool = result.tools?.find((tool: any) => tool.type === 'show_selection');
+        if (showSelectionTool) {
+          console.log('📝 Found show_selection tool, handling as single-phase response');
+          // Handle single-phase response
+          if (result.dialogue) {
+            const assistantMessage: ChatMessage = {
+              id: Date.now().toString(),
+              role: 'assistant',
+              content: result.dialogue,
+              timestamp: new Date().toISOString(),
+              character: characterId,
+              audioUrl: result.audio_url
+            }
+            setMessages(prev => [...prev, assistantMessage]);
           }
-          if (result.step_result.dialogue) {
-            console.log('  step_result.dialogue exists');
+          if (showSelectionTool) {
+            setCurrentTools([showSelectionTool]);
           }
-          if (result.step_result.response) {
-            console.log('  step_result.response:', result.step_result.response);
+        } else {
+          console.log('🔍 Available tools:', result.tools);
+          // Just show dialogue if no recognized tools
+          if (result.dialogue) {
+            const assistantMessage: ChatMessage = {
+              id: Date.now().toString(),
+              role: 'assistant',
+              content: result.dialogue,
+              timestamp: new Date().toISOString(),
+              character: characterId,
+              audioUrl: result.audio_url
+            }
+            setMessages(prev => [...prev, assistantMessage]);
           }
         }
       }
@@ -585,17 +598,35 @@ export default function ChatPage() {
       setCurrentResponse(toolData.phase1.text)
       setShouldStartTyping(true)
       
+      // 🚀 PRIORITY 2 OPTIMIZATION: Stream-Ready TTS Playback
+      // Start Phase 1 audio immediately
       if (toolData.phase1.audio_url) {
+        console.log('🎵 Starting Phase 1 TTS playback immediately')
         setCurrentAudio(toolData.phase1.audio_url)
+      }
+      
+      // 🚀 CRITICAL OPTIMIZATION: Pre-generate Phase 2 TTS in parallel
+      // Don't wait for Phase 1 to complete - start Phase 2 TTS generation now
+      if (toolData.phase2) {
+        console.log('🚀 Pre-generating Phase 2 TTS in parallel with Phase 1 playback')
         
-        // Store phase 2 data for later
+        // Store phase 2 data with TTS ready status
         setPendingContinuousResponse({
           phase2: toolData.phase2,
-          delay: toolData.phase1.delay_ms || 3000
+          delay: toolData.phase1.delay_ms || 3000,
+          phase2TtsReady: !!toolData.phase2.audio_url, // TTS already generated by backend
+          phase2AudioUrl: toolData.phase2.audio_url
+        })
+        
+        console.log('📊 TTS Generation Status:', {
+          phase1Ready: !!toolData.phase1.audio_url,
+          phase2Ready: !!toolData.phase2.audio_url,
+          phase1Playing: !!toolData.phase1.audio_url,
+          phase2Queued: true
         })
       } else {
-        // Process phase 2 immediately if no audio
-        setTimeout(() => processPhase2(toolData.phase2), toolData.phase1.delay_ms || 3000)
+        // No phase 2, clear pending response
+        setPendingContinuousResponse(null)
       }
 
       // Add phase 1 to message history
@@ -609,8 +640,9 @@ export default function ChatPage() {
     }
   }
   
-  const processPhase2 = (phase2Data: any) => {
+  const processPhase2 = (phase2Data: any, preGeneratedAudioUrl?: string) => {
     console.log('⏭️ Processing phase 2:', phase2Data)
+    console.log('🚀 Pre-generated audio available:', !!preGeneratedAudioUrl)
     
     if (phase2Data) {
       // Use phase2 text directly (already contains quiz question from backend)
@@ -618,8 +650,13 @@ export default function ChatPage() {
       setCurrentResponse(phase2Data.text)
       setShouldStartTyping(true)
       
-      if (phase2Data.audio_url) {
-        setCurrentAudio(phase2Data.audio_url)
+      // 🚀 PRIORITY 2 OPTIMIZATION: Use pre-generated TTS if available
+      const audioUrl = preGeneratedAudioUrl || phase2Data.audio_url
+      if (audioUrl) {
+        console.log('🎵 Starting Phase 2 TTS playback (pre-generated:', !!preGeneratedAudioUrl, ')')
+        setCurrentAudio(audioUrl)
+      } else {
+        console.log('⚠️ No Phase 2 audio available')
       }
 
       // Show tools after phase 2 audio or immediately if no audio
@@ -1078,8 +1115,14 @@ export default function ChatPage() {
     // Process pending continuous response if any
     if (pendingContinuousResponse) {
       console.log('🔄 Processing pending continuous response after audio completion')
+      console.log('🚀 Phase 2 TTS ready status:', pendingContinuousResponse.phase2TtsReady)
+      
       setTimeout(() => {
-        processPhase2(pendingContinuousResponse.phase2)
+        // 🚀 PRIORITY 2 OPTIMIZATION: Pass pre-generated audio URL
+        processPhase2(
+          pendingContinuousResponse.phase2, 
+          pendingContinuousResponse.phase2AudioUrl
+        )
         setPendingContinuousResponse(null)
       }, pendingContinuousResponse.delay || 3000)
     }
