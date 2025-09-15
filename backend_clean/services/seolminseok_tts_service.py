@@ -199,6 +199,14 @@ class SeolMinSeokTTSService:
         except Exception as e:
             logger.error(f"❌ 설민석 TTS service test error: {e}")
             return False
+    
+    async def generate_speech(self, text: str, character_id: str = None, **kwargs) -> Optional[str]:
+        """
+        Compatibility method that maps to generate_tts
+        Added to fix method name mismatch errors
+        Accepts character_id parameter but ignores it since this service is character-specific
+        """
+        return await self.generate_tts(text)
 
 # Singleton instance
 seolminseok_tts_service = SeolMinSeokTTSService()

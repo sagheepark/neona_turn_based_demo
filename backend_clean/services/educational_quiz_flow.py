@@ -183,6 +183,19 @@ class EducationalQuizFlow:
                 raise Exception(f"Educational quiz template system disabled - this indicates the system is using hardcoded Korean templates instead of the LLM. The LLM should be generating responses, not fallback templates. Character: {character_id}, Correct: {is_correct}")
             
             return random.choice(feedback_templates)
+        elif character_id == "dr_genie_science_quiz":
+            if is_correct:
+                # Dr. Genie's encouraging style for correct answers
+                feedback_templates = [
+                    f"정답입니다! 정말 훌륭해요! {educational_content} 과학을 이렇게 잘 이해하고 계시니 정말 기쁩니다!",
+                    f"맞습니다! 훌륭한 선택이에요! {educational_content} 과학 공부가 정말 잘 되고 있는 것 같아요!",
+                    f"바로 그거예요! 정말 좋습니다! {educational_content} 이런 식으로 계속 공부하면 과학자가 될 수 있겠어요!"
+                ]
+            else:
+                # DISABLED TEMPLATE FALLBACKS - MUST USE REAL LLM 
+                raise Exception(f"Educational quiz template system disabled - this indicates the system is using hardcoded Korean templates instead of the LLM. The LLM should be generating responses, not fallback templates. Character: {character_id}, Correct: {is_correct}")
+            
+            return random.choice(feedback_templates)
         else:
             # Generic educational feedback for other characters
             if is_correct:

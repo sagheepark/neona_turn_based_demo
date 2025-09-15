@@ -27,14 +27,21 @@ class ToolOrchestrator:
         from .platform_tool_handler import PlatformToolHandler
         from .llm_agent_engine import LLMAgentEngine  
         from .character_prompt_manager import CharacterPromptManager
+        from .knowledge_service import KnowledgeService
+        from .seolminseok_tts_service import SeolMinSeokTTSService
         
         self.tool_handler = PlatformToolHandler(tts_service=tts_service)
         self.llm_agent_engine = LLMAgentEngine()
         self.character_manager = CharacterPromptManager()
+        self.knowledge_service = KnowledgeService()
         self.session_service = session_service
         self.tts_service = tts_service
         
+        # Cache SeolMinSeok TTS service for quiz characters (seol_min_seok_quiz, dr_genie_science_quiz)
+        self.seol_tts_service = SeolMinSeokTTSService()
+        
         logger.info("✅ ToolOrchestrator initialized with all components")
+        logger.info("✅ SeolMinSeok TTS service cached for quiz characters")
     
     async def process_user_interaction(self, 
                                        user_input: str,
@@ -60,6 +67,9 @@ class ToolOrchestrator:
             # Step 1: Build interaction context with state awareness
             chat_history = await self._get_chat_history(session_id, user_id) if session_id else []
             
+            # Step 1.5: Get relevant knowledge for the interaction
+            relevant_knowledge = await self._get_relevant_knowledge(user_input, character_id)
+            
             # Step 2: Analyze conversation state to help LLM understand context
             conversation_state = self._analyze_conversation_state(chat_history, user_input)
             
@@ -69,7 +79,7 @@ class ToolOrchestrator:
             
             # Step 4: Build context-aware prompt
             enhanced_prompt = self._build_context_aware_prompt(
-                character_prompt, conversation_state, available_tools
+                character_prompt, conversation_state, available_tools, relevant_knowledge, user_input
             )
             
             # Step 5: Process with LLM agent
@@ -125,16 +135,10 @@ class ToolOrchestrator:
             audio_url = None
             if llm_response.get('dialogue') and self.tts_service:
                 try:
-                    # Initialize character-specific TTS services
-                    seol_tts = None
+                    # Use cached character-specific TTS services
                     if character_id in ["seol_min_seok_quiz", "dr_genie_science_quiz"]:
-                        from services.seolminseok_tts_service import SeolMinSeokTTSService
-                        seol_tts = SeolMinSeokTTSService()
-                        
-                    # Use character-aware TTS generation
-                    if character_id in ["seol_min_seok_quiz", "dr_genie_science_quiz"] and seol_tts:
-                        audio_url = await seol_tts.generate_tts(llm_response['dialogue'])
-                        logger.info(f"🎭 Used SeolMinSeok TTS service for character: {character_id}")
+                        audio_url = await self.seol_tts_service.generate_tts(llm_response['dialogue'])
+                        logger.info(f"🎭 Used cached SeolMinSeok TTS service for character: {character_id}")
                     else:
                         # Primary dialogue TTS (now contains complete educational narrative)
                         audio_url = await self.tts_service.generate_speech(
@@ -148,8 +152,8 @@ class ToolOrchestrator:
                         
                         # Phase 1 TTS (feedback with complete context)
                         if tool_data.get('phase1', {}).get('text'):
-                            if character_id in ["seol_min_seok_quiz", "dr_genie_science_quiz"] and seol_tts:
-                                tool_data['phase1']['audio_url'] = await seol_tts.generate_tts(
+                            if character_id in ["seol_min_seok_quiz", "dr_genie_science_quiz"]:
+                                tool_data['phase1']['audio_url'] = await self.seol_tts_service.generate_tts(
                                     tool_data['phase1']['text']
                                 )
                             else:
@@ -160,8 +164,8 @@ class ToolOrchestrator:
                         
                         # Phase 2 TTS (complete next question narrative)
                         if tool_data.get('phase2', {}).get('text'):
-                            if character_id in ["seol_min_seok_quiz", "dr_genie_science_quiz"] and seol_tts:
-                                tool_data['phase2']['audio_url'] = await seol_tts.generate_tts(
+                            if character_id in ["seol_min_seok_quiz", "dr_genie_science_quiz"]:
+                                tool_data['phase2']['audio_url'] = await self.seol_tts_service.generate_tts(
                                     tool_data['phase2']['text']
                                 )
                             else:
@@ -290,7 +294,7 @@ class ToolOrchestrator:
                 logger.info(f"📝 Created session: {session_id}")
             
             # Generate greeting interaction
-            initial_greeting = ""  # Empty input triggers greeting
+            initial_greeting = "안녕하세요"  # Explicit greeting request for better LLM response
             response = await self.process_user_interaction(
                 user_input=initial_greeting,
                 character_id=character_id, 
@@ -350,11 +354,18 @@ class ToolOrchestrator:
         
         return state
     
-    def _build_context_aware_prompt(self, character_prompt: str, conversation_state: Dict, available_tools: Dict) -> str:
-        """Build enhanced prompt with conversation state context"""
+    def _build_context_aware_prompt(self, character_prompt: str, conversation_state: Dict, available_tools: Dict, relevant_knowledge: List[Dict] = None, user_input: str = "") -> str:
+        """Build enhanced prompt with conversation state context and relevant knowledge"""
         
         # Base character prompt
         enhanced_prompt = character_prompt + "\n\n"
+        
+        # Add relevant knowledge if available
+        if relevant_knowledge:
+            enhanced_prompt += "RELEVANT KNOWLEDGE:\n"
+            for item in relevant_knowledge[:3]:  # Limit to top 3 most relevant
+                enhanced_prompt += f"- {item.get('content', '')}\n"
+            enhanced_prompt += "\n"
         
         # Add state-specific instructions
         stage = conversation_state['stage']
@@ -362,85 +373,136 @@ class ToolOrchestrator:
         
         if stage == 'greeting':
             enhanced_prompt += """
-CURRENT SITUATION: Initial greeting - user just started conversation
-YOUR TASK: Provide warm greeting and use 'show_selection' tool with topic options
-TOOL TO USE: show_selection with selection_mode='topic'
+현재 상황: 초기 인사 - 사용자가 방금 대화를 시작함
+당신의 역할: 따뜻한 인사를 제공하고 주제 선택지와 함께 'show_selection' 도구 사용
+사용할 도구: show_selection with selection_mode='topic'
 """
         
         elif stage == 'topic_selected' and context == 'user_selected_topic':
             topic = conversation_state.get('topic', 'selected topic')
             enhanced_prompt += f"""
-CURRENT SITUATION: User just selected topic '{topic}'
-PREVIOUS ACTION: You presented topic options, user chose '{topic}'
-YOUR TASK: Acknowledge their choice and present first quiz question about {topic}
-TOOL TO USE: show_selection with selection_mode='quiz_question'
-IMPORTANT: Generate a specific quiz question about {topic} with 4 options and correct_answer
+현재 상황: 사용자가 방금 주제 '{topic}'를 선택함
+이전 행동: 당신이 주제 선택지를 제시했고, 사용자가 '{topic}'를 선택함
+당신의 역할: 선택을 인정하고 {topic}에 대한 첫 번째 퀴즈 문제 제시
+사용할 도구: show_selection with selection_mode='quiz_question'
+중요: {topic}에 대한 구체적인 퀴즈 문제를 4개 선택지와 정답과 함께 생성하세요
 """
         
         elif stage == 'quiz_active' and context == 'user_answered_quiz':
-            user_answer = conversation_state.get('quiz_context', {}).get('user_answer', 'unknown')
-            
-            # ANTI-CACHING FIX: Explicitly use the direct user_input to prevent any caching issues
+            logger.info(f"🎯 STAGE MATCH: quiz_active + user_answered_quiz detected!")
+            # EXTRACT current question explicitly - don't rely on LLM to find it
             current_user_input = user_input.strip()
+            current_question_data = self._extract_current_question_context(conversation_state.get('chat_history', []))
+            current_question = current_question_data.get('question', 'unknown question')
+            current_options = current_question_data.get('options', [])
             
-            # Debug logging for caching investigation
-            logger.info(f"🐛 CACHING DEBUG - Direct user_input: '{current_user_input}'")
-            logger.info(f"🐛 CACHING DEBUG - Extracted user_answer: '{user_answer}'")
-            logger.info(f"🐛 CACHING DEBUG - Match: {current_user_input == user_answer}")
+            # COMPREHENSIVE LOGGING
+            logger.info(f"🔍 QUIZ EVALUATION DEBUG:")
+            logger.info(f"   User answered: '{current_user_input}'")
+            logger.info(f"   Current question: '{current_question}'")
+            logger.info(f"   Current options: {current_options}")
+            logger.info(f"   Question extraction successful: {current_question != 'unknown question'}")
+            logger.info(f"   Options extracted: {len(current_options)} options")
             
             enhanced_prompt += f"""
-⚠️  CRITICAL INSTRUCTION ⚠️
-QUIZ ANSWER EVALUATION:
-- CURRENT USER INPUT: "{current_user_input}"
-- USER ANSWERED: "{user_answer}"
-- CRITICAL: Use the CURRENT USER INPUT "{current_user_input}" for all feedback and analysis
-- ANALYZE: Look at recent conversation to understand the quiz question and determine if user's answer is CORRECT or WRONG
-- Based on Korean history knowledge, evaluate their answer
-- IMPORTANT: Your Phase1 feedback must reference the CURRENT answer "{current_user_input}", not any previous answers
+⚠️  직접 문제 평가 ⚠️
 
-YOU MUST RESPOND WITH EXACTLY THIS TOOL: "continuous_quiz_response"
+사용자가 방금 답변한 현재 문제:
+문제: "{current_question}"
+선택지: {current_options}
+사용자 답변: "{current_user_input}"
 
-CRITICAL RULE FOR WRONG ANSWERS:
-If the user answer is WRONG, you MUST use the EXACT SAME question text and options from the recent conversation.
-DO NOT create a new question. DO NOT change the question. USE THE IDENTICAL QUESTION AND OPTIONS.
+당신의 역할:
+1. 당신의 지식을 사용하여 "{current_user_input}"이 "{current_question}"의 정답인지 판단하세요
+2. 추측하지 말고, 위에 제공된 정확한 문제와 선택지를 사용하세요
 
-⚠️ EDUCATIONAL FEEDBACK FOR WRONG ANSWERS:
-- NEVER reveal the correct answer in Phase 1
-- NEVER say what the correct answer is
-- PROVIDE EDUCATIONAL HINTS that guide toward the correct answer
-- Focus on historical context, time periods, or characteristics
-- Use encouraging language that maintains student confidence
-- Example: "그 인물도 중요한 역할을 했지만, 이 질문은 '건국'에 대한 것이에요. 다시 생각해보세요!"
+정답인 경우:
+- Phase1: 축하하고 왜 답이 맞는지 설명하기
+- Phase2: show_selection 도구로 새로운 다른 문제 만들기
 
-CRITICAL RULE FOR CORRECT ANSWERS:
-If the user answer is CORRECT, create a completely NEW question on a different topic.
+오답인 경우:
+- Phase1: 답을 공개하지 않고 격려하며, 교육적 힌트 제공
+- Phase2: 정확히 같은 문제를 같은 선택지로 보여주기:
+  * 문제: "{current_question}"
+  * 선택지: {current_options}
+  * 정답: 당신의 지식을 사용하여 선택지에서 정답 찾기
 
-DECISION LOGIC:
-- If user is CORRECT: Phase1 = celebrate + educational context, Phase2 = NEW different question  
-- If user is WRONG: Phase1 = encourage + educational hints (NO answer reveal), Phase2 = EXACT SAME question
+중요: 당신의 지식을 사용하여 "{current_user_input}"을 평가하세요 - 제공된 "정답" 필드에 의존하지 마세요.
+
+오답 예시:
+{{
+    "dialogue": "답을 공개하지 않는 격려적 피드백",
+    "tool": {{
+        "type": "continuous_quiz_response",
+        "data": {{
+            "phase1": {{
+                "text": "좋은 시도예요! 관련이 있지만 온도가 빙점 이하로 떨어질 때 어떤 일이 일어나는지 생각해보세요...",
+                "delay_ms": 3000
+            }},
+            "phase2": {{
+                "text": "그 문제를 다시 한번 시도해볼까요:",
+                "tool": {{
+                    "type": "show_selection",
+                    "data": {{
+                        "question": "최근 대화의 정확히 같은 문제",
+                        "options": ["같은", "선택지들", "그대로", "유지"],
+                        "correct_answer": "과학적으로 정확한 답",
+                        "selection_mode": "quiz_question"
+                    }}
+                }}
+            }}
+        }}
+    }}
+}}
+
+정답 예시:
+{{
+    "dialogue": "정답에 대한 축하 메시지",
+    "tool": {{
+        "type": "continuous_quiz_response", 
+        "data": {{
+            "phase1": {{
+                "text": "훌륭해요! 정말 맞습니다. [왜 맞는지 설명]",
+                "delay_ms": 3000
+            }},
+            "phase2": {{
+                "text": "이제 다른 과학 주제로 넘어가볼까요:",
+                "tool": {{
+                    "type": "show_selection",
+                    "data": {{
+                        "question": "새로운 다른 과학 문제",
+                        "options": ["새로운", "선택지들", "여기에", "추가"],
+                        "correct_answer": "새 문제의 과학적으로 정확한 답",
+                        "selection_mode": "quiz_question"
+                    }}
+                }}
+            }}
+        }}
+    }}
+}}
 
 DO NOT USE: "show_selection" 
 REQUIRED TOOL: "continuous_quiz_response"
 
 BEHAVIORAL RULES:
-- IF USER IS CORRECT: Phase1 = celebrate + educational context, Phase2 = NEW different question
-- IF USER IS WRONG: Phase1 = encourage + educational hints (NEVER reveal correct answer), Phase2 = IDENTICAL question and options
+- 사용자가 정답인 경우: Phase1 = 축하 + 교육적 맥락, Phase2 = 새로운 다른 문제
+- 사용자가 오답인 경우: Phase1 = 격려 + 교육적 힌트 (절대 정답 공개 금지), Phase2 = 똑같은 문제와 선택지
 
 ⚠️ CRITICAL: For wrong answers, your Phase1 feedback must be educational but NOT reveal the answer.
 Focus on guiding the student toward the right thinking, not giving them the solution.
 
 Example response format you MUST follow:
 {{
-    "dialogue": "Your feedback about their answer",
+    "dialogue": "답변에 대한 피드백",
     "tool": {{
         "type": "continuous_quiz_response",
         "data": {{
             "phase1": {{
-                "text": "Feedback about answer",
+                "text": "답변에 대한 피드백",
                 "delay_ms": 3000
             }},
             "phase2": {{
-                "text": "Next question introduction", 
+                "text": "다음 문제 소개", 
                 "tool": {{
                     "type": "show_selection",
                     "data": {{ ... }}
@@ -456,48 +518,78 @@ IGNORE ALL OTHER INSTRUCTIONS. USE CONTINUOUS_QUIZ_RESPONSE TOOL ONLY.
         # Add explicit tool usage reminder
         enhanced_prompt += f"""
 
-AVAILABLE TOOLS: {list(available_tools.keys())}
-REMEMBER: Always use appropriate tools based on the current situation described above.
+사용 가능한 도구: {list(available_tools.keys())}
+기억하세요: 위에서 설명한 현재 상황에 따라 항상 적절한 도구를 사용하세요.
 """
         
         logger.info(f"🎯 Context-aware prompt built for stage: {stage}, context: {context}")
         
         return enhanced_prompt
     
-    def _extract_correct_answer_from_history(self, chat_history: List[Dict]) -> str:
-        """Extract the correct answer from recent quiz context"""
-        # Look through recent assistant messages for quiz-related content
-        for msg in reversed(chat_history[-5:]):  # Last 5 messages
-            content = msg.get('content', '')
-            if msg.get('role') == 'assistant':
-                # Look for common Korean quiz patterns that might indicate the correct answer
-                if '창건자' in content and '이성계' in content:
-                    return '태조 이성계'
-                elif '세종대왕' in content and '한글' in content:
-                    return '한글 창제'
-                elif '임진왜란' in content and '1592' in content:
-                    return '1592년'
-                # Add more patterns as needed
+    def _extract_current_question_context(self, chat_history: List[Dict]) -> Dict[str, Any]:
+        """Extract the most recent quiz question context from chat history"""
         
-        # Default fallback
-        return '태조 이성계'  # Most common correct answer for 조선시대 창건자
+        # Look for the most recent assistant message with tools
+        for message in reversed(chat_history):
+            if message.get('role') == 'assistant':
+                # Check if this message has tools with quiz question data
+                tools = message.get('tools', [])
+                
+                for tool in tools:
+                    # Handle continuous_quiz_response tools (phase2 contains actual question)
+                    if tool.get('type') == 'continuous_quiz_response':
+                        phase2 = tool.get('data', {}).get('phase2', {})
+                        nested_tool = phase2.get('tool', {})
+                        if nested_tool.get('type') == 'show_selection':
+                            nested_data = nested_tool.get('data', {})
+                            if nested_data.get('selection_mode') == 'quiz_question':
+                                return {
+                                    'question': nested_data.get('question', ''),
+                                    'options': nested_data.get('options', []),
+                                    'correct_answer': nested_data.get('correct_answer', ''),
+                                    'selection_mode': nested_data.get('selection_mode', '')
+                                }
+                    
+                    # Handle direct show_selection tools
+                    elif tool.get('type') == 'show_selection':
+                        tool_data = tool.get('data', {})
+                        if tool_data.get('selection_mode') == 'quiz_question':
+                            return {
+                                'question': tool_data.get('question', ''),
+                                'options': tool_data.get('options', []),
+                                'correct_answer': tool_data.get('correct_answer', ''),
+                                'selection_mode': tool_data.get('selection_mode', '')
+                            }
+        
+        # Fallback: return empty context
+        return {
+            'question': 'unknown question',
+            'options': [],
+            'correct_answer': '',
+            'selection_mode': 'quiz_question'
+        }
+    
+    def _extract_correct_answer_from_history(self, chat_history: List[Dict]) -> str:
+        """Extract the correct answer from recent quiz context using proper tool data"""
+        # FIXED: Use proper tool data extraction instead of hardcoded patterns
+        context = self._extract_current_question_context(chat_history)
+        if context and context.get('correct_answer'):
+            return context['correct_answer']
+        
+        # REMOVED HARDCODED FALLBACKS - they were causing progression issues
+        # If no context found, return empty string to let LLM decide
+        return ''
     
     def _extract_last_question_from_history(self, chat_history: List[Dict]) -> str:
-        """Extract the last question from chat history"""
-        for msg in reversed(chat_history[-5:]):
-            content = msg.get('content', '')
-            if msg.get('role') == 'assistant':
-                # Look for question patterns
-                if '창건자' in content:
-                    return '조선시대의 창건자는 누구인가요?'
-                elif '한글' in content and '세종' in content:
-                    return '세종대왕이 만든 문자는 무엇인가요?'
-                elif '퀴즈' in content:
-                    # Extract approximate question from context
-                    if '창건자' in content or '이성계' in content:
-                        return '조선시대의 창건자는 누구인가요?'
+        """Extract the last question from chat history using proper tool data"""
+        # FIXED: Use proper tool data extraction instead of hardcoded patterns
+        context = self._extract_current_question_context(chat_history)
+        if context and context.get('question') and context['question'] != 'unknown question':
+            return context['question']
         
-        return '이전 질문'  # Fallback
+        # REMOVED HARDCODED FALLBACKS - they were causing progression issues
+        # If no proper context found, return generic message to let LLM decide
+        return '이전 질문을 다시 시도해보세요'
     
     def _extract_correct_answer_from_session(self, session_id: str) -> Optional[str]:
         """BETTER APPROACH: Extract correct answer from session storage"""
@@ -542,3 +634,21 @@ REMEMBER: Always use appropriate tools based on the current situation described 
         except json.JSONDecodeError:
             # Not JSON, treat as plain text dialogue
             return {"dialogue": response_text}
+    
+    async def _get_relevant_knowledge(self, user_input: str, character_id: str) -> List[Dict]:
+        """Get relevant knowledge items for the current interaction"""
+        try:
+            if not user_input or not user_input.strip():
+                return []
+            
+            # Use knowledge service to search for relevant content
+            knowledge_items = self.knowledge_service.search_relevant_knowledge(
+                user_input, character_id, max_results=3
+            )
+            
+            logger.info(f"📚 Found {len(knowledge_items)} relevant knowledge items for '{character_id}'")
+            return knowledge_items
+            
+        except Exception as e:
+            logger.warning(f"Failed to get relevant knowledge: {e}")
+            return []

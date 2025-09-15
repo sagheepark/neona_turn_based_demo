@@ -25,14 +25,22 @@ class GreetingSuggestionGenerator:
         character_id = greeting_context.get('character_id', '')
         greeting_message = greeting_context.get('greeting_message', '')
         
-        # Character-specific suggestions for quiz-focused 설민석
+        # Character-specific suggestions for quiz characters
         if character_id == 'seol_min_seok_quiz':
-            # Always provide quiz topic suggestions for quiz character
+            # Korean history quiz topics
             return [
                 '조선시대 퀴즈',
                 '근현대사 퀴즈', 
                 '일제강점기 퀴즈',
                 '랜덤 퀴즈 시작'
+            ]
+        elif character_id == 'dr_genie_science_quiz':
+            # Science quiz topics
+            return [
+                '물리 퀴즈',
+                '화학 퀴즈',
+                '생물학 퀴즈', 
+                '랜덤 과학 퀴즈'
             ]
         
         # Default suggestions for enabled characters

@@ -51,7 +51,9 @@ class TypecastTTSService:
         voice_id: str = "tc_61c97b56f1b7877a74df625b",  # Default Emma voice (icepeak.ai)
         emotion: str = "normal",
         speed: float = 1.0,
-        model: str = "ssfm-v21"
+        model: str = "ssfm-v21",
+        character_id: str = None,  # Added for compatibility - ignored in this service
+        **kwargs  # Accept any other parameters for compatibility
     ) -> Optional[str]:
         """텍스트를 음성으로 변환하고 base64로 반환"""
         try:

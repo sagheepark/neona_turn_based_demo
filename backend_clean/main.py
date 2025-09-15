@@ -63,7 +63,7 @@ async def create_session_with_auto_greeting(request: ChatWithSessionRequest):
         
         # Generate greeting tools if needed (for quiz characters)
         tools = None
-        if request.character_id == "seol_min_seok_quiz":
+        if 'quiz' in request.character_id:  # Generic quiz character detection
             from services.greeting_suggestion_generator import GreetingSuggestionGenerator
             greeting_generator = GreetingSuggestionGenerator()
             suggestions = greeting_generator.generate_greeting_suggestions({
@@ -83,7 +83,7 @@ async def create_session_with_auto_greeting(request: ChatWithSessionRequest):
         # Generate TTS for greeting
         audio_base64 = None
         try:
-            if request.character_id in ['seol_min_seok', 'seol_min_seok_quiz', 'dr_genie_science_quiz']:
+            if 'quiz' in request.character_id:  # Generic quiz character detection
                 print(f"🎵 Generating TTS for quiz character greeting (helper)")
                 audio_base64 = await seolminseok_tts_service.generate_tts(greeting)
                 
@@ -298,7 +298,7 @@ def build_educational_quiz_prompt(character_name: str, conversation_history: lis
 IMPORTANT - Tool Output Format:
 When providing quiz questions or interactive content, you MUST output a JSON response in this exact format:
 {{
-    "character": "seol_min_seok_quiz",
+    "character": "quiz_character",
     "dialogue": "Your speaking dialogue here",
     "emotion": "enthusiastic",
     "speed": 1.0,
@@ -313,7 +313,7 @@ When providing quiz questions or interactive content, you MUST output a JSON res
 
 For topic selection, use:
 {{
-    "character": "seol_min_seok_quiz",
+    "character": "quiz_character",
     "dialogue": "어떤 주제로 퀴즈를 할까요?",
     "emotion": "curious",
     "tool": "quiz",
@@ -358,7 +358,7 @@ async def process_unified_conversation(request: ChatWithSessionRequest):
         conversation_history.append(f"{msg['role']}: {msg['content']}")
     
     # Special handling for quiz characters with educational logic - DISABLED FOR LLM INTEGRATION TESTING
-    if False and request.character_id == "seol_min_seok_quiz":
+    if False and 'quiz' in request.character_id:
         print(f"🔍 DEBUG: Building educational quiz prompt for message: '{request.message}'")
         character_name = character.get('name', '설민석') if character else '설민석'
         enhanced_prompt = build_educational_quiz_prompt(
@@ -445,11 +445,12 @@ async def process_llm_conversation(request: ChatWithSessionRequest, enhanced_pro
         'quiz' in request.message.lower() or
         '문제' in request.message or
         '시작' in request.message or
-        request.character_id == "seol_min_seok_quiz"
+        'quiz' in request.character_id  # Generic quiz character
     ) and (
         'seolminseok' in request.character_id or 
         'quiz' in request.character_id or
-        'seol_min_seok' in request.character_id
+        'seol_min_seok' in request.character_id or  # Keep for backward compatibility
+        'science' in request.character_id  # Generic science character detection
     )
     
     if is_quiz_request:
@@ -564,7 +565,7 @@ async def process_llm_conversation(request: ChatWithSessionRequest, enhanced_pro
     # Generate TTS audio AFTER tool parsing (using clean dialogue text)
     audio_base64 = None
     try:
-        if request.character_id == "seol_min_seok_quiz":
+        if 'quiz' in request.character_id:  # Generic quiz character detection
             print(f"🎵 Generating TTS for educational quiz dialogue: '{response_text[:50]}...'")
             audio_base64 = await seolminseok_tts_service.generate_tts(response_text)
             print(f"🔍 TTS DEBUG: audio_base64={'✅ Present' if audio_base64 else '❌ None'}")
@@ -615,7 +616,6 @@ from services.tool_orchestrator import ToolOrchestrator
 database_service = DatabaseService()
 selective_memory_service = SelectiveMemoryService(database_service)
 config_parser_service = ConfigParserService()
-tool_orchestrator = ToolOrchestrator()
 
 # Initialize character service
 character_service = CharacterService(database_service)
@@ -630,6 +630,14 @@ conversation_service = ConversationService()
 incremental_cache = IncrementalKnowledgeCache()
 prompt_builder = OptimizedPromptBuilder()
 fallback_tts = FallbackTTSService()
+
+# 🚀 PRIORITY 1 FIX: Global ToolOrchestrator with cached TTS services
+# Create single instance that's reused across all API calls
+global_tool_orchestrator = ToolOrchestrator(
+    tts_service=tts_service,
+    session_service=conversation_service
+)
+print("✅ Global ToolOrchestrator initialized with cached SeolMinSeok TTS service")
 
 # Print STT service status on startup
 print(f"📢 STT Service Status: {'✅ Available' if stt_service.available else '❌ Not Available'}")
@@ -838,7 +846,7 @@ Rules:
 8. Do not use markdown, asterisks, or action descriptions"""
 
     # Add character-specific instructions
-    if character_id == "seol_min_seok_quiz":
+    if 'quiz' in character_id:
         quiz_instructions = """
 
 🎯 QUIZ CHARACTER SPECIAL INSTRUCTIONS:
@@ -1262,14 +1270,14 @@ async def chat(request: ChatRequest):
         session_id = None  # No session creation by default
         
         # 🧠 QUIZ DETECTION: Check if this is a quiz request that needs tools
+        # NOTE: Legacy endpoint - /api/platform-chat is used in production
         is_quiz_request = (
             '퀴즈' in request.message or 
             'quiz' in request.message.lower() or
             '문제' in request.message or
             '시작' in request.message
         ) and (
-            'seolminseok' in request.character_id or 
-            'quiz' in request.character_id
+            'quiz' in request.character_id  # Generic quiz detection
         )
         
         if is_quiz_request and llm_available:
@@ -1366,7 +1374,7 @@ async def chat(request: ChatRequest):
             tts_emotion = response.emotion
             
             # 설민석 characters (both regular and quiz) - use dedicated TTS service
-            if request.character_id in ['seol_min_seok', 'seol_min_seok_quiz', 'dr_genie_science_quiz']:
+            if 'quiz' in request.character_id:  # Generic quiz character detection
                 print(f"🎭 설민석 character detected ({request.character_id}) - using dedicated TTS service")
                 audio_data = await seolminseok_tts_service.generate_tts(
                     text=response.dialogue,
@@ -1517,9 +1525,9 @@ async def generate_tts(request: TTSRequest):
         # Special handling for specific characters
         tts_emotion = request.emotion
         
-        # 설민석 characters (both regular and quiz) - use dedicated TTS service
-        if request.character_id in ['seol_min_seok', 'seol_min_seok_quiz']:
-            print(f"🎭 설민석 character detected ({request.character_id}) - using dedicated TTS service for standalone TTS")
+        # 설민석 and Dr.Genie characters - use dedicated TTS service
+        if 'seol_min_seok' in request.character_id or request.character_id == 'dr_genie_science_quiz':
+            print(f"🎭 Quiz character detected ({request.character_id}) - using dedicated TTS service for standalone TTS")
             audio_data = await seolminseok_tts_service.generate_tts(
                 text=request.text,
                 use_hd=True,
@@ -2340,7 +2348,7 @@ async def chat_with_session(request: ChatWithSessionRequest):
             
             # Check if this is the quiz character and add greeting suggestions
             tools = None
-            if request.character_id == "seol_min_seok_quiz":
+            if 'quiz' in request.character_id:  # Generic quiz character detection
                 from services.greeting_suggestion_generator import GreetingSuggestionGenerator
                 greeting_generator = GreetingSuggestionGenerator()
                 greeting_context = {
@@ -2401,11 +2409,11 @@ async def chat_with_session(request: ChatWithSessionRequest):
                     print(f"🎭 Greeting suggestions enabled: {character.get('greeting_suggestions_enabled', False)}")
                 
                 # Special handling for quiz character with greeting suggestions
-                print(f"🎭 Quiz character check: {request.character_id == 'seol_min_seok_quiz'}")
+                print(f"🎭 Quiz character check: {'quiz' in request.character_id}")
                 print(f"🎭 Character exists: {character is not None}")
                 print(f"🎭 Suggestions enabled: {character.get('greeting_suggestions_enabled', False) if character else False}")
                 
-                if request.character_id == "seol_min_seok_quiz" and character and character.get('greeting_suggestions_enabled', False):
+                if 'quiz' in request.character_id and character and character.get('greeting_suggestions_enabled', False):  # Generic quiz character
                     print(f"🎭 ENTERING QUIZ CHARACTER GREETING PATH")
                     from services.greeting_suggestion_generator import GreetingSuggestionGenerator
                     
@@ -2501,7 +2509,7 @@ async def chat_with_session(request: ChatWithSessionRequest):
                     voice_id = request.voice_id or "tc_61c97b56f1b7877a74df625b"
                     
                     # Special handling for 설민석 character
-                    if request.character_id == 'seol_min_seok':
+                    if 'seol_min_seok' in request.character_id:
                         print(f"🎭 설민석 character detected - using dedicated TTS service for greeting")
                         audio_data = await seolminseok_tts_service.generate_tts(
                             selected_greeting, 
@@ -2651,7 +2659,7 @@ async def chat_with_session(request: ChatWithSessionRequest):
             tts_emotion = response.emotion
             
             # 설민석 characters (both regular and quiz) - use dedicated TTS service
-            if request.character_id in ['seol_min_seok', 'seol_min_seok_quiz', 'dr_genie_science_quiz']:
+            if 'quiz' in request.character_id:  # Generic quiz character detection
                 print(f"🎭 설민석 character detected ({request.character_id}) - using dedicated TTS service")
                 audio_data = await seolminseok_tts_service.generate_tts(
                     text=response.dialogue,
@@ -2815,7 +2823,7 @@ async def interactive_chat(request: InteractiveChatRequest):
         greeting_messages = ["안녕하세요", "안녕", "hello", "hi"]
         if any(greeting in request.message.lower() for greeting in greeting_messages):
             # Handle greeting with suggestions for quiz-focused character
-            if request.character_id == "seol_min_seok_quiz":
+            if 'quiz' in request.character_id:  # Generic quiz character detection
                 greeting_generator = GreetingSuggestionGenerator()
                 greeting_context = {
                     "character_id": request.character_id,
@@ -2905,7 +2913,7 @@ async def handle_continuation(request: ContinuationRequest):
         
         # Simple continuation response for testing
         continuation_data = {
-            "character": "seol_min_seok",
+            "character": "history_character",
             "dialogue": "다음 문제입니다! 조선시대 첫 번째 왕은?",
             "emotion": "normal",
             "speed": 1.0,
@@ -2944,71 +2952,48 @@ class ContinuousFlowProgressRequest(BaseModel):
 @app.post("/api/continuous-flow/trigger")
 async def trigger_continuous_flow(request: ContinuousFlowTriggerRequest):
     """
-    Trigger continuous quiz flow with single LLM call (Plan V2 Architecture)
-    Returns complete continuous_quiz_response tool in one response
+    REDIRECT: Old legacy endpoint - now redirects to modern platform-chat
+    This ensures all requests use the working ToolOrchestrator architecture
     """
-    try:
-        print(f"🚀 CONTINUOUS FLOW V2: Single LLM call architecture")
-        print(f"   Session: {request.session_id}")
-        print(f"   Character: {request.character_id}")
-        print(f"   Tool Type: {request.tool_type}")
-        print(f"   Data: {request.data}")
-        
-        # Import V2 implementation
-        from services.continuous_answer_tool_v2 import continuous_answer_tool_v2, ContinuousFlowContext
-        
-        # Build context for V2 processing
-        context = ContinuousFlowContext(
-            session_id=request.session_id,
-            character_id=request.character_id,
-            user_selection=request.data.get("selection", ""),
-            quiz_context={
-                "question": request.data.get("question", ""),
-                "options": request.data.get("options", []),
-                "correct_answer": request.data.get("correct_answer", "")
-            }
-        )
-        
-        print(f"🤖 Triggering single LLM call for continuous_quiz_response...")
-        
-        # Single call to generate complete continuous response
-        continuous_response = await continuous_answer_tool_v2.trigger_continuous_flow(context)
-        
-        print(f"✅ CONTINUOUS FLOW V2 COMPLETE")
-        print(f"   Response Type: {continuous_response.get('type', 'N/A')}")
-        print(f"   Has Phase1: {'phase1' in continuous_response.get('data', {})}")
-        print(f"   Has Phase2: {'phase2' in continuous_response.get('data', {})}")
-        
-        # Return in format expected by frontend
-        return {
-            "status": "flow_completed",  # Single response, no multi-step
-            "session_id": request.session_id,
-            "step_result": {
-                "step_id": "continuous_quiz_response",
-                "step_type": "continuous_quiz_response", 
-                "response": {
-                    "dialogue": continuous_response.get("dialogue", ""),
-                    "tools": [{
-                        "type": continuous_response["type"],
-                        "data": continuous_response["data"]
-                    }]
-                },
-                "audio": None,  # Audio is embedded in phase data
-                "error": None,
-                "metadata": {
-                    "architecture": "single_llm_call",
-                    "phases": 2
-                }
+    print(f"🔄 LEGACY ENDPOINT HIT: Redirecting to platform-chat")
+    print(f"   Session: {request.session_id}")
+    print(f"   Character: {request.character_id}")
+    print(f"   User Selection: {request.data.get('selection', 'N/A')}")
+    
+    # Import the orchestrator
+    orchestrator = global_tool_orchestrator
+    
+    # Process through modern ToolOrchestrator instead of legacy system
+    response = await orchestrator.process_user_interaction(
+        user_input=request.data.get("selection", ""),
+        character_id=request.character_id,
+        session_id=request.session_id,
+        user_id="legacy_redirect_user"
+    )
+    
+    print(f"✅ REDIRECTED RESPONSE: {len(response.get('tools', []))} tools")
+    
+    # Return in legacy format for compatibility 
+    return {
+        "status": "flow_completed",
+        "session_id": request.session_id,
+        "step_result": {
+            "step_id": "redirected_response",
+            "step_type": "platform_chat_redirect", 
+            "response": {
+                "dialogue": response.get("dialogue", ""),
+                "tools": response.get("tools", [])
             },
-            "flow_continues": False,  # Complete response, no continuation needed
-            "next_step_index": None
-        }
-        
-    except Exception as e:
-        print(f"❌ Error in continuous flow V2: {e}")
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Continuous flow V2 failed: {str(e)}")
+            "audio": response.get("audio_url"),
+            "error": None,
+            "metadata": {
+                "architecture": "redirected_to_tool_orchestrator",
+                "redirect_note": "Legacy endpoint redirected to modern ToolOrchestrator"
+            }
+        },
+        "flow_continues": False,
+        "next_step_index": None
+    }
 
 
 @app.post("/api/continuous-flow/progress")
@@ -3236,11 +3221,9 @@ async def platform_chat(request: PlatformChatRequest):
     try:
         print(f"🚀 Platform chat: {request.user_input[:50]}... for character {request.character_id}")
         
-        # Initialize orchestrator with services
-        orchestrator = ToolOrchestrator(
-            tts_service=tts_service,
-            session_service=conversation_service
-        )
+        # 🚀 PRIORITY 1 FIX: Use global orchestrator with cached TTS services
+        # No more fresh instance creation - reuse cached SeolMinSeok TTS service
+        orchestrator = global_tool_orchestrator
         
         # Process interaction through orchestrator
         if not request.session_id:

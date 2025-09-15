@@ -88,6 +88,21 @@ When the user requests a quiz or asks you to create questions:
   * "고려를 건국한 인물은? A) 왕건 B) 이성계 C) 박혁거세 D) 온조"
 
 CRITICAL: This A/B/C/D format is required for the quiz UI to work properly!"""
+        elif character_id == "dr_genie_science_quiz":
+            character_specific_section = """
+
+🎯 SCIENCE QUIZ CHARACTER SPECIAL INSTRUCTIONS:
+When the user requests a quiz or asks you to create questions:
+- ALWAYS format quiz questions in this EXACT structure: "Question? A) Option1 B) Option2 C) Option3 D) Option4"
+- Include exactly 4 options labeled with A), B), C), D)
+- Make sure there is a clear question ending with "?"
+- Choose scientifically accurate correct answers based on your knowledge
+- Focus on science topics (물리학, 화학, 생물학, etc.)
+- Examples:
+  * "다음 중 힘의 단위는? A) 뉴턴 B) 파스칼 C) 줄 D) 와트"
+  * "물의 화학식은? A) H2O B) CO2 C) NaCl D) CH4"
+
+CRITICAL: This A/B/C/D format is required for the quiz UI to work properly!"""
 
         return f"{character_section}{knowledge_section}{character_specific_section}"
     

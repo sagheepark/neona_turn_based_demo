@@ -246,8 +246,8 @@ Respond with JSON format:
     async def _generate_tts(self, text: str, character_id: str) -> Optional[str]:
         """Generate TTS for text based on character"""
         try:
-            if character_id in ['seol_min_seok_quiz', 'seolminseok_korean_history_chat']:
-                # Use special TTS for Korean history characters
+            if character_id in ['seol_min_seok_quiz', 'seolminseok_korean_history_chat', 'dr_genie_science_quiz']:
+                # Use special TTS for quiz characters
                 from .seolminseok_tts_service import seolminseok_tts_service
                 return await seolminseok_tts_service.generate_tts(text)
             else:

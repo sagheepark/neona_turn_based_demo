@@ -81,6 +81,7 @@ class ContinuousAnswerTool:
         self.active_flows: Dict[str, FlowState] = {}  # session_id -> FlowState
         self.prompt_builder = OptimizedPromptBuilder()
         self.tts_service = tts_service
+        self.seol_tts_service = seolminseok_tts_service  # Add correct service for quiz characters
         self.conversation_service = ConversationService()
     
     def _load_flow_configs(self) -> Dict[str, Dict[str, Any]]:
@@ -410,17 +411,48 @@ class ContinuousAnswerTool:
     }}]
 }}""",
 
-                "quiz_presentation_prompt": """당신은 {character_name} 선생님입니다. 
+                "quiz_presentation_prompt": """당신은 {character_name} 선생님입니다.
 
-지금은 사용자가 퀴즈를 요청했거나 인사를 했으므로, 한국사 퀴즈를 제시할 차례입니다.
+⚠️  CRITICAL QUIZ RETRY LOGIC (Following plan_new.md):
 
-INSTRUCTIONS:
-1. 간단한 인사나 반응을 제공하세요
-2. "show_selection" 도구를 사용하여 한국사 퀴즈 문제를 제시하세요
-3. 4지선다 형태의 교육적 가치가 있는 문제를 만드세요
-4. "준비되셨나요?"와 같은 불필요한 질문은 생략하고 바로 문제를 제시하세요
+THE CURRENT QUESTION USER JUST ANSWERED:
+QUESTION: "{question}"
+OPTIONS: {options}
+USER'S ANSWER: "{user_answer}"
+CORRECT ANSWER: "{correct_answer}"
+WAS USER CORRECT: {was_correct}
 
-반드시 show_selection 도구를 사용해서 퀴즈를 제시하세요."""
+🎯 MANDATORY DECISION LOGIC:
+
+IF USER WAS WRONG (was_correct = False):
+- Present the EXACT SAME QUESTION for retry
+- DO NOT generate a new question
+- DO NOT progress to next topic
+- Use show_selection with same question, same options, same correct_answer
+- Add "retry_mode": true to the tool
+
+IF USER WAS CORRECT (was_correct = True):
+- Generate a NEW, DIFFERENT question on a different topic
+- DO progress to next topic 
+- Use show_selection with completely new question and options
+- Add "retry_mode": false to the tool
+
+RESPONSE FORMAT:
+{{
+  "dialogue": "Your encouraging response based on correct/wrong answer",
+  "tool": {{
+    "type": "show_selection",
+    "data": {{
+      "question": "[SAME question if wrong, NEW question if correct]",
+      "options": ["option1", "option2", "option3", "option4"],
+      "correct_answer": "[appropriate correct answer]",
+      "selection_mode": "quiz_question",
+      "retry_mode": [true if wrong, false if correct]
+    }}
+  }}
+}}
+
+반드시 이 로직을 정확히 따르세요. 틀린 답변에는 같은 문제를 다시 제시하고, 맞은 답변에는 새로운 문제를 제시하세요."""
             }
         }
         
@@ -952,10 +984,42 @@ INSTRUCTIONS:
                 print(f"🔍 POST-PROCESSING CONDITION: template_name == 'quiz_retry_prompt': {template_name == 'quiz_retry_prompt'}")
                 print(f"🔍 POST-PROCESSING CONDITION: not is_correct: {not is_correct}")
                 
-                # Get original question data from trigger_data - available for both conditions
-                original_question = context.get("question", "")
-                original_options = context.get("options", [])
-                original_correct = context.get("correct_answer", "")
+                # 🚨 CRITICAL FIX: Use proper tool orchestrator method to get current question context
+                from .tool_orchestrator import ToolOrchestrator
+                
+                # Get chat history from session to extract current question
+                session_service = getattr(self, 'session_service', None)
+                chat_history = []
+                if session_service and session_id:
+                    try:
+                        session_data = await session_service.get_session(session_id)
+                        chat_history = session_data.get('messages', [])
+                    except Exception as e:
+                        print(f"⚠️ Could not fetch chat history: {e}")
+                        chat_history = context.get("recent_messages", [])
+                else:
+                    chat_history = context.get("recent_messages", [])
+                
+                # Use the proper tool orchestrator method to extract current question
+                temp_orchestrator = ToolOrchestrator(None, None, None, None)
+                current_question_data = temp_orchestrator._extract_current_question_context(chat_history)
+                
+                print(f"🔧 TOOL ORCHESTRATOR QUESTION EXTRACTION RESULT:")
+                print(f"   Question: {current_question_data.get('question', 'unknown')}")
+                print(f"   Options: {current_question_data.get('options', [])}")
+                print(f"   Correct: {current_question_data.get('correct_answer', '')}")
+                
+                # Use extracted data or fallback to trigger_data  
+                if current_question_data.get('question') and current_question_data.get('question') != 'unknown question':
+                    original_question = current_question_data.get('question', '')
+                    original_options = current_question_data.get('options', [])
+                    original_correct = current_question_data.get('correct_answer', '')
+                    print(f"✅ Using CURRENT question from chat history")
+                else:
+                    print(f"⚠️ FALLBACK: Using trigger_data (this should only happen for first question)")
+                    original_question = context.get("question", "")
+                    original_options = context.get("options", [])
+                    original_correct = context.get("correct_answer", "")
                 
                 # 🔧 Handle options parsing - could be string representation of array
                 if isinstance(original_options, str):
@@ -1028,7 +1092,7 @@ INSTRUCTIONS:
                 try:
                     if flow_state.character_id in ['seol_min_seok', 'seol_min_seok_quiz', 'kim_daehyun_history', 'seolminseok_korean_history_chat', 'dr_genie_science_quiz']:
                         print(f"🎭 Korean history character detected ({flow_state.character_id}) - using dedicated TTS service")
-                        audio_data = await self.tts_service.generate_seolminseok_tts(
+                        audio_data = await self.seol_tts_service.generate_tts(
                             text=structured_response["dialogue"],
                             use_hd=True,
                             language="auto"
@@ -1111,7 +1175,7 @@ INSTRUCTIONS:
                     print(f"🎵 Generating TTS for retry response")
                     try:
                         if flow_state.character_id in ['seol_min_seok', 'seol_min_seok_quiz', 'kim_daehyun_history', 'seolminseok_korean_history_chat', 'dr_genie_science_quiz']:
-                            audio_data = await self.tts_service.generate_seolminseok_tts(
+                            audio_data = await self.seol_tts_service.generate_tts(
                                 text=structured_response["dialogue"],
                                 use_hd=True,
                                 language="auto"

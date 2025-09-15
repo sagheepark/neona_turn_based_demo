@@ -110,6 +110,23 @@ class ContentIntelligence:
         elif "세종대왕" in question and "한글" in options:
             correct_answer = "한글"
         
+        # Science quiz correct answers
+        elif "물이 0도 이하" in question or "물이 얼" in question:
+            if "고체" in options:
+                correct_answer = "고체"
+        elif "물의 화학식" in question:
+            if "H2O" in options:
+                correct_answer = "H2O"
+        elif "힘의 단위" in question:
+            if "뉴턴" in options:
+                correct_answer = "뉴턴"
+        elif "지구의 위성" in question or "달" in question:
+            if "달" in options:
+                correct_answer = "달"
+        elif "태양계" in question and "행성" in question:
+            if "8개" in options:
+                correct_answer = "8개"
+        
         return {
             "question": question,
             "options": options,

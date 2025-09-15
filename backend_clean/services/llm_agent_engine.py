@@ -85,15 +85,9 @@ You MUST respond with valid JSON containing:
     "tool": {{ tool object if using tool }} or null
 }}
 
-IMPORTANT TOOL USAGE:
-- When user answers quiz: Use 'continuous_quiz_response' tool
-- Phase1: Review their answer (correct/wrong feedback)  
-- Phase2: Present next question with show_selection tool
-- For topic selection: Use 'show_selection' tool
-- For initial greeting: Use 'show_selection' tool to offer topics
-
 RESPONSE GUIDELINES:
 - Always be in character as defined above
+- Follow the specific tool usage instructions provided in your character prompt above
 - Use tools when interaction requires UI elements
 - Maintain educational flow between questions
 - Never reveal correct answers for wrong responses
@@ -161,3 +155,25 @@ RESPONSE GUIDELINES:
         except Exception as e:
             logger.error(f"❌ Azure OpenAI API error: {e}")
             raise RuntimeError(f"LLM processing failed: {e}")
+    
+    async def process_interaction(self, context, character_prompt: str):
+        """
+        Compatibility method for continuous answer tool system
+        Maps old process_interaction calls to new process_with_tools
+        """
+        logger.info(f"🔄 Compatibility: process_interaction -> process_with_tools")
+        
+        # Map context to user_input
+        user_input = ""
+        if hasattr(context, 'user_answer'):
+            user_input = context.user_answer
+        elif hasattr(context, 'question'):
+            user_input = context.question
+        
+        # Call new method
+        return await self.process_with_tools(
+            user_input=user_input,
+            character_prompt=character_prompt,
+            chat_history=[],
+            available_tools={}
+        )

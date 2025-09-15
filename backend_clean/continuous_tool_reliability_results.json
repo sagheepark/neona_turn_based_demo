@@ -1,0 +1,47 @@
+[
+  {
+    "success": true,
+    "iteration": 1,
+    "session_id": "sess_20250914_202500_372c97",
+    "question": "대한민국 최초의 대통령은 누구일까요?...",
+    "correct_answer": "이승만",
+    "dialogue_length": 126,
+    "dialogue_preview": "훌륭해요! 맞습니다. 이승만은 대한민국의 초대 대통령으로, 1948년에 첫 대통령으로 선출되었습니다. 그의 대통령직은 한국전쟁과 그 이후의 혼란스러운 시기를 겪으며 큰 변화를 맞이...",
+    "tools_count": 1,
+    "result": "SUCCESS_CONTINUOUS",
+    "tool_type": "continuous_quiz_response",
+    "phase1_text_length": 72,
+    "phase2_has_tool": true,
+    "phase2_tool_type": "show_selection"
+  },
+  {
+    "success": true,
+    "iteration": 2,
+    "session_id": "sess_20250914_202532_bfa772",
+    "question": "대한민국 정부가 수립된 해는 언제일까요?...",
+    "correct_answer": "1945년",
+    "dialogue_length": 94,
+    "dialogue_preview": "좋은 시도였어요! 하지만 대한민국 정부가 수립된 해는 1945년이 아닙니다. 1945년은 한국이 광복을 맞이한 해죠. 대한민국 정부 수립 연도를 다시 한번 생각해볼까요?",
+    "tools_count": 1,
+    "result": "SUCCESS_CONTINUOUS",
+    "tool_type": "continuous_quiz_response",
+    "phase1_text_length": 94,
+    "phase2_has_tool": true,
+    "phase2_tool_type": "show_selection"
+  },
+  {
+    "success": true,
+    "iteration": 3,
+    "session_id": "sess_20250914_202600_e877b0",
+    "question": "6.25 전쟁이 발발한 해는 언제일까요?...",
+    "correct_answer": "1945년",
+    "dialogue_length": 110,
+    "dialogue_preview": "좋은 시도였어요! 1945년은 한국이 해방된 해로 매우 중요한 해입니다. 하지만 6.25 전쟁이 발발한 해는 아닙니다. 6.25 전쟁은 한국전쟁으로도 불리며, 남북 간의 갈등이 극...",
+    "tools_count": 1,
+    "result": "SUCCESS_CONTINUOUS",
+    "tool_type": "continuous_quiz_response",
+    "phase1_text_length": 36,
+    "phase2_has_tool": true,
+    "phase2_tool_type": "show_selection"
+  }
+]
