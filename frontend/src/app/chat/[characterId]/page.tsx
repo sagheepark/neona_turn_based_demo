@@ -475,11 +475,14 @@ export default function ChatPage() {
       hasContinuousFlow: currentTool.data?.continuous_flow_enabled || false
     })
     
+    // FIXED: Clear tools IMMEDIATELY to prevent race conditions
+    console.log('🧹 Clearing currentTools FIRST to prevent race conditions')
+    setCurrentTools([])
+    
     // FIXED: Always use regular handleSend for ALL tools
     // The handleSend function now has continuous_quiz_response detection built-in
     // This eliminates the conflict between old and new continuous flow systems
     console.log('📝 Using handleSend for all tool selections (continuous quiz response handled inside)')
-    setCurrentTools([])
     handleSend(selection)
   }
 
@@ -664,11 +667,10 @@ export default function ChatPage() {
         console.log('🔍 Phase 2 tool data:', phase2Data.tool)
         console.log('🔍 Phase 2 tool data.options:', phase2Data.tool.data?.options)
         console.log('🔍 Phase 2 tool data.items:', phase2Data.tool.data?.items)
-        setTimeout(() => {
-          setCurrentTools([phase2Data.tool])
-          console.log('🎯 Phase 2 quiz tools displayed:', [phase2Data.tool])
-          console.log('🎯 currentTools[0].data.options:', phase2Data.tool.data?.options)
-        }, phase2Data.audio_url ? 1000 : 0)
+        // FIXED: Remove setTimeout to prevent race conditions with user selections
+        setCurrentTools([phase2Data.tool])
+        console.log('🎯 Phase 2 quiz tools displayed immediately:', [phase2Data.tool])
+        console.log('🎯 currentTools[0].data.options:', phase2Data.tool.data?.options)
       }
 
       // Add phase 2 to message history
@@ -719,15 +721,13 @@ export default function ChatPage() {
         console.error('Failed to generate second phase TTS:', error)
       }
       
-      // Display quiz tools after slight delay to allow text to start
-      setTimeout(() => {
-        try {
-          setCurrentTools(tools)
-          console.log('🎯 Second phase quiz tools displayed:', tools)
-        } catch (error) {
-          console.error('❌ Error setting current tools in handleFlowStepComplete:', error)
-        }
-      }, 1000)
+      // FIXED: Display quiz tools immediately to prevent race conditions
+      try {
+        setCurrentTools(tools)
+        console.log('🎯 Second phase quiz tools displayed immediately:', tools)
+      } catch (error) {
+        console.error('❌ Error setting current tools in handleFlowStepComplete:', error)
+      }
       
       // Clean up stored content
       ;(window as any).secondPhaseContent = null

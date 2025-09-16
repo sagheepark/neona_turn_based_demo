@@ -232,7 +232,7 @@ class ContinuousAnswerTool:
 - 채팅 기록에 이미 나온 문제와 동일하지 않은 문제 생성
 - 조선시대의 다른 시기, 다른 왕, 다른 사건에 관한 문제
 - 예: 세종대왕 → 태조 이성계, 정조, 선조 등 다른 왕으로 변경
-- 예: 한글 창제 → 임진왜란, 정유재란, 동학농민운동 등 다른 역사적 사건
+- 예: 한글 창제 → 임진왜란, 정유재란, 갑신정변 등 다른 역사적 사건
 
 **!!! CRITICAL WARNING - 반드시 준수하세요 !!!**
 대화(dialogue)에 문제를 포함하지 않으면 사용자가 문제를 볼 수 없습니다!
@@ -474,8 +474,6 @@ RESPONSE FORMAT:
             print(f"❌ No flow config found for character {trigger_event.character_id}, tool {trigger_event.tool_type}")
             return None
         
-        # 🚨 DEBUG: Log the complete flow configuration being used
-        print(f"🔍 FLOW CONFIG DEBUG:")
         print(f"   Flow has {len(flow_config.get('steps', []))} steps")
         for i, step in enumerate(flow_config.get('steps', [])):
             print(f"   Step {i}: {step.get('step_id', 'N/A')} - type: {step.get('type', 'N/A')}")
@@ -501,7 +499,6 @@ RESPONSE FORMAT:
         
         # ALWAYS execute second step for two-step continuous flow
         total_steps = len(flow_state.flow_config["steps"])
-        print(f"🔍 FLOW DEBUG: Total steps configured: {total_steps}")
         
         if total_steps > 1:
             print(f"🔄 Executing second step for quiz presentation (two-step architecture)")
@@ -686,7 +683,6 @@ RESPONSE FORMAT:
         flow_state.current_step = step_index
         
         # CRITICAL DEBUG: Log step execution details
-        print(f"🔍 STEP EXECUTION DEBUG:")
         print(f"   Step index: {step_index}")
         print(f"   Step ID: {step_config.get('step_id', 'N/A')}")
         print(f"   Step type: {step_config.get('type', 'N/A')}")
@@ -718,7 +714,6 @@ RESPONSE FORMAT:
         flow_continues = False
         
         # Debug logging for flow continuation
-        print(f"🔍 FLOW CONTINUATION DEBUG:")
         print(f"   step_result.next_trigger: '{step_result.next_trigger}'")
         print(f"   step_index: {step_index}")
         print(f"   total_steps: {len(flow_state.flow_config['steps'])}")
@@ -749,62 +744,8 @@ RESPONSE FORMAT:
     async def _execute_llm_step(self, flow_state: FlowState, step_config: Dict[str, Any]) -> StepResult:
         """Execute LLM generation step with context injection"""
         try:
-            # Build context from previous steps and trigger data
-            context = self._build_step_context(flow_state, step_config.get("context", {}))
-            
-            # Always ensure character_id is available for template replacement
-            context["character_id"] = flow_state.character_id
-            
-            # Get prompt template and inject context
-            template_name = step_config["prompt_template"]
-            
-            # 🚨 DEBUG: Check template selection
-            print(f"🔧 DEBUG: Template name received: '{template_name}'")
-            
-            # 🚨 DYNAMIC TEMPLATE SELECTION: Choose correct template based on was_correct
-            if template_name == "quiz_presentation_prompt":
-                # Debug context to understand where was_correct is stored
-                print(f"🔍 CONTEXT DEBUG - Available keys: {list(context.keys())}")
-                print(f"🔍 CONTEXT DEBUG - Looking for was_correct...")
-                
-                was_correct = False
-                
-                # Check multiple locations for was_correct value
-                if "was_correct" in context:
-                    was_correct = context["was_correct"]
-                    print(f"🔍 CONTEXT DEBUG - Found was_correct directly: {was_correct}")
-                elif "step_0" in context and isinstance(context["step_0"], dict):
-                    step_0_data = context["step_0"]
-                    if "was_correct" in step_0_data:
-                        was_correct = step_0_data["was_correct"]
-                        print(f"🔍 CONTEXT DEBUG - Found was_correct in step_0: {was_correct}")
-                    elif "result" in step_0_data and "response" in step_0_data["result"]:
-                        response_data = step_0_data["result"]["response"]
-                        if "was_correct" in response_data:
-                            was_correct = response_data["was_correct"]
-                            print(f"🔍 CONTEXT DEBUG - Found was_correct in step_0.result.response: {was_correct}")
-                
-                print(f"🔍 TEMPLATE SELECTION - was_correct={was_correct}")
-                print(f"🔍 TEMPLATE SELECTION - type(was_correct)={type(was_correct)}")
-                print(f"🔍 TEMPLATE SELECTION - bool(was_correct)={bool(was_correct)}")
-                
-                # Handle string boolean values properly - "False" string should be treated as False
-                is_correct = False
-                if isinstance(was_correct, str):
-                    is_correct = was_correct.lower() in ['true', '1', 'yes']
-                else:
-                    is_correct = bool(was_correct)
-                
-                print(f"🔍 TEMPLATE SELECTION - Final is_correct={is_correct}")
-                
-                if is_correct:
-                    template_name = "quiz_progress_prompt"
-                    print(f"🟢 Using quiz_progress_prompt for CORRECT answer (was_correct={was_correct}, is_correct={is_correct})")
-                else:
-                    template_name = "quiz_retry_prompt"
-                    print(f"🔴 Using quiz_retry_prompt for WRONG answer (was_correct={was_correct}, is_correct={is_correct})")
-            else:
-                print(f"🔧 DEBUG: No template selection - template is '{template_name}'")
+            # OPTIMIZED: Use shared context and template preparation
+            context, template_name = self._prepare_step_context_and_template(flow_state, step_config)
             
             prompt_template = flow_state.flow_config["prompts"][template_name]
             final_prompt = self._inject_context(prompt_template, context)
@@ -829,13 +770,15 @@ RESPONSE FORMAT:
                         audio_data = await seolminseok_tts_service.generate_tts(
                             text=response["dialogue"],
                             use_hd=True,
-                            language="auto"
+                            language="auto",
+                            timeout_seconds=3.0  # PHASE 1: Keep fast timeout
                         )
                     else:
                         # Use regular TTS for other characters
                         audio_data = await self.tts_service.generate_speech(
                             text=response["dialogue"],
-                            voice_id=None  # Will use character default
+                            voice_id=None,  # Will use character default
+                            timeout_seconds=3.0  # PHASE 1: Keep fast timeout
                         )
                 except Exception as tts_error:
                     print(f"❌ TTS generation failed: {tts_error}")
@@ -843,8 +786,6 @@ RESPONSE FORMAT:
             
             # CRITICAL DEBUG: Log what we're getting from step_config
             next_trigger_value = step_config.get("next_trigger", None)
-            print(f"🚨 CRITICAL DEBUG: step_config['next_trigger'] = '{next_trigger_value}'")
-            print(f"🚨 CRITICAL DEBUG: Full step_config = {step_config}")
             
             return StepResult(
                 step_id=step_config["step_id"],
@@ -873,80 +814,20 @@ RESPONSE FORMAT:
         print(f"🚨 Character ID: {flow_state.character_id}")
         print(f"🚨 Step config: {step_config}")
         try:
-            # Build context from previous steps and trigger data  
-            context = self._build_step_context(flow_state, step_config.get("context", {}))
-            context["character_id"] = flow_state.character_id
+            # OPTIMIZED: Use shared context and template preparation
+            context, template_name = self._prepare_step_context_and_template(flow_state, step_config)
             
-            # Get prompt template and inject context
-            template_name = step_config["prompt_template"]
-            print(f"🔍 TEMPLATE DEBUG: Initial template_name from step_config = '{template_name}'")
-            
-            # 🚨 DYNAMIC TEMPLATE SELECTION: Choose correct template based on was_correct
-            if template_name == "quiz_presentation_prompt":
-                # Debug context to understand where was_correct is stored
-                print(f"🔍 CONTEXT DEBUG - Available keys: {list(context.keys())}")
-                print(f"🔍 CONTEXT DEBUG - Looking for was_correct...")
-                
-                was_correct = False
-                
-                # Check multiple locations for was_correct value
-                if "was_correct" in context:
-                    was_correct = context["was_correct"]
-                    print(f"🔍 CONTEXT DEBUG - Found was_correct directly: {was_correct}")
-                elif "step_0" in context and isinstance(context["step_0"], dict):
-                    step_0_data = context["step_0"]
-                    if "was_correct" in step_0_data:
-                        was_correct = step_0_data["was_correct"]
-                        print(f"🔍 CONTEXT DEBUG - Found was_correct in step_0: {was_correct}")
-                    elif "result" in step_0_data and "response" in step_0_data["result"]:
-                        response_data = step_0_data["result"]["response"]
-                        if "was_correct" in response_data:
-                            was_correct = response_data["was_correct"]
-                            print(f"🔍 CONTEXT DEBUG - Found was_correct in step_0.result.response: {was_correct}")
-                
-                print(f"🔍 TEMPLATE SELECTION - was_correct={was_correct}")
-                print(f"🔍 TEMPLATE SELECTION - type(was_correct)={type(was_correct)}")
-                print(f"🔍 TEMPLATE SELECTION - bool(was_correct)={bool(was_correct)}")
-                
-                # Handle string boolean values properly - "False" string should be treated as False
-                is_correct = False
-                if isinstance(was_correct, str):
-                    is_correct = was_correct.lower() in ['true', '1', 'yes']
-                else:
-                    is_correct = bool(was_correct)
-                
-                print(f"🔍 TEMPLATE SELECTION - Final is_correct={is_correct}")
-                
-                if is_correct:
-                    template_name = "quiz_progress_prompt"
-                    print(f"🟢 Using quiz_progress_prompt for CORRECT answer (was_correct={was_correct}, is_correct={is_correct})")
-                else:
-                    template_name = "quiz_retry_prompt"
-                    print(f"🔴 Using quiz_retry_prompt for WRONG answer (was_correct={was_correct}, is_correct={is_correct})")
-            
-            print(f"🔧 DEBUG: Getting prompt template '{template_name}'")
             prompt_template = flow_state.flow_config["prompts"][template_name]
-            print(f"🔧 DEBUG: Got prompt template: {prompt_template[:100]}...")
             
-            print(f"🔧 DEBUG: Starting context injection with context keys: {list(context.keys())}")
             try:
                 final_prompt = self._inject_context(prompt_template, context)
-                print(f"🔧 DEBUG: Context injection completed successfully")
-                print(f"🔧 DEBUG: Final prompt length: {len(final_prompt)} characters")
             except Exception as e:
-                print(f"🔧 DEBUG ERROR: Context injection failed: {e}")
                 import traceback
                 traceback.print_exc()
                 raise
             
-            print(f"🤖🔧 Generated prompt with tools for {step_config['step_id']}: {final_prompt[:100]}...")
             
             # Use the proper character generation method with the resolved template
-            print(f"🚨 SECOND PHASE USING FINAL PROMPT:")
-            print(f"   final_prompt (first 200 chars): {final_prompt[:200]}...")
-            print(f"🔍 FULL FINAL PROMPT DEBUG:")
-            print(final_prompt)
-            print("🔍 END FULL PROMPT")
             
             # Call character service with the resolved prompt directly
             response = await self._generate_character_response(
@@ -977,14 +858,8 @@ RESPONSE FORMAT:
                             "tools": []
                         }
                 
-                print(f"🔧 Parsed structured response with {len(structured_response.get('tools', []))} tools")
                 
-                # 🚨 FORCE CORRECT RETRY BEHAVIOR - Override LLM response if needed
-                print(f"🔍 POST-PROCESSING DEBUG: template_name='{template_name}', is_correct={is_correct}")
-                print(f"🔍 POST-PROCESSING CONDITION: template_name == 'quiz_retry_prompt': {template_name == 'quiz_retry_prompt'}")
-                print(f"🔍 POST-PROCESSING CONDITION: not is_correct: {not is_correct}")
                 
-                # 🚨 CRITICAL FIX: Use proper tool orchestrator method to get current question context
                 from .tool_orchestrator import ToolOrchestrator
                 
                 # Get chat history from session to extract current question
@@ -1095,7 +970,8 @@ RESPONSE FORMAT:
                         audio_data = await self.seol_tts_service.generate_tts(
                             text=structured_response["dialogue"],
                             use_hd=True,
-                            language="auto"
+                            language="auto",
+                            timeout_seconds=3.0  # PHASE 1: Keep fast timeout
                         )
                     else:
                         audio_data = await self.tts_service.generate_tts(structured_response["dialogue"])
@@ -1178,7 +1054,8 @@ RESPONSE FORMAT:
                             audio_data = await self.seol_tts_service.generate_tts(
                                 text=structured_response["dialogue"],
                                 use_hd=True,
-                                language="auto"
+                                language="auto",
+                                timeout_seconds=3.0  # PHASE 1: Keep fast timeout
                             )
                         else:
                             audio_data = await self.tts_service.generate_tts(structured_response["dialogue"])
@@ -1197,6 +1074,45 @@ RESPONSE FORMAT:
                 print(f"❌ RETRY ALSO FAILED: {retry_error}")
                 # Re-raise the original exception - no fallbacks, user needs real LLM responses
                 raise e
+    
+    def _prepare_step_context_and_template(self, flow_state: FlowState, step_config: Dict[str, Any]) -> tuple:
+        """OPTIMIZED: Prepare context and resolve template in one operation"""
+        # Build context from previous steps and trigger data
+        context = self._build_step_context(flow_state, step_config.get("context", {}))
+        context["character_id"] = flow_state.character_id
+        
+        # Get prompt template and apply dynamic selection logic
+        template_name = step_config["prompt_template"]
+        
+        # 🚨 DYNAMIC TEMPLATE SELECTION: Choose correct template based on was_correct
+        if template_name == "quiz_presentation_prompt":
+            was_correct = False
+            
+            # Check multiple locations for was_correct value
+            if "was_correct" in context:
+                was_correct = context["was_correct"]
+            elif "step_0" in context and isinstance(context["step_0"], dict):
+                step_0_data = context["step_0"]
+                if "was_correct" in step_0_data:
+                    was_correct = step_0_data["was_correct"]
+                elif "result" in step_0_data and "response" in step_0_data["result"]:
+                    response_data = step_0_data["result"]["response"]
+                    if "was_correct" in response_data:
+                        was_correct = response_data["was_correct"]
+            
+            # Handle string boolean values properly - "False" string should be treated as False
+            is_correct = False
+            if isinstance(was_correct, str):
+                is_correct = was_correct.lower() in ['true', '1', 'yes']
+            else:
+                is_correct = bool(was_correct)
+            
+            if is_correct:
+                template_name = "quiz_progress_prompt"
+            else:
+                template_name = "quiz_retry_prompt"
+        
+        return context, template_name
     
     def _build_step_context(self, flow_state: FlowState, context_config: Dict[str, str]) -> Dict[str, Any]:
         """Build context for step execution from templates"""
@@ -1283,27 +1199,21 @@ RESPONSE FORMAT:
         path = template[2:-1]  # Remove ${ and }
         parts = path.split(".")
         
-        print(f"🔍 TEMPLATE DEBUG: Resolving '{template}' with path parts: {parts}")
-        print(f"🔍 TEMPLATE DEBUG: Available data keys: {list(data.keys())}")
         if 'trigger_data' in data:
-            print(f"🔍 TEMPLATE DEBUG: trigger_data contents: {data['trigger_data']}")
+            pass  # Debug logging was removed
         
         current = data
         for i, part in enumerate(parts):
             if isinstance(current, dict):
                 current = current.get(part)
-                print(f"🔍 TEMPLATE DEBUG: Step {i} - '{part}' → {current}")
             elif isinstance(current, list) and part.isdigit():
                 idx = int(part)
                 current = current[idx] if idx < len(current) else None
-                print(f"🔍 TEMPLATE DEBUG: Step {i} - list index '{part}' → {current}")
             else:
-                print(f"🔍 TEMPLATE DEBUG: Step {i} - '{part}' failed, current type: {type(current)}")
                 current = None
                 break
         
         result = str(current) if current is not None else template
-        print(f"🔍 TEMPLATE DEBUG: Final result: '{result}'")
         return result
     
     def _resolve_response_templates(self, response: Dict[str, Any], data: Dict[str, Any]) -> Dict[str, Any]:
@@ -1313,7 +1223,6 @@ RESPONSE FORMAT:
         This fixes the issue where ${trigger_data.selection} appears literally in responses
         instead of being replaced with actual user selections.
         """
-        print(f"🔧 RESPONSE TEMPLATE DEBUG: Resolving templates in response with data keys: {list(data.keys())}")
         
         if isinstance(response, dict):
             resolved_response = {}
@@ -1325,7 +1234,6 @@ RESPONSE FORMAT:
         elif isinstance(response, str):
             # This is where the actual template resolution happens
             resolved = self._resolve_template(response, data)
-            print(f"🔧 RESPONSE TEMPLATE DEBUG: '{response}' → '{resolved}'")
             return resolved
         else:
             return response
@@ -1368,12 +1276,9 @@ RESPONSE FORMAT:
     
     def _extract_quiz_context(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """Extract quiz-specific context for LLM analysis"""
-        print(f"🔍 EXTRACT DEBUG: Available context keys: {list(context.keys())}")
-        print(f"🔍 EXTRACT DEBUG: Looking for user_answer, found: {context.get('user_answer', 'NOT_FOUND')}")
         
         # IMPORTANT: Check for resolved template variables in trigger_data as fallback
         trigger_data = context.get("trigger_data", {}) if isinstance(context.get("trigger_data"), dict) else {}
-        print(f"🔍 EXTRACT DEBUG: trigger_data found: {trigger_data}")
         
         return {
             "quiz_question": context.get("question", context.get("quiz_question", trigger_data.get("question", ""))),
@@ -1384,9 +1289,6 @@ RESPONSE FORMAT:
     
     async def _generate_character_response(self, character_id: str, prompt: str, context: Dict[str, Any]) -> Dict[str, Any]:
         """Generate character response using LLM-driven analysis"""
-        print(f"🔧 LLM DEBUG: Starting _generate_character_response for {character_id}")
-        print(f"🔧 LLM DEBUG: Prompt length: {len(prompt)} characters")
-        print(f"🔧 LLM DEBUG: Context keys: {list(context.keys())}")
         
         # Define variables outside try block for exception handling
         character_name = self._get_character_name(character_id)
@@ -1394,19 +1296,16 @@ RESPONSE FORMAT:
         current_step = len(step_results)
         quiz_context = self._extract_quiz_context(context)
         
-        print(f"🔍 DEBUG: current_step={current_step}, step_results={len(step_results)}")
-        print(f"🔍 DEBUG: context keys={list(context.keys())}")
-        print(f"🔍 QUIZ CONTEXT: {quiz_context}")
         
         try:
             # Import and initialize LLM Agent system
             from .llm_agent_engine import LLMAgentEngine, InteractionContext
             from .character_prompt_manager import CharacterPromptManager
             
-            # Initialize components if not already done
+            # Initialize components if not already done (with proper caching)
             if not hasattr(self, 'llm_agent_engine'):
                 self.llm_agent_engine = LLMAgentEngine()
-                print("✅ Initialized LLM Agent Engine")
+                print("✅ Initialized LLM Agent Engine (cached for this ContinuousAnswerTool instance)")
             
             # Always create fresh CharacterPromptManager to ensure prompt updates are loaded
             self.character_prompt_manager = CharacterPromptManager()
@@ -1434,7 +1333,6 @@ RESPONSE FORMAT:
                 print(f"🎯 Using context-injected prompt for feedback generation: {prompt[:100]}...")
                 
                 # Process with LLM Agent Engine using the injected prompt
-                print(f"🔧 LLM DEBUG: About to call process_with_tools with injected prompt")
                 try:
                     # Use process_with_tools method with appropriate parameters
                     chat_history = []  # Empty for now, could be enhanced later
@@ -1446,10 +1344,7 @@ RESPONSE FORMAT:
                         chat_history=chat_history,
                         available_tools=available_tools
                     )
-                    print(f"🔧 LLM DEBUG: process_with_tools completed successfully")
-                    print(f"🔧 LLM DEBUG: Agent response: {agent_response}")
                 except Exception as e:
-                    print(f"🔧 LLM DEBUG ERROR: process_with_tools failed: {e}")
                     import traceback
                     traceback.print_exc()
                     raise
@@ -1639,7 +1534,7 @@ Return JSON with:
     def has_active_flow(self, session_id: str) -> bool:
         """Check if session has active flow"""
         return session_id in self.active_flows
-
+    
 
 # Global instance
 continuous_answer_tool = ContinuousAnswerTool()

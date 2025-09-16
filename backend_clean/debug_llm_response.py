@@ -1,123 +1,97 @@
+#!/usr/bin/env python3
 """
-Debug LLM response format to fix the 'type' error in tool orchestration
+Debug script to examine what the LLM Agent Engine is actually returning
 """
 
 import asyncio
 import sys
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-from services.llm_agent_engine import LLMAgentEngine
-from services.character_prompt_manager import CharacterPromptManager
+sys.path.append('.')
+from main import global_tool_orchestrator
+import json
 
 async def debug_llm_response():
-    """Test what the LLM actually returns for topic selection"""
+    """Debug the LLM response structure to understand why TTS isn't triggered"""
     
-    print("🔍 DEBUGGING LLM RESPONSE FORMAT")
-    print("=" * 60)
+    print("🔍 LLM RESPONSE DEBUG")
+    print("="*60)
     
-    # Setup
-    character_manager = CharacterPromptManager()
-    llm_engine = LLMAgentEngine()
+    # Test the same flow that was failing
+    session_id = "debug_llm_response"
+    character_id = "seol_min_seok_quiz"
+    user_input = "근현대사"
     
-    character_id = "seolminseok_korean_history_chat"
-    character_prompt = await character_manager.get_prompt(character_id)
-    
-    # Simulate topic selection scenario
-    user_input = "조선시대"
-    chat_history = [
-        {"role": "assistant", "content": "안녕하세요! 반갑습니다. 저는 설민석입니다. 한국 역사를 재미있고 흥미롭게 배워보는 시간을 가져볼까요? 여러분이 배우고 싶은 주제를 선택해 주세요!"}
-    ]
-    
-    available_tools = [
-        {
-            "name": "show_selection",
-            "description": "Display quiz question with multiple choice options to the user",
-            "parameters": {
-                "question": "str - The quiz question to display", 
-                "options": "List[str] - List of multiple choice options",
-                "correct_answer": "str - The correct answer from the options",
-                "selection_mode": "str - Type of selection (quiz_question, topic, etc.)",
-                "retry_mode": "bool - Whether this is a retry of the same question"
-            }
-        }
-    ]
-    
-    print("📝 Input Parameters:")
-    print(f"   User Input: {user_input}")
-    print(f"   Chat History: {len(chat_history)} messages")
-    print(f"   Available Tools: {len(available_tools)}")
-    print("")
+    print(f"Testing: '{user_input}' -> {character_id}")
+    print(f"Session: {session_id}")
+    print()
     
     try:
-        # Call LLM and capture raw response
-        print("🧠 Calling LLM...")
-        llm_response = await llm_engine.process_with_tools(
+        # Call tool orchestrator but capture intermediate steps
+        orchestrator = global_tool_orchestrator
+        
+        # Step 1: Call the orchestrator
+        print("🚀 STEP 1: Calling tool orchestrator...")
+        result = await orchestrator.process_user_interaction(
+            session_id=session_id,
             user_input=user_input,
-            character_prompt=character_prompt,
-            chat_history=chat_history,
-            available_tools=available_tools
+            character_id=character_id
         )
         
-        print("✅ LLM Response Received!")
-        print("")
+        print("🔍 STEP 2: Analyzing result structure...")
+        print(f"   - Result type: {type(result)}")
+        print(f"   - Result keys: {list(result.keys()) if isinstance(result, dict) else 'Not a dict'}")
         
-        print("📋 RAW LLM RESPONSE STRUCTURE:")
-        print(f"   Type: {type(llm_response)}")
-        print(f"   Keys: {list(llm_response.keys()) if isinstance(llm_response, dict) else 'Not a dict'}")
-        print("")
-        
-        print("🔍 DETAILED RESPONSE ANALYSIS:")
-        for key, value in llm_response.items():
-            print(f"   {key}: {type(value)} = {value}")
-        print("")
-        
-        # Check for the specific error case
-        if 'tool' in llm_response:
-            tool_data = llm_response['tool']
-            print("🔧 TOOL DATA ANALYSIS:")
-            print(f"   Tool Type: {type(tool_data)}")
-            print(f"   Tool Keys: {list(tool_data.keys()) if isinstance(tool_data, dict) else 'Not a dict'}")
+        if isinstance(result, dict):
+            print(f"   - dialogue: {repr(result.get('dialogue', 'MISSING'))}")
+            print(f"   - dialogue type: {type(result.get('dialogue'))}")
+            print(f"   - dialogue length: {len(result.get('dialogue', ''))}")
+            print(f"   - audio_url: {repr(result.get('audio_url', 'MISSING'))}")
+            print(f"   - tools: {len(result.get('tools', []))} tools")
             
-            if 'type' in tool_data:
-                print(f"   Tool Type Value: {tool_data['type']}")
-            else:
-                print("   ❌ MISSING 'type' KEY - This is the error!")
-                
-            if 'data' in tool_data:
-                print(f"   Tool Data: {tool_data['data']}")
-            else:
-                print("   ❌ MISSING 'data' KEY - This could cause issues!")
-        else:
-            print("❌ NO TOOL IN RESPONSE - This is unexpected!")
+            if result.get('tools'):
+                print(f"   - tool types: {[tool.get('type', 'unknown') for tool in result.get('tools', [])]}")
         
-        return llm_response
+        # Check if dialogue exists but is empty/falsy
+        dialogue = result.get('dialogue') if isinstance(result, dict) else None
+        print()
+        print("🔍 STEP 3: Dialogue evaluation...")
+        print(f"   - dialogue exists: {dialogue is not None}")
+        print(f"   - dialogue truthy: {bool(dialogue)}")
+        print(f"   - dialogue stripped: {bool(dialogue and dialogue.strip()) if dialogue else False}")
+        
+        if dialogue:
+            print(f"   - First 100 chars: {repr(dialogue[:100])}")
+        
+        return result
         
     except Exception as e:
-        print(f"❌ LLM Processing Failed: {e}")
+        print(f"❌ ERROR: {str(e)}")
         import traceback
         traceback.print_exc()
         return None
 
-if __name__ == "__main__":
-    response = asyncio.run(debug_llm_response())
+async def main():
+    result = await debug_llm_response()
     
-    print("")
-    print("🎯 DEBUGGING SUMMARY:")
-    if response:
-        print("✅ LLM call succeeded")
-        print(f"   Response structure needs to match: {{'dialogue': str, 'tool': {{'type': str, 'data': dict}}}}")
+    print("\n" + "="*60)
+    if result and isinstance(result, dict):
+        dialogue = result.get('dialogue')
+        audio_url = result.get('audio_url')
         
-        # Check if the response matches expected format
-        expected_keys = ['dialogue', 'tool']
-        has_expected_structure = all(key in response for key in expected_keys)
-        
-        if has_expected_structure and 'type' in response.get('tool', {}):
-            print("✅ Response format looks correct!")
+        if dialogue and dialogue.strip():
+            if audio_url:
+                print("✅ CONCLUSION: Dialogue exists AND audio generated")
+                print("   🎉 AUDIO GENERATION IS WORKING!")
+            else:
+                print("❌ CONCLUSION: Dialogue exists but NO audio generated")
+                print("   🔍 This is the BUG - TTS generation is not working")
         else:
-            print("❌ Response format needs fixing in LLMAgentEngine")
+            print("❌ CONCLUSION: No dialogue in LLM response")
+            print("   🔍 LLM Agent Engine is not returning dialogue")
     else:
-        print("❌ LLM call failed - check error details above")
+        print("❌ CONCLUSION: Invalid or no result from tool orchestrator")
+    
+    return bool(result and result.get('audio_url'))
+
+if __name__ == "__main__":
+    success = asyncio.run(main())
+    exit(0 if success else 1)

@@ -1,0 +1,33 @@
+{
+  "test_results": {
+    "text_1_question": [
+      1972.1219539642334,
+      2067.780017852783,
+      1978.7049293518066,
+      1904.6399593353271,
+      2009.2837810516357
+    ],
+    "text_2_intro_question": [
+      4719.856262207031,
+      4717.798948287964,
+      4667.708158493042,
+      4761.7528438568115,
+      4749.274969100952
+    ],
+    "service_initialization": 0
+  },
+  "overall_stats": {
+    "average_latency": 3354.8921823501587,
+    "median_latency": 3367.7440881729126,
+    "min_latency": 1904.6399593353271,
+    "max_latency": 4761.7528438568115,
+    "total_tests": 10,
+    "chars_per_second": 39.04745454687974
+  },
+  "test_config": {
+    "num_runs": 5,
+    "service": "SeolMinSeokTTSService",
+    "endpoint": "dev.icepeak.ai",
+    "character_id": "seol_min_seok_quiz"
+  }
+}

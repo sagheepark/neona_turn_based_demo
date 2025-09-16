@@ -5,6 +5,7 @@ This module defines all available tools that LLM agents can use based on prompts
 NO HARDCODED LOGIC - only tool definitions and execution handlers.
 """
 
+import time
 import json
 import asyncio
 from typing import Dict, List, Any, Optional, Callable
@@ -194,27 +195,37 @@ Parameters: {json.dumps(tool_def.parameters, indent=2)}
             }
         }
         
-        # Generate TTS for both phases if service available
-        if self.tts_service:
-            try:
-                # Generate TTS for phase1
-                phase1_audio = await self.tts_service.generate_speech(
-                    phase1["text"], 
-                    character_id="seolminseok_korean_history_chat"
-                )
-                result_data["phase1"]["audio_url"] = phase1_audio
-                
-                # Generate TTS for phase2
-                phase2_audio = await self.tts_service.generate_speech(
-                    phase2["text"],
-                    character_id="seolminseok_korean_history_chat"
-                )
-                result_data["phase2"]["audio_url"] = phase2_audio
-                
-                logger.info("Generated TTS for both phases of continuous quiz response")
-                
-            except Exception as e:
-                logger.warning(f"TTS generation failed: {e}")
+        # TTS generation moved to tool_orchestrator.py to avoid duplication
+        # The tool_orchestrator handles TTS generation for continuous_quiz_response
+        logger.info("TTS generation will be handled by tool_orchestrator for continuous_quiz_response")
+        
+        # # Generate TTS for both phases if service available (COMMENTED OUT - moved to orchestrator)
+        # if self.tts_service:
+        #     try:
+        #         start_tts_1 = time.time()
+        #         # Generate TTS for phase1
+        #         phase1_audio = await self.tts_service.generate_speech(
+        #             phase1["text"], 
+        #             character_id="seolminseok_korean_history_chat"
+        #         )
+        #         result_data["phase1"]["audio_url"] = phase1_audio
+        #         end_tts_1 = time.time()
+        #         print(f"TTS time 1: {end_tts_1 - start_tts_1}")
+        #         
+        #         # Generate TTS for phase2
+        #         start_tts_2 = time.time()
+        #         phase2_audio = await self.tts_service.generate_speech(
+        #             phase2["text"],
+        #             character_id="seolminseok_korean_history_chat"
+        #         )
+        #         result_data["phase2"]["audio_url"] = phase2_audio
+        #         end_tts_2 = time.time()
+        #         print(f"TTS time 2: {end_tts_2 - start_tts_2}")
+        #         
+        #         logger.info("Generated TTS for both phases of continuous quiz response")
+        #         
+        #     except Exception as e:
+        #         logger.warning(f"TTS generation failed: {e}")
                 # Continue without audio
         
         logger.info("Continuous quiz response prepared with review and next question")

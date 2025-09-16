@@ -49,7 +49,58 @@ export class CharacterStorage {
       } catch (error) {
         console.warn('Failed to load demo characters:', error);
       }
+    } else {
+      // Smart update: sync demo character updates while preserving user edits
+      await this.syncDemoCharacterUpdates();
     }
+  }
+
+  static async syncDemoCharacterUpdates(): Promise<void> {
+    if (typeof window === 'undefined') return;
+    
+    try {
+      const { DEMO_CHARACTERS } = await import('@/data/demo-characters');
+      const existing = this.getAll();
+      let hasUpdates = false;
+      
+      // Update each demo character if it exists in localStorage
+      for (const demoChar of DEMO_CHARACTERS) {
+        const existingIndex = existing.findIndex(c => c.id === demoChar.id);
+        if (existingIndex >= 0) {
+          const existingChar = existing[existingIndex];
+          
+          // Check if core demo properties need updating (name, description, etc.)
+          // Only update if the existing character hasn't been significantly modified by user
+          const isUserModified = existingChar.updated_at && 
+            existingChar.updated_at.getTime() > (existingChar.created_at?.getTime() || 0);
+          
+          if (!isUserModified || this.shouldForceUpdate(demoChar, existingChar)) {
+            // Update core properties while preserving user modifications
+            existing[existingIndex] = {
+              ...existingChar,
+              name: demoChar.name,
+              description: demoChar.description,
+              image: demoChar.image || existingChar.image,
+              // Preserve user edits to prompt, greetings, etc.
+              updated_at: new Date()
+            };
+            hasUpdates = true;
+          }
+        }
+      }
+      
+      if (hasUpdates) {
+        localStorage.setItem(CHARACTERS_KEY, JSON.stringify(existing));
+      }
+    } catch (error) {
+      console.warn('Failed to sync demo character updates:', error);
+    }
+  }
+
+  private static shouldForceUpdate(demoChar: Character, existingChar: Character): boolean {
+    // Force update if core display properties have changed in demo file
+    return demoChar.name !== existingChar.name || 
+           demoChar.description !== existingChar.description;
   }
   
   static refreshDemoCharacters(): void {

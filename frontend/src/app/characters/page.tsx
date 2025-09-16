@@ -26,6 +26,14 @@ export default function CharactersPage() {
       setLoading(false)
     }
     loadCharacters()
+
+    // Listen for character updates from edit page
+    const handleCharacterUpdate = () => {
+      setCharacters(CharacterStorage.getAll())
+    }
+    
+    window.addEventListener('characters-updated', handleCharacterUpdate)
+    return () => window.removeEventListener('characters-updated', handleCharacterUpdate)
   }, [])
 
   const getCharacterKnowledge = async (characterId: string) => {

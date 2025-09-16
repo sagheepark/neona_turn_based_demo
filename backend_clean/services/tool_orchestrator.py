@@ -9,10 +9,15 @@ This orchestrator handles the complete user interaction flow:
 5. Return structured response for frontend
 """
 
+import time
 import json
 import logging
+import uuid
+import asyncio
 from typing import Dict, List, Optional, Any
 from datetime import datetime
+# Performance logger removed
+# from .performance_logger import performance_logger, track_async_operation
 
 logger = logging.getLogger(__name__)
 
@@ -29,19 +34,26 @@ class ToolOrchestrator:
         from .character_prompt_manager import CharacterPromptManager
         from .knowledge_service import KnowledgeService
         from .seolminseok_tts_service import SeolMinSeokTTSService
+        # STREAMING TTS MANAGER COMMENTED OUT - using direct TTS for immediate audio
+        # from .streaming_tts_manager import StreamingTTSManager
         
-        self.tool_handler = PlatformToolHandler(tts_service=tts_service)
+        # UNIFIED TTS ARCHITECTURE: Only use working SeolMinSeok TTS for ALL characters
+        self.seol_tts_service = SeolMinSeokTTSService()
+        
+        # STREAMING TTS ARCHITECTURE DISABLED: Use direct TTS calls instead
+        # self.streaming_tts_manager = StreamingTTSManager(self.seol_tts_service)
+        
+        self.tool_handler = PlatformToolHandler(tts_service=self.seol_tts_service)
         self.llm_agent_engine = LLMAgentEngine()
         self.character_manager = CharacterPromptManager()
         self.knowledge_service = KnowledgeService()
         self.session_service = session_service
-        self.tts_service = tts_service
         
-        # Cache SeolMinSeok TTS service for quiz characters (seol_min_seok_quiz, dr_genie_science_quiz)
-        self.seol_tts_service = SeolMinSeokTTSService()
+        # Remove broken primary TTS - SeolMinSeok TTS works for greeting, use for everything
+        # self.tts_service = tts_service  # REMOVED - this was failing with 403 AUTH_TOKEN_INVALID
         
-        logger.info("✅ ToolOrchestrator initialized with all components")
-        logger.info("✅ SeolMinSeok TTS service cached for quiz characters")
+        logger.info("✅ ToolOrchestrator initialized with direct TTS architecture")
+        logger.info("✅ ALL characters now use SeolMinSeok TTS with direct calls (streaming disabled)")
     
     async def process_user_interaction(self, 
                                        user_input: str,
@@ -61,39 +73,66 @@ class ToolOrchestrator:
             Complete response with dialogue, tools, and audio
         """
         
-        logger.info(f"🎯 Processing interaction: user_input='{user_input[:50] if user_input else ''}...', character='{character_id}'")
+        # Generate request ID for logging
+        request_id = str(uuid.uuid4())
+        # Performance tracking removed
+        
+        logger.info(f"🎯 Processing interaction: user_input='{user_input[:50] if user_input else ''}...', character='{character_id}', request_id='{request_id}'")
+        print(f"🔥 TOOL ORCHESTRATOR DEBUG: process_user_interaction called with user_input='{user_input[:50]}', character_id='{character_id}', request_id='{request_id}'")
         
         try:
+            start_total = time.time()
+            
             # Step 1: Build interaction context with state awareness
+            start_context = time.time()
             chat_history = await self._get_chat_history(session_id, user_id) if session_id else []
+            end_context = time.time()
+            print(f"⏱️ Context loading: {int((end_context - start_context) * 1000)}ms")
             
             # Step 1.5: Get relevant knowledge for the interaction
+            start_knowledge = time.time()
             relevant_knowledge = await self._get_relevant_knowledge(user_input, character_id)
+            end_knowledge = time.time()
+            print(f"⏱️ Knowledge search: {int((end_knowledge - start_knowledge) * 1000)}ms")
             
             # Step 2: Analyze conversation state to help LLM understand context
+            start_analysis = time.time()
             conversation_state = self._analyze_conversation_state(chat_history, user_input)
+            end_analysis = time.time()
+            print(f"⏱️ State analysis: {int((end_analysis - start_analysis) * 1000)}ms")
             
             # Step 3: Get character prompt and tool definitions
+            start_prompt = time.time()
             character_prompt = await self.character_manager.get_prompt(character_id)
             available_tools = self.tool_handler.get_tool_definitions_json()
+            end_prompt = time.time()
+            print(f"⏱️ Prompt preparation: {int((end_prompt - start_prompt) * 1000)}ms")
             
             # Step 4: Build context-aware prompt
+            start_enhance = time.time()
             enhanced_prompt = self._build_context_aware_prompt(
                 character_prompt, conversation_state, available_tools, relevant_knowledge, user_input
             )
+            end_enhance = time.time()
+            print(f"⏱️ Prompt enhancement: {int((end_enhance - start_enhance) * 1000)}ms")
             
             # Step 5: Process with LLM agent
+            start_llm = time.time()
             llm_response = await self.llm_agent_engine.process_with_tools(
                 user_input=user_input,
                 character_prompt=enhanced_prompt,
                 chat_history=chat_history,
                 available_tools=available_tools,
-                character_id=character_id  # Pass character_id for tool enforcement
+                character_id=character_id,  # Pass character_id for tool enforcement
+                request_id=request_id  # Pass request_id for performance tracking
             )
+            end_llm = time.time()
+            print(f"⏱️ LLM processing: {int((end_llm - start_llm) * 1000)}ms")
             
             logger.info(f"🧠 LLM response: dialogue={bool(llm_response.get('dialogue'))}, tool={bool(llm_response.get('tool'))}")
             
             # Step 4: Execute tools if specified (with robust error handling)
+            start_tools = time.time()
             executed_tools = []
             if llm_response.get('tool'):
                 try:
@@ -119,10 +158,13 @@ class ToolOrchestrator:
                         raise ValueError(f"Tool data must be a dict, got {type(tool_data)}")
                     
                     # Execute the tool
+                    start_tool_exec = time.time()
                     tool_result = await self.tool_handler.execute_tool(
                         tool_type=tool_type,
                         data=tool_params
                     )
+                    end_tool_exec = time.time()
+                    print(f"⏱️ Tool execution: {int((end_tool_exec - start_tool_exec) * 1000)}ms")
                     executed_tools.append(tool_result)
                     logger.info(f"🔧 Executed tool: {tool_type}")
                     
@@ -131,74 +173,126 @@ class ToolOrchestrator:
                     # Don't break the flow, just log the error
                     logger.error(f"   Tool data was: {llm_response.get('tool')}")
                     raise  # Re-raise to trigger error response
+            end_tools = time.time()
+            print(f"⏱️ Tools processing: {int((end_tools - start_tools) * 1000)}ms")
             
-            # Step 5: Generate TTS for dialogue (enhanced for complete text)
+            # Step 5: Generate TTS for dialogue - SIMPLIFIED FOR IMMEDIATE USE
+            start_tts_total = time.time()
             audio_url = None
-            if llm_response.get('dialogue') and self.tts_service:
+            streaming_audio_info = None
+            
+            dialogue = llm_response.get('dialogue')
+            print(f"🔍 TTS CHECK: dialogue exists = {bool(dialogue)}")
+            print(f"🔍 TTS CHECK: dialogue length = {len(dialogue) if dialogue else 0}")
+            
+            if dialogue:
                 try:
-                    # Use cached character-specific TTS services
-                    if character_id in ["seol_min_seok_quiz", "dr_genie_science_quiz"]:
-                        audio_url = await self.seol_tts_service.generate_tts(llm_response['dialogue'])
-                        logger.info(f"🎭 Used cached SeolMinSeok TTS service for character: {character_id}")
-                    else:
-                        # Primary dialogue TTS (now contains complete educational narrative)
-                        audio_url = await self.tts_service.generate_speech(
-                            llm_response['dialogue']
-                        )
-                    logger.info(f"🎵 Generated primary TTS: {len(llm_response['dialogue'])} chars")
+                    print("🎯 STARTING DIRECT TTS GENERATION (NO STREAMING)")
+                    logger.info(f"🎯 DIRECT TTS GENERATION: dialogue_length={len(dialogue)}")
                     
-                    # Handle continuous_quiz_response with separate phase TTS
+                    # Handle continuous_quiz_response with separate phase TTS - PARALLEL
                     if executed_tools and executed_tools[0]['type'] == 'continuous_quiz_response':
                         tool_data = executed_tools[0]['data']
                         
-                        # Phase 1 TTS (feedback with complete context)
-                        if tool_data.get('phase1', {}).get('text'):
-                            if character_id in ["seol_min_seok_quiz", "dr_genie_science_quiz"]:
-                                tool_data['phase1']['audio_url'] = await self.seol_tts_service.generate_tts(
-                                    tool_data['phase1']['text']
-                                )
-                            else:
-                                tool_data['phase1']['audio_url'] = await self.tts_service.generate_speech(
-                                    tool_data['phase1']['text']
-                                )
-                            logger.info("🎵 Generated Phase 1 TTS")
+                        # Prepare parallel TTS tasks
+                        tts_tasks = []
+                        phase_keys = []
                         
-                        # Phase 2 TTS (complete next question narrative)
+                        # Phase 1 TTS task
+                        if tool_data.get('phase1', {}).get('text'):
+                            tts_tasks.append(self.seol_tts_service.generate_tts(
+                                text=tool_data['phase1']['text'],
+                                use_hd=True,
+                                language="auto",
+                                timeout_seconds=15.0
+                            ))
+                            phase_keys.append('phase1')
+                        
+                        # Phase 2 TTS task
                         if tool_data.get('phase2', {}).get('text'):
-                            if character_id in ["seol_min_seok_quiz", "dr_genie_science_quiz"]:
-                                tool_data['phase2']['audio_url'] = await self.seol_tts_service.generate_tts(
-                                    tool_data['phase2']['text']
-                                )
-                            else:
-                                tool_data['phase2']['audio_url'] = await self.tts_service.generate_speech(
-                                    tool_data['phase2']['text']
-                                )
-                            logger.info("🎵 Generated Phase 2 TTS")
+                            tts_tasks.append(self.seol_tts_service.generate_tts(
+                                text=tool_data['phase2']['text'],
+                                use_hd=True,
+                                language="auto",
+                                timeout_seconds=15.0
+                            ))
+                            phase_keys.append('phase2')
+                        
+                        # Execute TTS tasks in parallel
+                        if tts_tasks:
+                            start_parallel_tts = time.time()
+                            tts_results = await asyncio.gather(*tts_tasks)
+                            end_parallel_tts = time.time()
+                            print(f"⏱️ Parallel TTS ({len(tts_tasks)} phases): {int((end_parallel_tts - start_parallel_tts) * 1000)}ms")
+                            
+                            # Assign results back to tool_data
+                            for i, phase_key in enumerate(phase_keys):
+                                tool_data[phase_key]['audio_url'] = tts_results[i]
+                                logger.info(f"🎵 {phase_key.title()} TTS generated in parallel")
+                    else:
+                        # DIRECT TTS: Skip streaming logic, use simple TTS directly
+                        start_dialogue_tts = time.time()
+                        audio_url = await self.seol_tts_service.generate_tts(
+                            text=dialogue,
+                            use_hd=True,
+                            language="auto", 
+                            timeout_seconds=15.0
+                        )
+                        end_dialogue_tts = time.time()
+                        print(f"⏱️ Dialogue TTS: {int((end_dialogue_tts - start_dialogue_tts) * 1000)}ms")
+                        print(f"🔍 DIRECT TTS RESULT: {audio_url[:50] if audio_url else None}...")
+                        logger.info(f"📝 Direct TTS generated for {len(dialogue)} chars")
                     
                 except Exception as e:
-                    logger.warning(f"TTS generation failed: {e}")
+                    logger.error(f"🚨 Direct TTS generation failed: {type(e).__name__}: {e}")
+                    logger.error(f"🔍 TTS Details: character={character_id}, dialogue_length={len(llm_response.get('dialogue', ''))}")
+                    import traceback
+                    logger.error(f"🔍 TTS Traceback: {traceback.format_exc()}")
                     # Continue without TTS - don't break the educational flow
+                    audio_url = None
+            end_tts_total = time.time()
+            print(f"⏱️ Total TTS processing: {int((end_tts_total - start_tts_total) * 1000)}ms")
+            
+            # COMMENTED OUT: Complex streaming logic that was causing delays
+            # The original streaming TTS architecture with chunking, parallel generation,
+            # and complex result handling has been replaced with direct TTS calls above
+            # for immediate audio availability without waiting for streaming setup
             
             # Step 6: Store interaction in session
+            start_session = time.time()
             if session_id and self.session_service:
                 await self._store_interaction(session_id, user_input, llm_response, user_id)
+            end_session = time.time()
+            print(f"⏱️ Session storage: {int((end_session - start_session) * 1000)}ms")
             
-            # Step 7: Build final response
+            # Step 7: Build final response with direct TTS support
+            start_response = time.time()
             platform_response = {
                 "character": character_id,
                 "dialogue": llm_response.get('dialogue', ''),
                 "tools": executed_tools,
                 "audio_url": audio_url,
+                # streaming_audio removed - using direct TTS calls only
                 "session_id": session_id,
                 "timestamp": datetime.utcnow().isoformat()
             }
+            end_response = time.time()
+            print(f"⏱️ Response building: {int((end_response - start_response) * 1000)}ms")
             
-            logger.info(f"✅ Platform response ready: tools={len(executed_tools)}, audio={bool(audio_url)}")
+            logger.info(f"✅ Platform response ready: tools={len(executed_tools)}, audio={'direct' if audio_url else 'none'}")
+            
+            # Performance tracking removed
+
+            end_total = time.time()
+            print(f"🔥 TOTAL TIME: {int((end_total - start_total) * 1000)}ms")
             
             return platform_response
             
         except Exception as e:
             logger.error(f"❌ Tool orchestration failed: {e}")
+            
+            # Performance tracking removed
+            
             # Return basic error response
             return {
                 "character": character_id,
@@ -234,7 +328,19 @@ class ToolOrchestrator:
                         continue
             
             if not session_data:
-                logger.warning(f"Could not load session {session_id}, using empty history")
+                # IMPROVED: Create session automatically if not found (instead of just warning)
+                logger.info(f"Session {session_id} not found, creating new session automatically")
+                try:
+                    # Use a consistent fallback user_id for auto-created sessions
+                    fallback_user_id = user_id or "default_user"
+                    self.session_service.create_session(session_id, fallback_user_id)
+                    session_data = self.session_service.get_session(session_id, fallback_user_id)
+                except Exception as create_error:
+                    logger.warning(f"Failed to auto-create session {session_id}: {create_error}")
+                    return []
+                
+            if not session_data:
+                logger.warning(f"Could not load or create session {session_id}, using empty history")
                 return []
                 
             messages = session_data.get("messages", [])
@@ -262,18 +368,31 @@ class ToolOrchestrator:
             return
         
         try:
+            # IMPROVED: Ensure consistent user_id and create session if needed
+            effective_user_id = user_id or "default_user"
+            
+            # Verify session exists before storing, create if needed
+            try:
+                session_data = self.session_service.get_session(session_id, effective_user_id)
+                if not session_data:
+                    self.session_service.create_session(session_id, effective_user_id)
+            except:
+                # Session doesn't exist, create it
+                self.session_service.create_session(session_id, effective_user_id)
+            
             # Store user message
             self.session_service.add_message_to_session(
-                session_id, "user", user_input, user_id
+                session_id, "user", user_input, effective_user_id
             )
             
             # Store assistant response
             self.session_service.add_message_to_session(
-                session_id, "assistant", llm_response.get('dialogue', ''), user_id
+                session_id, "assistant", llm_response.get('dialogue', ''), effective_user_id
             )
             
         except Exception as e:
             logger.warning(f"Failed to store interaction: {e}")
+            # Continue gracefully - interaction storage failure shouldn't break the flow
     
     async def create_session_and_greet(self, character_id: str, user_id: str) -> Dict[str, Any]:
         """
@@ -281,6 +400,7 @@ class ToolOrchestrator:
         """
         
         logger.info(f"🎬 Creating new session for character: {character_id}")
+        print(f"🔥 GREET DEBUG: create_session_and_greet called for character={character_id}")
         
         try:
             # Create session
@@ -419,7 +539,7 @@ class ToolOrchestrator:
 
 정답인 경우:
 - Phase1: 축하하고 왜 답이 맞는지 설명하기
-- Phase2: show_selection 도구로 새로운 다른 문제 만들기
+- Phase2: 새로운 다른 문제 만들기
 
 오답인 경우:
 - Phase1: 답을 공개하지 않고 격려하며, 교육적 힌트 제공
@@ -428,7 +548,35 @@ class ToolOrchestrator:
   * 선택지: {current_options}
   * 정답: 당신의 지식을 사용하여 선택지에서 정답 찾기
 
-중요: 당신의 지식을 사용하여 "{current_user_input}"을 평가하세요 - 제공된 "정답" 필드에 의존하지 마세요.
+중요:
+- 당신의 지식을 사용하여 "{current_user_input}"을 평가하세요 - 제공된 "정답" 필드에 의존하지 마세요.
+- Phase1 의 text 길이는 한국어 기준 70자 정도로 제한해 주세요.
+
+정답 예시:
+{{
+    "dialogue": "정답에 대한 축하 메시지",
+    "tool": {{
+        "type": "continuous_quiz_response", 
+        "data": {{
+            "phase1": {{
+                "text": "훌륭해요! 정답입니다. [왜 맞는지 설명]",
+                "delay_ms": 3000
+            }},
+            "phase2": {{
+                "text": "이제 다른 과학 주제로 넘어가볼까요:",
+                "tool": {{
+                    "type": "show_selection",
+                    "data": {{
+                        "question": "새로운 다른 과학 문제",
+                        "options": ["새로운", "선택지들", "여기에", "추가"],
+                        "correct_answer": "새 문제의 과학적으로 정확한 답",
+                        "selection_mode": "quiz_question"
+                    }}
+                }}
+            }}
+        }}
+    }}
+}}
 
 오답 예시:
 {{
@@ -456,62 +604,9 @@ class ToolOrchestrator:
     }}
 }}
 
-정답 예시:
-{{
-    "dialogue": "정답에 대한 축하 메시지",
-    "tool": {{
-        "type": "continuous_quiz_response", 
-        "data": {{
-            "phase1": {{
-                "text": "훌륭해요! 정말 맞습니다. [왜 맞는지 설명]",
-                "delay_ms": 3000
-            }},
-            "phase2": {{
-                "text": "이제 다른 과학 주제로 넘어가볼까요:",
-                "tool": {{
-                    "type": "show_selection",
-                    "data": {{
-                        "question": "새로운 다른 과학 문제",
-                        "options": ["새로운", "선택지들", "여기에", "추가"],
-                        "correct_answer": "새 문제의 과학적으로 정확한 답",
-                        "selection_mode": "quiz_question"
-                    }}
-                }}
-            }}
-        }}
-    }}
-}}
 
 DO NOT USE: "show_selection" 
 REQUIRED TOOL: "continuous_quiz_response"
-
-BEHAVIORAL RULES:
-- 사용자가 정답인 경우: Phase1 = 축하 + 교육적 맥락, Phase2 = 새로운 다른 문제
-- 사용자가 오답인 경우: Phase1 = 격려 + 교육적 힌트 (절대 정답 공개 금지), Phase2 = 똑같은 문제와 선택지
-
-⚠️ CRITICAL: For wrong answers, your Phase1 feedback must be educational but NOT reveal the answer.
-Focus on guiding the student toward the right thinking, not giving them the solution.
-
-Example response format you MUST follow:
-{{
-    "dialogue": "답변에 대한 피드백",
-    "tool": {{
-        "type": "continuous_quiz_response",
-        "data": {{
-            "phase1": {{
-                "text": "답변에 대한 피드백",
-                "delay_ms": 3000
-            }},
-            "phase2": {{
-                "text": "다음 문제 소개", 
-                "tool": {{
-                    "type": "show_selection",
-                    "data": {{ ... }}
-                }}
-            }}
-        }}
-    }}
-}}
 
 IGNORE ALL OTHER INSTRUCTIONS. USE CONTINUOUS_QUIZ_RESPONSE TOOL ONLY.
 """

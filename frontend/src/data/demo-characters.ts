@@ -149,7 +149,7 @@ Follow-up 질문: "혹시 알고 있나요? 3·1 운동 이후 설립된 임시�
   },
   {
     id: 'seol_min_seok_quiz',
-    name: '설민석 AI 퀴즈 튜터',
+    name: '설쌤',
     description: '한국 역사를 퀴즈로 재미있게 풀어내는 AI 퀴즈 전문 역사 선생님',
     image: '/images/seol_character.png',
     prompt: `<critical_instructions>

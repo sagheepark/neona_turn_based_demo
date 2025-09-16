@@ -53,6 +53,7 @@ class TypecastTTSService:
         speed: float = 1.0,
         model: str = "ssfm-v21",
         character_id: str = None,  # Added for compatibility - ignored in this service
+        timeout_seconds: float = 3.0,  # PHASE 1: Aggressive timeout
         **kwargs  # Accept any other parameters for compatibility
     ) -> Optional[str]:
         """텍스트를 음성으로 변환하고 base64로 반환"""
@@ -96,7 +97,8 @@ class TypecastTTSService:
             print(f"🎵 [TTS SERVICE] Voice ID: {voice_id}, Text: {text[:30]}...")
             logger.info(f"TTS Request payload: {payload}")
             
-            response = requests.post(url, headers=self.headers, json=payload, timeout=30)
+            # PHASE 1: Use aggressive timeout to prevent 20+ second delays
+            response = requests.post(url, headers=self.headers, json=payload, timeout=timeout_seconds)
             
             logger.info(f"TTS Response status: {response.status_code}")
             print(f"🔍 TTS RESPONSE STATUS: {response.status_code}")
@@ -109,13 +111,24 @@ class TypecastTTSService:
                 
                 logger.info(f"✅ TTS generated successfully, audio size: {len(audio_data)} bytes")
                 return audio_base64
+            elif response.status_code == 403:
+                # PHASE 1: Fast fallback for auth errors - don't waste time retrying
+                logger.warning(f"🚨 TTS auth failed (403) - immediate fallback, no audio")
+                print(f"🔇 TTS auth failed (403), immediate fallback")
+                return None
             else:
                 logger.error(f"TTS generation failed: {response.status_code} - {response.text}")
-                print(f"🔇 TTS failed, returning None (no fake audio)")
+                print(f"🔇 TTS failed ({response.status_code}), returning None")
                 return None
                 
+        except requests.exceptions.Timeout:
+            # PHASE 1: Fast timeout fallback
+            logger.warning(f"🚨 TTS timeout after {timeout_seconds}s - immediate fallback, no audio")
+            print(f"🔇 TTS timeout after {timeout_seconds}s, immediate fallback")
+            return None
         except Exception as e:
-            logger.error(f"Error generating speech: {str(e)}")
+            logger.warning(f"🚨 TTS error: {str(e)} - immediate fallback, no audio")
+            print(f"🔇 TTS error: {str(e)}, immediate fallback")
             return None
     
     async def get_korean_voices(self) -> list:
@@ -206,5 +219,6 @@ class TypecastTTSService:
             }
         ]
 
-# 전역 TTS 서비스 인스턴스
-tts_service = TypecastTTSService()
+# 전역 TTS 서비스 인스턴스 - FIXED: Use working SeolMinSeok TTS instead of broken TypeCast
+from .seolminseok_tts_service import seolminseok_tts_service
+tts_service = seolminseok_tts_service

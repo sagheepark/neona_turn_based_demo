@@ -93,6 +93,8 @@ export default function EditCharacterPage() {
       }
       
       CharacterStorage.save(updatedCharacter)
+      // Clear localStorage demo cache to force refresh of character data
+      window.dispatchEvent(new Event('characters-updated'))
       router.push('/characters')
     } catch (error) {
       console.error('Error updating character:', error)

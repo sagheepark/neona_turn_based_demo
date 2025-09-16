@@ -1,4 +1,4 @@
-# SYSTEM ARCHITECTURE BLUEPRINT
+Updhe d later# SYSTEM ARCHITECTURE BLUEPRINT
 **Complete Technical Documentation for seol_min_seok and dr_genie Characters**
 
 ---
@@ -166,15 +166,15 @@ User answers question → POST /api/platform-chat → LLM evaluates → Response
 
 ## 🧠 **LLM INTEGRATION ARCHITECTURE**
 
-### **Azure GPT-4o Integration**
+### **🚀 GPT-4.1-mini Integration (Updated 2025-09-15)**
 ```python
 # File: backend_clean/services/llm_agent_engine.py
 class LLMAgentEngine:
     def __init__(self):
-        self.azure_client = AzureOpenAI(
-            api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-            api_version="2024-08-01-preview",
-            azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT")
+        # Updated to use OpenAI client with v1 endpoint for GPT-4.1-mini
+        self.azure_client = OpenAI(
+            base_url=os.getenv("AZURE_OPENAI_ENDPOINT"),  # https://neo-research.openai.azure.com/openai/v1/
+            api_key=os.getenv("AZURE_OPENAI_API_KEY")
         )
     
     async def process_interaction(self, context, character_prompt):
@@ -188,13 +188,34 @@ class LLMAgentEngine:
         ]
         
         response = await self.azure_client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4.1-mini",  # Updated model
             messages=messages,
             response_format={"type": "json_object"},
             temperature=0.7,
             max_tokens=2000
         )
 ```
+
+### **⚡ Performance Comparison Results (2025-09-15)**
+**Comprehensive latency testing with production-realistic prompts (7,263 chars + tools + JSON mode):**
+
+| Model | Average Latency | Range | Performance | Quality Score |
+|-------|----------------|-------|-------------|---------------|
+| **GPT-4o** | `2,012.2ms` | `1,847ms - 2,308ms` | Baseline | 100/100 |
+| **GPT-4.1-mini** | `1,628.2ms` | `1,189ms - 1,885ms` | **+19.1% faster** | 100/100 |
+
+**Key Findings:**
+- **384ms saved per interaction** (19.1% speed improvement)
+- **Identical quality**: Both models achieve perfect tool structure compliance
+- **Better consistency**: GPT-4.1-mini has tighter latency range
+- **Same educational accuracy**: Both provide historically/scientifically correct content
+- **Perfect JSON compliance**: 100% valid responses in production conditions
+
+**Test Details:**
+- **Prompt complexity**: Complete production prompts with character instructions, RAG knowledge, conversation state, and tool definitions
+- **Test scenarios**: 5 realistic quiz interactions including correct/incorrect answers
+- **Environment**: Same Azure endpoint, API key, and configuration
+- **Measurement**: End-to-end latency including JSON parsing and tool validation
 
 ### **Character-Specific Prompts**
 ```python
@@ -699,6 +720,138 @@ logger.info(f"🎯 STAGE MATCH: {stage} + {context} detected!")
 - Quiz completion rate  
 - Answer accuracy rate
 - TTS generation success rate
+
+---
+
+## 🔄 **LLM MODEL CHANGE CHECKLIST**
+
+### **📋 Complete Checklist for Switching LLM Models**
+
+When changing from one LLM model to another (e.g., GPT-4o → GPT-4.1-mini → GPT-5), update ALL of these locations:
+
+#### **🔧 Configuration Files**
+1. **Environment Variables** (`backend_clean/.env`)
+   ```bash
+   AZURE_OPENAI_ENDPOINT=https://your-endpoint/openai/v1/  # Update endpoint format
+   AZURE_OPENAI_DEPLOYMENT_NAME=new-model-name            # Update model deployment
+   AZURE_OPENAI_API_VERSION=2025-01-01-preview            # Update API version if needed
+   ```
+
+#### **🐍 Backend Python Files**
+2. **Main API Server** (`backend_clean/main.py`)
+   - Line 659: `AZURE_OPENAI_DEPLOYMENT` default value
+   - Line 663-667: Client initialization (AzureOpenAI vs OpenAI)
+   - Line 1203: `LLMConfig.deployment_name` default
+   - Line 1259: Available models list
+   - Update client import statements if needed
+
+3. **LLM Agent Engine** (`backend_clean/services/llm_agent_engine.py`)
+   - Line 41-48: Client initialization
+   - Line 108: Model name in API call
+   - Line 103: Log messages
+   - Line 182: Error messages
+
+4. **Other LLM Service Files** (if they exist)
+   - `backend_clean/services/llm_client.py` - Update model references
+   - `backend_clean/services/llm_structured_classifier.py` - Update model calls
+   - Any test files that make direct LLM calls
+
+#### **📚 Documentation Files**
+5. **System Architecture** (`plans/SYSTEM_ARCHITECTURE_BLUEPRINT.md`)
+   - Update LLM integration section
+   - Update performance benchmarks
+   - Update code examples
+
+6. **Implementation Plan** (`plans/plan_new.md`)
+   - Update model references
+   - Update performance expectations
+
+7. **Setup Guides**
+   - `plans/COLLEAGUE_SETUP_GUIDE.md` - Update model references
+   - `NEW_DEVICE_SETUP.md` - Update deployment instructions
+   - `DEPLOYMENT.md` - Update configuration examples
+
+#### **🧪 Test Files**
+8. **Latency Tests**
+   - `test_gpt41_mini_latency_comparison.py` - Update model configurations
+   - `test_quiz_answer_comparison.py` - Update model references
+
+9. **Integration Tests**
+   - Any files in `backend_clean/` that test LLM functionality
+   - Update expected response formats if they change
+
+#### **⚠️ Critical Considerations**
+
+**Client Library Changes:**
+- **Azure OpenAI models**: Use `AzureOpenAI` client with `azure_endpoint`
+- **Direct OpenAI models**: Use `OpenAI` client with `base_url`
+- **Different endpoints**: May require different authentication methods
+
+**API Compatibility:**
+- **Response formats**: Verify JSON mode support
+- **Token limits**: Update `max_tokens` if model has different limits  
+- **Tool calling**: Verify tool/function calling format compatibility
+- **Temperature ranges**: Some models have different valid ranges
+
+**Performance Impact:**
+- **Latency changes**: Re-run performance benchmarks
+- **Quality changes**: Test educational content accuracy
+- **Cost implications**: Different models have different pricing
+
+**Environment-Specific:**
+- **Development**: Update local `.env` files
+- **Production**: Update deployment configurations
+- **Colleague setups**: Update setup documentation
+
+#### **🔍 Verification Steps**
+
+After making changes:
+
+1. **Environment Test**
+   ```bash
+   cd backend_clean
+   python3 -c "import os; print('Endpoint:', os.getenv('AZURE_OPENAI_ENDPOINT')); print('Model:', os.getenv('AZURE_OPENAI_DEPLOYMENT_NAME'))"
+   ```
+
+2. **Client Initialization Test**
+   ```bash
+   cd backend_clean
+   python3 -c "from services.llm_agent_engine import LLMAgentEngine; engine = LLMAgentEngine(); print('✅ LLM client initialized')"
+   ```
+
+3. **End-to-End Quiz Test**
+   ```bash
+   # Start backend
+   cd backend_clean && python3 main.py
+   
+   # Test API endpoint
+   curl -X POST http://localhost:8001/api/platform-chat \
+     -H "Content-Type: application/json" \
+     -d '{"user_input": "안녕하세요", "character_id": "seol_min_seok_quiz", "user_id": "test"}'
+   ```
+
+4. **Performance Benchmark**
+   ```bash
+   python3 test_quiz_answer_comparison.py
+   ```
+
+#### **📝 Documentation Update Template**
+
+When updating documentation, use this template:
+
+```markdown
+### **🚀 [NEW_MODEL] Integration (Updated [DATE])**
+
+**Performance Comparison Results:**
+- **Previous Model**: [OLD_MODEL] - [OLD_LATENCY]ms average
+- **New Model**: [NEW_MODEL] - [NEW_LATENCY]ms average  
+- **Improvement**: [PERCENTAGE]% [faster/slower]
+
+**Key Changes:**
+- **Client Library**: [AzureOpenAI/OpenAI]
+- **Endpoint Format**: [ENDPOINT_URL]
+- **API Compatibility**: [COMPATIBLE/BREAKING_CHANGES]
+```
 
 ---
 

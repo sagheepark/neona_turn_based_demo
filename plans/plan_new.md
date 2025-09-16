@@ -9,46 +9,10 @@ Create a robust, user-controllable quiz platform where **LLM agents directly eva
 
 ---
 
-## 🚨 **CRITICAL BUGS RESOLVED**
-
-### **Issue 1: Progression Fallback Bug - FIXED** ✅
-**Problem**: Quiz would fallback to first question when wrong answer given at later questions
-**Root Cause**: Hardcoded patterns in `tool_orchestrator.py:583-605` methods
-- `_extract_last_question_from_history`: Had hardcoded patterns matching "창건자" or "이성계" 
-- `_extract_correct_answer_from_history`: Always returned first question data regardless of context
-
-**Solution Applied**: 
-- Removed ALL hardcoded fallback patterns
-- Now uses proper tool data extraction from `_extract_current_question_context`
-- Question progression works correctly - wrong answers retry SAME question, correct answers progress to NEW question
-
-### **Issue 2: Dr.Genie TTS Service Routing - FIXED** ✅ 
-**Problem**: Dr.Genie greeting had no TTS audio while seol_min_seok_quiz worked fine
-**Root Cause**: Frontend calls TWO different TTS endpoints with different routing logic
-- `/api/platform-chat` → tool_orchestrator → ✅ seolminseok_tts_service 
-- `/api/tts` → main.py:1529 condition → ❌ failed TypecastTTS (only checked 'seol_min_seok')
-
-**Solution Applied**:
-```python
-# BEFORE (main.py:1529):
-if 'seol_min_seok' in request.character_id:
-
-# AFTER (main.py:1529):  
-if 'seol_min_seok' in request.character_id or request.character_id == 'dr_genie_science_quiz':
-```
-**Verification**: Both characters now show `🎭 Quiz character detected - using dedicated TTS service`
-
-### **Issue 3: Server Import Caching** ⚠️
-**Problem**: TTS service method signatures cached old versions without `character_id` parameter
-**Solution**: Server restart cleared cached imports and loaded updated method signatures
-**Prevention**: Use `--reload` flag consistently for development
-
----
-
 ## 📋 **CORE SYSTEM RULES (NON-NEGOTIABLE)**
 
 ### **Rule 1: LLM-Driven Answer Evaluation**
-- **NO hardcoded if/else answer checking logic**
+- **NO hardcoded if/else answer checking logic**1. 
 - **LLM must evaluate answers using its knowledge and explicit question context**
 - **Store current question + correct answer in chat history for LLM reference**
 - **Let LLM directly compare user input with correct answer**
@@ -219,113 +183,21 @@ def detect_correct_answer(question: str, options: List[str]) -> str:
 
 ---
 
-## 🚨 **CRITICAL BUG STATUS UPDATE**
+## 🚨 **CRITICAL BUG FIXES IMPLEMENTED**
 
-### **Issue 1: Wrong Answer Progression Fallback** 
+### **Issue 1: Wrong Answer Progression Fallback**
 - **Problem**: When user answers second question wrong, system falls back to first question
-- **Status**: ✅ **FIXED - VERIFIED 2025-09-14**
-- **User Test**: seol_min_seok_quiz wrong answer at second question → falls back to first question
-- **Root Cause**: **HARDCODED FALLBACKS** in ToolOrchestrator services/tool_orchestrator.py:583-605
-- **Specific Issue**: `_extract_last_question_from_history` and `_extract_correct_answer_from_history` had hardcoded patterns that forced fallback to first question when ANY context contained "창건자" or "이성계"
-- **Technical Fix**: Removed hardcoded fallback patterns, now uses proper tool data extraction from `_extract_current_question_context`
-- **Code Changes**: 
-  - `_extract_correct_answer_from_history`: Now uses tool context instead of text pattern matching
-  - `_extract_last_question_from_history`: Now uses tool context instead of hardcoded question fallbacks
-- **Validation**: test_progression_fix_validation.py confirms fix works correctly
-- **Resolution**: Wrong answers now correctly retry the SAME question instead of falling back to first question
+- **Root Cause**: LLM lacks explicit current question context
+- **Solution**: Implemented `_extract_current_question_context()` and explicit prompting
+- **Status**: ✅ **FIXED**
 
-### **Issue 2: Dr.Genie TTS Greeting Issue** 
-- **User Report**: "Dr.Genie is still not using TTS for greeting. You should get back with your guarantee that the Dr.Genie is using the same logic, endpoint and others for its working as it does in seol_min_seok_quiz."
-- **Status**: ✅ **FIXED - VERIFIED 2025-09-14**
-- **Root Cause Found**: Dr.Genie was NOT using the same TTS service as seol_min_seok_quiz due to wrong service initialization in `continuous_answer_tool.py`
-- **Specific Problem**: 
-  - Line 1095: Called `self.tts_service.generate_seolminseok_tts()` but `self.tts_service` was TypecastTTSService (wrong service)
-  - Error: `'TypecastTTSService' object has no attribute 'generate_seolminseok_tts'`
-  - Dr.Genie needed SeolMinSeokTTSService but was getting wrong service
-- **Technical Fix Applied**:
-  - **Added correct service**: `self.seol_tts_service = seolminseok_tts_service` (line 84)
-  - **Fixed method calls**: Changed `self.tts_service.generate_seolminseok_tts()` to `self.seol_tts_service.generate_tts()`
-  - **File**: `/backend_clean/services/continuous_answer_tool.py`
-- **Verification Results** (debug_character_greeting.py):
-  - seol_min_seok_quiz: ✅ Audio URL: True, TTS working
-  - dr_genie_science_quiz: ✅ Audio URL: True, TTS working  
-- **Guarantee Confirmed**: Dr.Genie now uses **EXACTLY** the same TTS logic, endpoint, and service as seol_min_seok_quiz ✅
-
-### **Technical Analysis - UPDATED 2025-09-14**
-
-**Original Issues Identified:**
-- **Context Source**: `trigger_data` always contains first question, never current question  
-- **Template Override**: `quiz_retry_prompt` selected for wrong answers instead of fixed prompts
-- **Post-Processing Flaw**: Line 987 `context.get("question")` returns first question data
-- **Impact**: Breaks entire quiz progression - unusable for educational purposes
-
-**Fix Implementation Applied:**
-- **Location**: `continuous_answer_tool.py` lines 986-1015
-- **Method**: Replaced hardcoded `trigger_data` extraction with proper `ToolOrchestrator._extract_current_question_context()`
-- **Architecture**: LLM-driven chat history analysis instead of stale context data
-- **Integration**: Uses modern tool orchestration approach from `tool_orchestrator.py`
-
-**Resolution Status:**
-- **TDD Test Result**: ✅ **PASSING** (Issue resolved)
-- **Architecture Discovery**: Test uses modern ToolOrchestrator, not legacy continuous_answer_tool.py
-- **Solution**: ToolOrchestrator already had correct `_extract_current_question_context()` implementation
-- **Verification**: Wrong answers now retry current question instead of falling back to first question
-
-### **Issue 2: Continuous Tool Intermittent Failure - RESOLVED**
-- **Problem**: `continuous_quiz_response` tool is sometimes ignored, causing merged review and quiz responses
-- **Status**: ✅ **FIXED - VERIFIED 2025-09-14**
-- **User Report**: "The continuous tool is sometimes ignored, I got merged one review and quiz at the same time after answering the quiz."
-- **Pattern Analysis**: 
-  - Issue was **intermittent** - sometimes worked, sometimes failed
-  - When it failed: System returned `show_selection` instead of `continuous_quiz_response`
-  - When it failed: Content showed merged Phase1+Phase2 in single dialogue
-  - When it worked: Proper two-phase separation with separate Phase1 and Phase2
-- **Language Localization Impact**: 
-  - Korean prompt translation initially broke functionality completely
-  - Hybrid approach (English system instructions + Korean content) restored functionality
-  - However, intermittent failures persisted even with optimal prompt structure
-- **Root Cause Investigation**: 
-  - **Conflicting Prompt Instructions**: LLMAgentEngine and ToolOrchestrator gave contradictory tool usage instructions
-  - **LLMAgentEngine** (lines 75-94): Provided general tool usage guidelines including "Use continuous_quiz_response tool for quiz answers"
-  - **ToolOrchestrator** (lines 407-523): Provided specific overrides with "IGNORE ALL OTHER INSTRUCTIONS. USE CONTINUOUS_QUIZ_RESPONSE TOOL ONLY"
-  - **Conflict Result**: LLM received mixed signals, sometimes following general instructions (wrong) vs specific overrides (correct)
-- **Technical Fix Applied**:
-  - **Location**: `backend_clean/services/llm_agent_engine.py:82-94`
-  - **Change**: Removed conflicting tool usage instructions from system prompt
-  - **Before**: Specific tool usage guidelines that contradicted ToolOrchestrator instructions
-  - **After**: Generic response guidelines that defer to character prompt instructions
-- **Resolution**: Eliminated instruction contradiction, ensuring ToolOrchestrator's specific instructions take precedence
-- **Impact**: Consistent two-phase flow behavior - proper continuous_quiz_response tool usage
-
-### **Issue 2B: Second Phase Missing Quiz Text Regression - RESOLVED**
-- **Problem**: User reported regression: "I got the second phase without quiz text. '이제 다른 조선시대 주제로 넘어가볼까요:' This is what I got."
-- **Status**: ✅ **FIXED - 2025-09-14**
-- **User Report**: Second phase only showing transitional text without actual quiz question and options
-- **Root Cause Investigation**: 
-  - **Frontend Endpoint Mismatch**: Frontend was calling `/api/continuous-flow/trigger` (old legacy system)
-  - **Backend Architecture**: Backend had two different systems running simultaneously
-    - **Legacy System**: `continuous_answer_tool_v2.py` (broken, missing quiz text in phase 2)
-    - **Modern System**: ToolOrchestrator via `/api/platform-chat` (working correctly)
-  - **Server Logs Analysis**: Showed old legacy system being used instead of fixed ToolOrchestrator
-- **Technical Fix Applied**:
-  - **Frontend Update**: Changed `frontend/src/app/chat/[characterId]/page.tsx:508`
-    - **Before**: `await fetch(\`\${API_BASE_URL}/api/continuous-flow/trigger\`)`
-    - **After**: `await fetch(\`\${API_BASE_URL}/api/platform-chat\`)`
-  - **Request Format Update**: Changed from legacy format to modern ToolOrchestrator format
-    - **Before**: `{session_id, character_id, tool_type, data: {selection, correct_answer, question, items}}`
-    - **After**: `{user_input: selection, character_id, session_id, user_id}`
-  - **Response Parsing Update**: Updated to handle ToolOrchestrator's simpler response format
-  - **Backend Cleanup**: Commented out deprecated `/api/continuous-flow/trigger` endpoint entirely
-- **Resolution**: Frontend now uses the working ToolOrchestrator system instead of broken legacy system
-- **Impact**: Proper two-phase flow with complete quiz questions in phase 2
-
-### **Issue 3: Missing Correct Answers in Quiz Questions**
+### **Issue 2: Missing Correct Answers in Quiz Questions**
 - **Problem**: Quiz questions generated without correct_answer field
 - **Root Cause**: LLM responses missing required field
 - **Solution**: Added intelligent correct answer detection in `platform_tool_handler.py`
 - **Status**: ✅ **FIXED**
 
-### **Issue 4: TTS Method Signature Incompatibility**
+### **Issue 3: TTS Method Signature Incompatibility**
 - **Problem**: Different TTS services have incompatible method signatures
 - **Root Cause**: Legacy code using different parameter names
 - **Solution**: Added character_id parameter and **kwargs to all TTS methods
@@ -335,63 +207,18 @@ def detect_correct_answer(question: str, options: List[str]) -> str:
 
 ## 🎯 **IMMEDIATE DEVELOPMENT PLAN**
 
-### **Phase 1: Core Answer Evaluation** 
-1. ✅ **Implement explicit question context extraction** - COMPLETED (2025-09-14)
-2. ✅ **Add LLM evaluation with full question context** - COMPLETED 
-3. ✅ **Test wrong answer retry flow** - COMPLETED (TDD RED phase confirmed bug)
-4. 🔴 **CRITICAL FIX APPLIED BUT NEEDS INTEGRATION** - Fix implemented in `continuous_answer_tool.py:986-1015`
-5. ⏳ **Verify correct answer progression flow** - PENDING INTEGRATION FIX
-
-### **CURRENT STATUS (2025-09-14): TDD CYCLE COMPLETED ✅**
-
-**✅ RED PHASE COMPLETED:**
-- Created TDD test that reproduced exact user-reported bug
-- Confirmed: Wrong answer on second question falls back to first question
-
-**✅ GREEN PHASE COMPLETED:**
-- Discovered modern ToolOrchestrator already has correct implementation
-- `_extract_current_question_context()` properly extracts current question from chat history
-- System uses LLM-driven chat history analysis instead of stale trigger_data
-
-**✅ REFACTOR PHASE COMPLETED:**
-- **Resolution**: Bug was already fixed in production architecture
-- **Verification**: TDD test now passes - wrong answers retry current question correctly
-- **Architecture**: `/api/platform-chat` uses ToolOrchestrator, not legacy continuous_answer_tool.py
-
-### **Phase 1B: Integration Analysis - COMPLETED ✅**
-1. ✅ **Investigate why TDD test bypasses the fix** - SOLVED: Test uses ToolOrchestrator, not legacy code
-2. ✅ **Identify all quiz flow routing paths** - MAPPED: `/api/platform-chat` → ToolOrchestrator → proper implementation
-3. ✅ **Ensure fix is applied across all entry points** - VERIFIED: Modern architecture already correct
-4. ✅ **Validate session management and chat history persistence** - WORKING: TDD test passes consistently
-
-### **Phase 1C: Continuous Tool Reliability Analysis - COMPLETED ✅**
-1. ✅ **Investigate continuous_quiz_response intermittent failures** - COMPLETED: Created comprehensive test suite
-2. ✅ **Analyze failure patterns** - COMPLETED: 100% success rate in isolated tests, suggesting context-dependent failures
-3. ✅ **Identify potential causes** - ANALYZED: LLM instruction-following inconsistency under certain conditions
-4. ✅ **Test prompt optimization** - COMPLETED: Hybrid Korean/English approach maintains functionality
-5. ✅ **Document investigation findings** - COMPLETED: Comprehensive analysis below
-
-**Root Cause Analysis - COMPLETED ✅**:
-- **Issue Type**: **Conflicting Prompt Instructions** - architectural flaw in prompt design
-- **Pattern**: Intermittent - LLM received contradictory instructions from multiple sources
-- **Technical Details**:
-  - LLMAgentEngine provided general tool usage guidelines
-  - ToolOrchestrator provided specific override instructions
-  - LLM sometimes followed general guidelines (causing failures) vs specific overrides (correct behavior)
-- **Discovery Method**: Code inspection revealed instruction contradiction in system prompts
-- **Resolution**: Removed conflicting instructions from LLMAgentEngine, allowing ToolOrchestrator precedence
-
-**Solution Implemented**:
-1. ✅ **Prompt Instruction Cleanup**: Eliminated contradictory tool usage instructions
-2. ✅ **Clear Instruction Hierarchy**: ToolOrchestrator instructions take precedence
-3. ✅ **Generic Response Guidelines**: LLMAgentEngine now provides only general behavior guidelines
-4. ✅ **Consistent Tool Usage**: Single source of truth for tool selection logic
+### **Phase 1: Core Answer Evaluation (CURRENT PRIORITY)**
+1. ✅ **Implement explicit question context extraction**
+2. ✅ **Add LLM evaluation with full question context**
+3. ✅ **Test wrong answer retry flow**
+4. ⏳ **Verify correct answer progression flow**
+5. ⏳ **Ensure educational feedback quality**
 
 ### **Phase 2: System Robustness**
 1. ⏳ **Add comprehensive error handling for LLM failures**
 2. ⏳ **Implement fallback mechanisms for tool execution**
 3. ⏳ **Add performance monitoring and logging**
-4. ✅ **Create automated testing for quiz flows** - TDD test created and validates bug
+4. ⏳ **Create automated testing for quiz flows**
 
 ### **Phase 3: Educational Quality**
 1. ⏳ **Enhance pedagogical feedback for wrong answers**
@@ -471,23 +298,5 @@ def test_educational_feedback():
 ---
 
 **Last Updated**: September 14, 2025  
-**Current Status**: ✅ **ALL CRITICAL ISSUES RESOLVED**
-- Core answer evaluation system implemented and tested
-- Progression fallback bug fixed and verified
-- Two-phase flow working correctly for all quiz interactions
-- System uses unified ToolOrchestrator logic for consistent behavior
-- Continuous tool intermittent failure completely resolved
-
-**Implementation Summary**:
-- ✅ **Language Localization Completed**: Hybrid Korean/English prompts implemented for optimal results
-- ✅ **Root Cause Analysis Completed**: Identified conflicting prompt instructions as primary cause
-- ✅ **Technical Fix Deployed**: Removed instruction contradictions from LLMAgentEngine
-- ✅ **System Architecture Validated**: ToolOrchestrator-based approach working consistently
-
-**Final Resolution Status**: 
-  1. ✅ Progression fallback issue - Modern ToolOrchestrator architecture already correct
-  2. ✅ Two-phase flow reliability - Conflicting prompt instructions eliminated
-  3. ✅ Language consistency - Hybrid Korean/English approach maintains functionality
-  4. ✅ Tool orchestration - Single source of truth for tool selection established
-
-**System Ready**: Quiz platform fully operational with reliable LLM-driven answer evaluation
+**Current Status**: Core answer evaluation system implemented and tested  
+**Next Milestone**: Complete system robustness and educational quality improvements

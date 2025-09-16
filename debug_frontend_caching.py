@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+nt va#!/usr/bin/env python3
 """
 Debug frontend caching issues by testing with different sessions and browsers
 """

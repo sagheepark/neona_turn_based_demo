@@ -1,0 +1,171 @@
+{
+  "timestamp": "2025-09-15T13:25:03.655953",
+  "test_config": {
+    "gpt4o_model": "gpt-4o",
+    "gpt41_mini_model": "gpt-4.1-mini",
+    "scenarios_tested": 5
+  },
+  "results": [
+    {
+      "scenario": "조선시대에 대해 퀴즈를 내주세요",
+      "results": [
+        {
+          "model": "GPT-4o (Current)",
+          "latency_ms": 2624.77,
+          "success": true,
+          "content_length": 356,
+          "dialogue_length": 70,
+          "has_tool": true,
+          "tool_type": "show_selection",
+          "estimated_input_tokens": 1346,
+          "estimated_output_tokens": 53,
+          "response_preview": "좋은 선택이에요! 조선시대는 정말 흥미진진한 시대죠. 자, 그럼 첫 번째 문제를 시작해볼까요? 조선을 건국한 왕은 누구일까요?",
+          "json_valid": true
+        },
+        {
+          "model": "GPT-4.1-mini (New)",
+          "latency_ms": 2202.16,
+          "success": true,
+          "content_length": 336,
+          "dialogue_length": 93,
+          "has_tool": true,
+          "tool_type": "show_selection",
+          "estimated_input_tokens": 1346,
+          "estimated_output_tokens": 59,
+          "response_preview": "좋아요! 조선시대는 1392년에 이성계가 건국한 왕조로, 유교 문화가 크게 발전한 시기입니다. 자, 그럼 첫 번째 문제를 시작해볼까요? 조선을 건국한 왕은 누구일까요?",
+          "json_valid": true
+        }
+      ]
+    },
+    {
+      "scenario": "세종대왕",
+      "results": [
+        {
+          "model": "GPT-4o (Current)",
+          "latency_ms": 2019.54,
+          "success": true,
+          "content_length": 383,
+          "dialogue_length": 83,
+          "has_tool": true,
+          "tool_type": "show_selection",
+          "estimated_input_tokens": 1342,
+          "estimated_output_tokens": 62,
+          "response_preview": "좋은 선택이에요! 세종대왕은 정말 대단한 업적을 많이 남기신 분이죠. 자, 그럼 첫 번째 문제를 시작해볼까요? 세종대왕의 대표적인 업적은 무엇일까요?",
+          "json_valid": true
+        },
+        {
+          "model": "GPT-4.1-mini (New)",
+          "latency_ms": 1781.77,
+          "success": true,
+          "content_length": 339,
+          "dialogue_length": 82,
+          "has_tool": true,
+          "tool_type": "show_selection",
+          "estimated_input_tokens": 1342,
+          "estimated_output_tokens": 58,
+          "response_preview": "훌륭해요! 세종대왕은 조선시대의 대표적인 성군으로, 한글을 창제하고 과학기술을 발전시킨 위대한 왕이죠. 그럼 세종대왕의 대표적인 업적은 무엇일까요?",
+          "json_valid": true
+        }
+      ]
+    },
+    {
+      "scenario": "한글 창제",
+      "results": [
+        {
+          "model": "GPT-4o (Current)",
+          "latency_ms": 1961.36,
+          "success": true,
+          "content_length": 359,
+          "dialogue_length": 70,
+          "has_tool": true,
+          "tool_type": "show_selection",
+          "estimated_input_tokens": 1344,
+          "estimated_output_tokens": 53,
+          "response_preview": "좋은 선택이에요! 조선시대는 정말 흥미진진한 시대죠. 자, 그럼 첫 번째 문제를 시작해볼까요? 조선을 건국한 왕은 누구일까요?",
+          "json_valid": true
+        },
+        {
+          "model": "GPT-4.1-mini (New)",
+          "latency_ms": 2711.17,
+          "success": true,
+          "content_length": 734,
+          "dialogue_length": 140,
+          "has_tool": true,
+          "tool_type": "continuous_quiz_response",
+          "estimated_input_tokens": 1344,
+          "estimated_output_tokens": 123,
+          "response_preview": "훌륭해요! 정말 맞습니다. 이성계는 1392년 조선을 건국하여 태조가 되었습니다. 조선은 고려 말의 혼란을 극복하고 새로운 유교 국가를 세웠지요. 자, 이제 조선시대의 대표적인 성군인 세종대왕에 대해 알아볼까요? 세종대왕의 대표적인 업적은 무엇일까요?",
+          "json_valid": true
+        }
+      ]
+    },
+    {
+      "scenario": "다음 문제 주세요",
+      "results": [
+        {
+          "model": "GPT-4o (Current)",
+          "latency_ms": 1878.51,
+          "success": true,
+          "content_length": 355,
+          "dialogue_length": 70,
+          "has_tool": true,
+          "tool_type": "show_selection",
+          "estimated_input_tokens": 1345,
+          "estimated_output_tokens": 53,
+          "response_preview": "좋은 선택이에요! 조선시대는 정말 흥미진진한 시대죠. 자, 그럼 첫 번째 문제를 시작해볼까요? 조선을 건국한 왕은 누구일까요?",
+          "json_valid": true
+        },
+        {
+          "model": "GPT-4.1-mini (New)",
+          "latency_ms": 6315.51,
+          "success": true,
+          "content_length": 792,
+          "dialogue_length": 144,
+          "has_tool": true,
+          "tool_type": "continuous_quiz_response",
+          "estimated_input_tokens": 1345,
+          "estimated_output_tokens": 144,
+          "response_preview": "훌륭해요! 정말 맞습니다. 이성계는 1392년 조선을 건국하여 태조가 되었습니다. 조선은 이후 518년간 지속된 한국 역사상 가장 긴 통일 왕조로, 많은 문화와 제도가 발전했죠. 이제 다른 조선시대 주제로 넘어가볼까요: 세종대왕의 대표적인 업적은 무엇일까요?",
+          "json_valid": true
+        }
+      ]
+    },
+    {
+      "scenario": "고려시대는 어떤 시대인가요?",
+      "results": [
+        {
+          "model": "GPT-4o (Current)",
+          "latency_ms": 2412.85,
+          "success": true,
+          "content_length": 471,
+          "dialogue_length": 185,
+          "has_tool": true,
+          "tool_type": "show_selection",
+          "estimated_input_tokens": 1345,
+          "estimated_output_tokens": 88,
+          "response_preview": "고려시대는 918년 왕건에 의해 건국된 한국의 중세 왕조입니다. 고려는 약 474년 동안 지속되었으며, 특히 불교를 국가의 주요 종교로 삼았습니다. 고려는 또한 몽골과의 전쟁에서 많은 어려움을 겪었지만 결국 원나라와의 관계를 통해 안정된 시기를 맞이했습니다. 자, 그럼 첫 번째 문제를 시작해볼까요? 조선을 건국한 왕은 누구일까요?",
+          "json_valid": true
+        },
+        {
+          "model": "GPT-4.1-mini (New)",
+          "latency_ms": 1672.4,
+          "success": true,
+          "content_length": 311,
+          "dialogue_length": 99,
+          "has_tool": true,
+          "tool_type": "show_selection",
+          "estimated_input_tokens": 1345,
+          "estimated_output_tokens": 59,
+          "response_preview": "고려 시대는 918년에 왕건이 세운 왕조로, 불교가 크게 번성하고 문화와 예술이 발달한 시기입니다. 하지만 오늘은 조선 시대에 대해 집중해볼까요? 조선을 건국한 왕은 누구일까요?",
+          "json_valid": true
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "successful_comparisons": 5,
+    "avg_gpt4o_latency": 2179.406,
+    "avg_gpt41_latency": 2936.602,
+    "overall_improvement_percent": -34.74322820071157
+  }
+}
