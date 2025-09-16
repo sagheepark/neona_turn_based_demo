@@ -314,7 +314,7 @@ async def startup_event():
     
     try:
         # Warm up LLM clients for all character types
-        character_ids = ["seol_min_seok_quiz", "dr_genie_science_quiz", "default"]
+        character_ids = ["seol_min_seok_quiz", "dr_genie_science_quiz"]
         await llm_pool.warm_up_clients(character_ids)
         
         # Warm up TTS services

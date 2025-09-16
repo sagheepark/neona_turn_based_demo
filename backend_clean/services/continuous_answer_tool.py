@@ -91,7 +91,7 @@ class ContinuousAnswerTool:
         # Quiz continuous flow configuration
         quiz_flow = {
             "flow_id": "quiz_continuous_v1",
-            "character_types": ["seol_min_seok_quiz", "seolminseok_korean_history_chat", "kim_daehyun_history", "history_teacher", "dr_genie_science_quiz"],
+            "character_types": ["seol_min_seok_quiz", "dr_genie_science_quiz"],
             "trigger": {
                 "tool_type": "continuous_answer",
                 "event": "user_selection"
@@ -267,7 +267,7 @@ class ContinuousAnswerTool:
         # 🆕 Feedback-triggered continuous flow (for our corrected detection)
         feedback_flow = {
             "flow_id": "quiz_feedback_continuous_v1",
-            "character_types": ["seol_min_seok_quiz", "seolminseok_korean_history_chat", "kim_daehyun_history", "history_teacher", "dr_genie_science_quiz"],
+            "character_types": ["seol_min_seok_quiz", "dr_genie_science_quiz"],
             "trigger": {
                 "tool_type": "continue_feedback_flow",
                 "event": "quiz_feedback"
@@ -324,7 +324,7 @@ class ContinuousAnswerTool:
         # 🆕 Add flow configuration for show_selection tool (for greeting and initial quiz presentation)
         show_selection_flow = {
             "flow_id": "show_selection_v1",
-            "character_types": ["seol_min_seok_quiz", "seolminseok_korean_history_chat", "kim_daehyun_history", "history_teacher", "dr_genie_science_quiz"],
+            "character_types": ["seol_min_seok_quiz", "dr_genie_science_quiz"],
             "trigger": {
                 "tool_type": "show_selection",
                 "event": "quiz_presentation"

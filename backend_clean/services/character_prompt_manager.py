@@ -53,7 +53,6 @@ class CharacterPromptManager:
         """Initialize default character prompts"""
         
         return {
-            "seolminseok_korean_history_chat": self._get_seol_min_seok_prompt(),
             "seol_min_seok_quiz": self._get_seol_min_seok_prompt(),
             "dr_genie_science_quiz": self._get_science_quiz_prompt()
         }
@@ -68,9 +67,13 @@ Your 'dialogue' field should contain ONLY:
 - The quiz question spoken naturally
 - DO NOT include answer options in dialogue (they appear as buttons)
 - Smooth transitions for professional audio delivery
+- In JSON string values: use literal \\n characters (backslash + n) for sentence separation
+- Do NOT insert actual newline characters inside JSON string values
+- Output as if created by JSON.stringify() with proper escaping
+- Example: "dialogue": "First sentence.\\nSecond sentence."
 
 CORRECT DIALOGUE EXAMPLE FOR QUIZZES:
-"좋은 선택이에요! 조선시대는 정말 흥미진진한 시대죠. 자, 그럼 첫 번째 문제를 시작해볼까요? 조선을 건국한 왕은 누구일까요?"
+"좋은 선택이에요!\\n 조선시대는 정말 흥미진진한 시대죠.\\n 자, 그럼 첫 번째 문제를 시작해볼까요?\\n 조선을 건국한 왕은 누구일까요?"
 
 TOOL PROVIDES THE OPTIONS:
 - Options appear as clickable buttons in UI
@@ -116,9 +119,13 @@ Your 'dialogue' field should contain ONLY:
 - The quiz question spoken naturally
 - DO NOT include answer options in dialogue (they appear as buttons)
 - Smooth transitions for professional audio delivery
+- In JSON string values: use literal \\n characters (backslash + n) for sentence separation
+- Do NOT insert actual newline characters inside JSON string values
+- Output as if created by JSON.stringify() with proper escaping
+- Example: "dialogue": "First sentence.\\nSecond sentence."
 
 CORRECT DIALOGUE EXAMPLE FOR QUIZZES:
-"좋은 선택이에요! 물질의 상태 변화는 정말 신기한 현상이죠. 자, 그럼 첫 번째 문제를 시작해볼까요? 물이 0도 이하로 내려가면 무엇이 될까요?"
+"좋은 선택이에요!\\n 물질의 상태 변화는 정말 신기한 현상이죠.\\n 자, 그럼 첫 번째 문제를 시작해볼까요?\\n 물이 0도 이하로 내려가면 무엇이 될까요?"
 
 TOOL PROVIDES THE OPTIONS:
 - Options appear as clickable buttons in UI

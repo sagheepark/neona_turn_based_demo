@@ -23,16 +23,12 @@ AZURE_SPEECH_KEY=your-speech-key
 AZURE_SPEECH_REGION=your-region
 ```
 
-### 2. MongoDB Connection Info
-Choose one option:
-
-**Option A: Local MongoDB (Recommended for development)**
-- Install MongoDB Community Edition
-- Default connection: `mongodb://localhost:27017/neona_chat`
-
-**Option B: MongoDB Atlas (Cloud)**
-- Connection string from your Atlas cluster
-- Format: `mongodb+srv://username:password@cluster.mongodb.net/neona_chat?retryWrites=true&w=majority`
+### 2. No Database Setup Required!
+The demo now uses **local file storage** for all data:
+- Character definitions: In code files
+- Knowledge base: Local JSON files
+- Chat sessions: Local JSON files in `conversations/` folder
+- No MongoDB installation needed!
 
 ## 🛠️ Step-by-Step Setup
 
@@ -42,19 +38,18 @@ Choose one option:
 - [Python 3.8+](https://www.python.org/downloads/)
 - [Node.js 18+](https://nodejs.org/)
 - [Git](https://git-scm.com/downloads/)
-- [MongoDB Community](https://docs.mongodb.com/manual/installation/) (if using local)
+
+**Note**: MongoDB is no longer required!
 
 **macOS (Homebrew):**
 ```bash
-brew install python node git mongodb-community
-brew services start mongodb-community
+brew install python node git
 ```
 
 **Ubuntu/Debian:**
 ```bash
 sudo apt update
 sudo apt install python3 python3-pip nodejs npm git
-# Follow MongoDB installation guide for your OS
 ```
 
 ### Step 2: Clone Repository
@@ -99,17 +94,11 @@ vim .env
 
 **Paste your API keys** from the original setup.
 
-### Step 5: Import Sample Data
-```bash
-# Start with sample data (recommended for first setup)
-python3 import_mongodb_data.py
-
-# Choose option 1 to import all sample data
-# This creates:
-# - 3 Characters (설민석, 박현, 윤아리)
-# - Korean history knowledge base
-# - Sample conversations
-```
+### Step 5: Data Already Included!
+No data import needed! The demo comes with:
+- **2 Quiz Characters**: 설쌤 (History) & 닥터 지니 (Science)
+- **Knowledge Base**: Pre-loaded Korean history and science knowledge
+- **Session Storage**: Conversations automatically saved to local files
 
 ### Step 6: Start Application
 

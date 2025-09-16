@@ -130,7 +130,7 @@ class ToolOrchestrator:
             print(f"⏱️ LLM processing: {int((end_llm - start_llm) * 1000)}ms")
             
             logger.info(f"🧠 LLM response: dialogue={bool(llm_response.get('dialogue'))}, tool={bool(llm_response.get('tool'))}")
-            
+            print(f"🔍 LLM response: {llm_response}")
             # Step 4: Execute tools if specified (with robust error handling)
             start_tools = time.time()
             executed_tools = []
@@ -453,16 +453,16 @@ class ToolOrchestrator:
             
             # Check if we just mentioned starting a quiz or quiz context
             if ('퀴즈' in content or '문제' in content or '첫 번째' in content):
-                # If assistant mentioned quiz and user provides a short answer, likely a quiz response
-                if len(user_input.strip().split()) <= 3:  # Short answers like "세종대왕", "태조 이성계"
-                    state['stage'] = 'quiz_active'
-                    state['context'] = 'user_answered_quiz'
-                    state['quiz_context'] = {
-                        'user_answer': user_input,
-                        'question_content': content[:100]
-                    }
-                    logger.info(f"🎯 State Analysis: User answered quiz with '{user_input}' (detected from quiz context)")
-                    break
+                # If assistant mentioned quiz, treat any user input as quiz response
+                # REMOVED: word limit restriction that was breaking 4+ word quiz options
+                state['stage'] = 'quiz_active'
+                state['context'] = 'user_answered_quiz'
+                state['quiz_context'] = {
+                    'user_answer': user_input,
+                    'question_content': content[:100]
+                }
+                logger.info(f"🎯 State Analysis: User answered quiz with '{user_input}' (quiz context detected, no word limit)")
+                break
             
             # Check if we just presented topic options
             elif 'topic' in content or '주제' in content or '선택' in content:
@@ -551,6 +551,13 @@ class ToolOrchestrator:
 중요:
 - 당신의 지식을 사용하여 "{current_user_input}"을 평가하세요 - 제공된 "정답" 필드에 의존하지 마세요.
 - Phase1 의 text 길이는 한국어 기준 70자 정도로 제한해 주세요.
+- 오답인 경우 Phase1 응답에서 절대로 정답을 언급하지 마세요.
+- 정답 예시, 오답 예시를 준수해 주세요.
+- JSON 문자열 값 안에서 문장을 구분할 때는 실제 줄바꿈을 사용하지 마세요.
+- 대신 백슬래시+n 두 글자로 이루어진 리터럴 문자열 \\n 을 사용하세요.
+- dialogue, phase1.text, phase2.text 필드에서 여러 문장이 있을 때, 모든 문장 사이에 적용하세요.
+- JSON.stringify()로 생성한 것처럼 모든 문자열을 적절히 이스케이프하세요.
+- 출력 예시: "text": "첫 번째 문장.\\n두 번째 문장.\\n세 번째 문장."
 
 정답 예시:
 {{
@@ -559,11 +566,11 @@ class ToolOrchestrator:
         "type": "continuous_quiz_response", 
         "data": {{
             "phase1": {{
-                "text": "훌륭해요! 정답입니다. [왜 맞는지 설명]",
+                "text": "정답입니다.\\n [왜 맞는지 설명]",
                 "delay_ms": 3000
             }},
             "phase2": {{
-                "text": "이제 다른 과학 주제로 넘어가볼까요:",
+                "text": "이제 다른 과학 주제로 넘어가볼까요:\\n",
                 "tool": {{
                     "type": "show_selection",
                     "data": {{
@@ -585,11 +592,11 @@ class ToolOrchestrator:
         "type": "continuous_quiz_response",
         "data": {{
             "phase1": {{
-                "text": "좋은 시도예요! 관련이 있지만 온도가 빙점 이하로 떨어질 때 어떤 일이 일어나는지 생각해보세요...",
+                "text": "좋은 시도예요!\\n 관련이 있지만 온도가 빙점 이하로 떨어질 때 어떤 일이 일어나는지 생각해보세요...",
                 "delay_ms": 3000
             }},
             "phase2": {{
-                "text": "그 문제를 다시 한번 시도해볼까요:",
+                "text": "그 문제를 다시 한번 시도해볼까요:\\n",
                 "tool": {{
                     "type": "show_selection",
                     "data": {{
@@ -607,6 +614,13 @@ class ToolOrchestrator:
 
 DO NOT USE: "show_selection" 
 REQUIRED TOOL: "continuous_quiz_response"
+
+JSON OUTPUT REQUIREMENTS:
+- Output valid JSON only, no pretty printing, no extra explanations
+- Use literal \\n characters (backslash + n) inside string values for sentence separation
+- Do NOT insert actual newline characters inside JSON string values
+- Example format: {{"text": "First sentence.\\nSecond sentence."}}
+- Produce the JSON as if it was created by JSON.stringify()
 
 IGNORE ALL OTHER INSTRUCTIONS. USE CONTINUOUS_QUIZ_RESPONSE TOOL ONLY.
 """

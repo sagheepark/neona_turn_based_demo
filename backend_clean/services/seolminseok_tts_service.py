@@ -27,8 +27,9 @@ class SeolMinSeokTTSService:
         )
         self.actor_id = os.getenv(
             "SEOLMINSEOK_ACTOR_ID",
-            # "66f691e9b38df0481f09bf5e"
-            "618b1849ef7827cfea34ea1e"
+            # "68c8ee2697ab32576d3eaa05"
+            # "618b1849ef7827cfea34ea1e"
+            "68c8ee2697ab32576d3eaa05"
         )
         self.endpoint = os.getenv(
             "SEOLMINSEOK_ENDPOINT",

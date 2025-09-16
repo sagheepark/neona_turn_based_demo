@@ -7,8 +7,9 @@ This guide helps you replicate the Neona Chat Demo to another device using GitHu
 ### Required Software
 - **Python 3.8+** - [Download here](https://www.python.org/downloads/)
 - **Node.js 18+** - [Download here](https://nodejs.org/)
-- **MongoDB Community Edition** - [Installation guide](https://docs.mongodb.com/manual/installation/)
 - **Git** - [Download here](https://git-scm.com/downloads/)
+
+**Note**: MongoDB is no longer required! The demo now uses local file storage for all data.
 
 ### API Keys Needed
 - **Azure OpenAI** - Required for LLM responses
@@ -24,19 +25,8 @@ git clone <your-github-repo-url>
 cd neona_turn_based_demo_with_agent
 ```
 
-### 2. Start MongoDB
-```bash
-# macOS (with Homebrew)
-brew services start mongodb/brew/mongodb-community
-
-# Ubuntu/Debian
-sudo systemctl start mongod
-
-# Windows
-net start MongoDB
-
-# Or use MongoDB Compass GUI
-```
+### 2. No Database Setup Required!
+The demo now uses local file storage, so no MongoDB installation or setup is needed. All character data, knowledge, and conversations are stored in local files.
 
 ### 3. Run Setup Script
 ```bash
@@ -61,8 +51,8 @@ AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
 AZURE_OPENAI_API_KEY=your-api-key
 AZURE_OPENAI_DEPLOYMENT=your-deployment-name
 
-# MongoDB (REQUIRED)
-MONGODB_URL=mongodb://localhost:27017/neona_chat
+# MongoDB (NO LONGER REQUIRED - demo uses local files)
+# MONGODB_URL=mongodb://localhost:27017/neona_chat
 ```
 
 #### Optional Configuration
@@ -98,20 +88,20 @@ npm run dev
 ```
 Frontend will run on `http://localhost:3000`
 
-### 6. Import Sample Data (Optional)
-If you want to start with sample data (recommended for first-time setup):
+### 6. Sample Data Already Included!
+The demo comes with pre-configured local data:
 
-```bash
-cd backend_clean
-python3 import_mongodb_data.py
-# Choose option 1 to import all sample data
-```
+**Characters Available:**
+- 설쌤 (Korean History Quiz Tutor)
+- 닥터 지니 (Science Quiz Tutor)
 
-This will create:
-- 3 Characters (설민석, 박현, 윤아리)
-- Knowledge base for 설민석 (Korean history)
-- Sample user persona
-- Demo conversation
+**Knowledge Base:**
+- Korean history knowledge (898 items)
+- Science knowledge (188 items)
+
+**Session Storage:**
+- All conversations saved to `conversations/` folder
+- No database import needed!
 
 ### 7. Test the Application
 1. Open `http://localhost:3000` in your browser
