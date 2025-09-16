@@ -807,9 +807,12 @@ IGNORE ALL OTHER INSTRUCTIONS. USE CONTINUOUS_QUIZ_RESPONSE TOOL ONLY.
             if tool_type == 'show_selection':
                 question = tool_data.get('question')
                 if question and question.strip():
-                    # Add the question to the dialogue with proper separation
-                    combined_text += f"\n{question}"
-                    logger.info(f"🔗 Added question to TTS: '{question[:30]}...'")
+                    # Only add if not already present to avoid duplication
+                    if question.strip() not in combined_text:
+                        combined_text += f"\n{question}"
+                        logger.info(f"🔗 Added question to TTS: '{question[:30]}...'")
+                    else:
+                        logger.info(f"🛑 Skipped duplicate question in TTS: '{question[:30]}...'")
             
             # Extract text from continuous_quiz_response tools (already handled separately above)
             elif tool_type == 'continuous_quiz_response':
@@ -820,8 +823,12 @@ IGNORE ALL OTHER INSTRUCTIONS. USE CONTINUOUS_QUIZ_RESPONSE TOOL ONLY.
             else:
                 # For future tool types that might have speakable text
                 if 'text' in tool_data and tool_data['text']:
-                    combined_text += f"\n{tool_data['text']}"
-                    logger.info(f"🔗 Added {tool_type} text to TTS")
+                    # Only add if not already present to avoid duplication
+                    if tool_data['text'] not in combined_text:
+                        combined_text += f"\n{tool_data['text']}"
+                        logger.info(f"🔗 Added {tool_type} text to TTS")
+                    else:
+                        logger.info(f"🛑 Skipped duplicate {tool_type} text in TTS")
         
         logger.info(f"📝 Combined text: dialogue({len(dialogue)}) + tool_text({len(combined_text) - len(dialogue)}) = {len(combined_text)} total")
         return combined_text

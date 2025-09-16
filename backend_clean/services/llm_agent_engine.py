@@ -121,7 +121,10 @@ RESPONSE GUIDELINES:
             
             # Parse JSON response
             response_content = response.choices[0].message.content
-            logger.info(f"🔍 Raw LLM response: {response_content}")
+            
+            # Safety check for None response
+            if response_content is None:
+                raise ValueError("LLM returned empty response (None content)")
             
             parsed_response = json.loads(response_content)
             
