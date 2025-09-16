@@ -14,6 +14,7 @@ import json
 import logging
 import uuid
 import asyncio
+import httpx
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 # Performance logger removed
@@ -176,7 +177,7 @@ class ToolOrchestrator:
             end_tools = time.time()
             print(f"⏱️ Tools processing: {int((end_tools - start_tools) * 1000)}ms")
             
-            # Step 5: Generate TTS for dialogue - SIMPLIFIED FOR IMMEDIATE USE
+            # Step 5: Generate TTS for dialogue - PARALLEL SENTENCE PROCESSING
             start_tts_total = time.time()
             audio_url = None
             streaming_audio_info = None
@@ -187,61 +188,80 @@ class ToolOrchestrator:
             
             if dialogue:
                 try:
-                    print("🎯 STARTING DIRECT TTS GENERATION (NO STREAMING)")
-                    logger.info(f"🎯 DIRECT TTS GENERATION: dialogue_length={len(dialogue)}")
+                    print("🎯 STARTING PARALLEL SENTENCE TTS GENERATION")
+                    logger.info(f"🎯 PARALLEL SENTENCE TTS: dialogue_length={len(dialogue)}")
                     
-                    # Handle continuous_quiz_response with separate phase TTS - PARALLEL
+                    # Handle continuous_quiz_response with sentence-level parallel TTS within phases
                     if executed_tools and executed_tools[0]['type'] == 'continuous_quiz_response':
+                        print("🔄 CONTINUOUS_QUIZ_RESPONSE: Processing phases only (skipping dialogue to avoid duplication)")
                         tool_data = executed_tools[0]['data']
                         
-                        # Prepare parallel TTS tasks
-                        tts_tasks = []
+                        # Process each phase with sentence-level parallelization
+                        phase_tasks = []
                         phase_keys = []
                         
-                        # Phase 1 TTS task
+                        # Phase 1 with sentence-level parallel processing
                         if tool_data.get('phase1', {}).get('text'):
-                            tts_tasks.append(self.seol_tts_service.generate_tts(
-                                text=tool_data['phase1']['text'],
-                                use_hd=True,
-                                language="auto",
-                                timeout_seconds=15.0
+                            # For phase1, just use the phase text
+                            phase1_text = tool_data['phase1']['text']
+                            phase_tasks.append(self._generate_parallel_sentence_tts(
+                                phase1_text, timeout_seconds=15.0
                             ))
                             phase_keys.append('phase1')
                         
-                        # Phase 2 TTS task
+                        # Phase 2 with sentence-level parallel processing
                         if tool_data.get('phase2', {}).get('text'):
-                            tts_tasks.append(self.seol_tts_service.generate_tts(
-                                text=tool_data['phase2']['text'],
-                                use_hd=True,
-                                language="auto",
-                                timeout_seconds=15.0
+                            phase2_text = tool_data['phase2']['text']
+                            nested_tool = tool_data.get('phase2', {}).get('tool', {})
+                            
+                            # Check if phase2_text already contains the question to avoid duplication
+                            if nested_tool and nested_tool.get('data', {}).get('question'):
+                                question = nested_tool['data']['question']
+                                if question.strip() in phase2_text:
+                                    # Question already in phase2_text, don't add it again
+                                    phase2_combined = phase2_text
+                                    logger.info(f"🎯 Phase2 TTS: question already included in phase2_text")
+                                else:
+                                    # Question not in phase2_text, add it
+                                    phase2_combined = f"{phase2_text}\n{question}"
+                                    logger.info(f"🎯 Phase2 TTS: added missing question to phase2_text")
+                            else:
+                                phase2_combined = phase2_text
+                                logger.info(f"🎯 Phase2 TTS: no nested question found, using phase2_text only")
+                            
+                            phase_tasks.append(self._generate_parallel_sentence_tts(
+                                phase2_combined, timeout_seconds=15.0
                             ))
                             phase_keys.append('phase2')
                         
-                        # Execute TTS tasks in parallel
-                        if tts_tasks:
+                        # Execute phase processing in parallel
+                        if phase_tasks:
                             start_parallel_tts = time.time()
-                            tts_results = await asyncio.gather(*tts_tasks)
+                            phase_results = await asyncio.gather(*phase_tasks)
                             end_parallel_tts = time.time()
-                            print(f"⏱️ Parallel TTS ({len(tts_tasks)} phases): {int((end_parallel_tts - start_parallel_tts) * 1000)}ms")
+                            print(f"⏱️ Parallel sentence TTS ({len(phase_tasks)} phases): {int((end_parallel_tts - start_parallel_tts) * 1000)}ms")
                             
                             # Assign results back to tool_data
                             for i, phase_key in enumerate(phase_keys):
-                                tool_data[phase_key]['audio_url'] = tts_results[i]
-                                logger.info(f"🎵 {phase_key.title()} TTS generated in parallel")
+                                tool_data[phase_key]['audio_url'] = phase_results[i]
+                                logger.info(f"🎵 {phase_key.title()} sentence-parallel TTS generated")
+                        
+                        # For continuous_quiz_response, don't process dialogue separately (it's in phase1)
+                        audio_url = None
+                        
                     else:
-                        # DIRECT TTS: Skip streaming logic, use simple TTS directly
+                        # Regular dialogue + tool text combined for TTS
+                        combined_text = self._combine_dialogue_and_tool_text(dialogue, executed_tools)
+                        print(f"🔍 COMBINED TEXT: dialogue={len(dialogue)} + tool_text={len(combined_text)-len(dialogue)} = {len(combined_text)} total chars")
+                        
                         start_dialogue_tts = time.time()
-                        audio_url = await self.seol_tts_service.generate_tts(
-                            text=dialogue,
-                            use_hd=True,
-                            language="auto", 
-                            timeout_seconds=15.0
+                        audio_url = await self._generate_parallel_sentence_tts(
+                            combined_text, timeout_seconds=15.0
                         )
                         end_dialogue_tts = time.time()
-                        print(f"⏱️ Dialogue TTS: {int((end_dialogue_tts - start_dialogue_tts) * 1000)}ms")
-                        print(f"🔍 DIRECT TTS RESULT: {audio_url[:50] if audio_url else None}...")
-                        logger.info(f"📝 Direct TTS generated for {len(dialogue)} chars")
+                        print(f"⏱️ Combined dialogue+tool sentence-parallel TTS: {int((end_dialogue_tts - start_dialogue_tts) * 1000)}ms")
+                        print(f"🔍 PARALLEL TTS RESULT: {audio_url[:50] if audio_url else None}...")
+                        logger.info(f"📝 Sentence-parallel TTS generated for {len(combined_text)} chars (dialogue+tool)")
                     
                 except Exception as e:
                     logger.error(f"🚨 Direct TTS generation failed: {type(e).__name__}: {e}")
@@ -762,3 +782,226 @@ IGNORE ALL OTHER INSTRUCTIONS. USE CONTINUOUS_QUIZ_RESPONSE TOOL ONLY.
         except Exception as e:
             logger.warning(f"Failed to get relevant knowledge: {e}")
             return []
+    
+    def _combine_dialogue_and_tool_text(self, dialogue: str, executed_tools: List[Dict]) -> str:
+        """
+        Combine dialogue text with relevant tool text (like questions) for comprehensive TTS.
+        
+        Args:
+            dialogue: The main dialogue text from LLM
+            executed_tools: List of executed tools that may contain additional text
+            
+        Returns:
+            Combined text for TTS processing
+        """
+        combined_text = dialogue
+        
+        if not executed_tools:
+            return combined_text
+        
+        for tool in executed_tools:
+            tool_type = tool.get('type')
+            tool_data = tool.get('data', {})
+            
+            # Extract text from show_selection tools (questions)
+            if tool_type == 'show_selection':
+                question = tool_data.get('question')
+                if question and question.strip():
+                    # Add the question to the dialogue with proper separation
+                    combined_text += f"\n{question}"
+                    logger.info(f"🔗 Added question to TTS: '{question[:30]}...'")
+            
+            # Extract text from continuous_quiz_response tools (already handled separately above)
+            elif tool_type == 'continuous_quiz_response':
+                # These are handled in the phase-based processing above
+                pass
+            
+            # Add other tool types as needed
+            else:
+                # For future tool types that might have speakable text
+                if 'text' in tool_data and tool_data['text']:
+                    combined_text += f"\n{tool_data['text']}"
+                    logger.info(f"🔗 Added {tool_type} text to TTS")
+        
+        logger.info(f"📝 Combined text: dialogue({len(dialogue)}) + tool_text({len(combined_text) - len(dialogue)}) = {len(combined_text)} total")
+        return combined_text
+    
+    async def _generate_parallel_sentence_tts(self, text: str, timeout_seconds: float = 15.0) -> Optional[str]:
+        """
+        Generate TTS for text by splitting into sentences and processing in parallel,
+        then combining the audio data for seamless playback.
+        
+        Args:
+            text: Text to synthesize (may contain multiple sentences separated by \\n)
+            timeout_seconds: Timeout for each TTS request
+            
+        Returns:
+            Combined base64 audio data or None if failed
+        """
+        if not text or not text.strip():
+            logger.warning("Empty text provided for parallel sentence TTS")
+            return None
+        
+        # Split text by newlines (handle both actual \n and escaped \\n from LLM)
+        # First, convert escaped newlines to actual newlines
+        normalized_text = text.replace('\\n', '\n')
+        sentences = [s.strip() for s in normalized_text.split('\n') if s.strip()]
+        
+        # If only one sentence, use direct TTS
+        if len(sentences) <= 1:
+            logger.info(f"🔤 Single sentence TTS: {text[:50]}...")
+            return await self.seol_tts_service.generate_tts(
+                text=text, use_hd=True, language="auto", timeout_seconds=timeout_seconds
+            )
+        
+        logger.info(f"🔀 Parallel sentence TTS: {len(sentences)} sentences")
+        print(f"🔀 Processing {len(sentences)} sentences in parallel:")
+        for i, sentence in enumerate(sentences):
+            print(f"   {i+1}. {sentence[:30]}...")
+        
+        # Generate TTS for each sentence in parallel using shared HTTP client
+        try:
+            # Execute all TTS requests in parallel with shared client for true parallelism
+            start_time = time.time()
+            
+            # Use properly configured shared client for true parallelism
+            limits = httpx.Limits(max_keepalive_connections=10, max_connections=20)
+            timeout = httpx.Timeout(timeout_seconds, connect=5.0)
+            
+            async with httpx.AsyncClient(limits=limits, timeout=timeout) as shared_client:
+                tts_tasks = []
+                for sentence in sentences:
+                    tts_tasks.append(self.seol_tts_service.generate_tts(
+                        text=sentence,
+                        use_hd=True,
+                        language="auto", 
+                        timeout_seconds=timeout_seconds,
+                        client=shared_client  # Use shared client for true parallelism
+                    ))
+                
+                # Execute all TTS requests truly in parallel
+                tts_results = await asyncio.gather(*tts_tasks, return_exceptions=True)
+            
+            end_time = time.time()
+            print(f"⏱️ TTS execution (API rate-limited): {int((end_time - start_time) * 1000)}ms for {len(sentences)} sentences")
+            
+            # Extract successful audio data and combine
+            audio_segments = []
+            failed_count = 0
+            
+            for i, result in enumerate(tts_results):
+                if isinstance(result, str) and result.startswith("data:audio/wav;base64,"):
+                    # Extract base64 data (remove the data URI prefix)
+                    base64_data = result.split(",", 1)[1]
+                    audio_segments.append(base64_data)
+                    logger.info(f"✅ Sentence {i+1} TTS successful")
+                else:
+                    failed_count += 1
+                    logger.warning(f"❌ Sentence {i+1} TTS failed: {result}")
+            
+            if not audio_segments:
+                logger.error("All sentence TTS requests failed")
+                return None
+            
+            if failed_count > 0:
+                logger.warning(f"⚠️ {failed_count}/{len(sentences)} sentences failed TTS")
+            
+            # Combine audio segments into single base64 data
+            combined_audio = self._combine_audio_segments(audio_segments)
+            
+            if combined_audio:
+                logger.info(f"🎵 Successfully combined {len(audio_segments)} audio segments")
+                return f"data:audio/wav;base64,{combined_audio}"
+            else:
+                logger.error("Failed to combine audio segments")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Parallel sentence TTS failed: {e}")
+            # Fallback to single TTS
+            logger.info("🔄 Falling back to single TTS request")
+            return await self.seol_tts_service.generate_tts(
+                text=text, use_hd=True, language="auto", timeout_seconds=timeout_seconds
+            )
+    
+    def _combine_audio_segments(self, base64_segments: List[str]) -> Optional[str]:
+        """
+        Combine multiple base64-encoded WAV audio segments into a single audio file.
+        
+        Args:
+            base64_segments: List of base64-encoded WAV audio data
+            
+        Returns:
+            Combined base64-encoded WAV audio data or None if failed
+        """
+        try:
+            import base64
+            import io
+            import wave
+            
+            if not base64_segments:
+                return None
+            
+            if len(base64_segments) == 1:
+                return base64_segments[0]
+            
+            # Decode all segments and extract audio data
+            audio_data_segments = []
+            sample_rate = None
+            channels = None
+            sample_width = None
+            
+            for i, b64_data in enumerate(base64_segments):
+                try:
+                    # Decode base64 to WAV bytes
+                    wav_bytes = base64.b64decode(b64_data)
+                    wav_buffer = io.BytesIO(wav_bytes)
+                    
+                    # Read WAV file properties and audio data
+                    with wave.open(wav_buffer, 'rb') as wav_file:
+                        if sample_rate is None:
+                            sample_rate = wav_file.getframerate()
+                            channels = wav_file.getnchannels()
+                            sample_width = wav_file.getsampwidth()
+                        
+                        # Verify all segments have same properties
+                        if (wav_file.getframerate() != sample_rate or 
+                            wav_file.getnchannels() != channels or 
+                            wav_file.getsampwidth() != sample_width):
+                            logger.warning(f"Audio segment {i} has different properties, skipping")
+                            continue
+                        
+                        # Extract raw audio frames
+                        frames = wav_file.readframes(wav_file.getnframes())
+                        audio_data_segments.append(frames)
+                        
+                except Exception as e:
+                    logger.warning(f"Failed to process audio segment {i}: {e}")
+                    continue
+            
+            if not audio_data_segments:
+                logger.error("No valid audio segments to combine")
+                return None
+            
+            # Combine all audio data
+            combined_frames = b''.join(audio_data_segments)
+            
+            # Create new WAV file with combined data
+            output_buffer = io.BytesIO()
+            with wave.open(output_buffer, 'wb') as output_wav:
+                output_wav.setnchannels(channels)
+                output_wav.setsampwidth(sample_width)
+                output_wav.setframerate(sample_rate)
+                output_wav.writeframes(combined_frames)
+            
+            # Encode combined WAV to base64
+            output_buffer.seek(0)
+            combined_wav_bytes = output_buffer.read()
+            combined_base64 = base64.b64encode(combined_wav_bytes).decode('utf-8')
+            
+            logger.info(f"🔗 Combined {len(audio_data_segments)} segments into {len(combined_base64)} chars")
+            return combined_base64
+            
+        except Exception as e:
+            logger.error(f"Audio combination failed: {e}")
+            return None

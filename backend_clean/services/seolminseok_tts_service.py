@@ -53,7 +53,8 @@ class SeolMinSeokTTSService:
         use_hd: bool = True,
         language: str = "auto",
         timeout_seconds: float = 100.0,  # WORKING: Tested with 10s timeout successfully
-        request_id: Optional[str] = None
+        request_id: Optional[str] = None,
+        client: Optional[httpx.AsyncClient] = None  # Allow shared client for parallel requests
     ) -> Optional[str]:
         """
         Generate TTS for 설민석 character
@@ -64,6 +65,7 @@ class SeolMinSeokTTSService:
             language: Language detection mode (default "auto")
             timeout_seconds: Timeout for the request
             request_id: Optional request ID for performance tracking
+            client: Optional shared HTTP client for parallel requests
             
         Returns:
             Base64 encoded audio data or None if failed
@@ -89,19 +91,32 @@ class SeolMinSeokTTSService:
         logger.info(f"🎭 Generating 설민석 TTS for text: {text[:50]}...")
         
         try:
-            # PHASE 1: Use aggressive timeout to prevent 20+ second delays
+            # Use shared client for parallel requests or create new one
+
             
-            print(f"TTS start: {text[:20]}...")
-            start_time = time.time()
-            async with httpx.AsyncClient() as client:
-               response =  await client.post(
+            if client:
+                # Use shared client for parallel processing
+                start_time = time.time()
+                response = await client.post(
                     self.endpoint,
                     headers=self.headers,
                     json=payload,
                     timeout=timeout_seconds
                 )
-            end_time = time.time()
-            print(f"TTS time: {end_time - start_time}, {text[:20]}...")
+                end_time = time.time()
+            else:
+                # Create individual client (original behavior)
+                start_time = time.time()
+                async with httpx.AsyncClient() as individual_client:
+                    response = await individual_client.post(
+                        self.endpoint,
+                        headers=self.headers,
+                        json=payload,
+                        timeout=timeout_seconds
+                    )
+                end_time = time.time()
+            
+            print(f"TTS time: {end_time - start_time:.3f}s, {text[:20]}...")
             
             logger.info(f"TTS Response status: {response.status_code}")
             
